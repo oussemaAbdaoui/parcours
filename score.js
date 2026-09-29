@@ -223,14 +223,41 @@
       if (tl) return tl;
       if (/\b(internship|stage de fin d.etudes|stage (?:de|d.) ?\d|stagiaire|pfe|praktikum|werkstudent|alternance|apprentissage en alternance)\b/.test(t)) return { lvl: 0, label: 'internship' };
     } else if (/\b(stage|stagiaire|intern(ship)?|pfe|praktikum|werkstudent|alternance|apprenti)/.test(t)) return { lvl: 0, label: 'internship' };
-    const yrs = t.match(/(\d{1,2})\s*\+?\s*(?:years?|yrs|ans|jahre)/);
-    const y = yrs ? +yrs[1] : null;
+    const ex = offerYears(t);
+    const y = ex && ex.label !== 'Entry level' ? ex.min : null;
     if (/\b(principal|staff|head of|director|chef de|leiter)\b/.test(t) || /\blead\b(?! to)/.test(t) || (y !== null && y >= 8)) return { lvl: 4, label: 'lead', years: y };
     if (/\b(senior|sr\.?|confirme|experimente|erfahren)\b/.test(t) || (y !== null && y >= 5)) return { lvl: 3, label: 'senior', years: y };
     if (/\b(junior|jr\.?|graduate|debutant|entry.level|jeune diplome|berufseinsteiger|new grad)\b/.test(t) || (y !== null && y <= 2)) return { lvl: 1, label: 'junior', years: y };
     if (y !== null) return { lvl: 2, label: 'mid', years: y };
     return { lvl: null, label: 'not stated' };
   }
+  /* Experience asked by an offer: {min, max, label} or null. Numbers only count near an experience word,
+     so "3-year contract" or "5 days a week" are ignored. When several are stated, the strictest minimum wins. */
+  const EXP_WORD = '(?:experience|exp\\.?|d.experience|erfahrung|berufserfahrung|work experience|professional experience|in (?:a|the) (?:similar|same) role)';
+  const UNIT = '(?:years?|yrs?|ans?|annees?|jahre?n?)';
+  function offerYears(text) {
+    const t = norm(text);
+    const found = [];
+    const push = (min, max) => { if (min <= 20 && (max == null || (max >= min && max <= 25))) found.push({ min, max }); };
+    let m;
+    // "2-3 years of experience", "2 a 3 ans d'experience", "3 to 5 years", "3 bis 5 Jahre Berufserfahrung"
+    const range = new RegExp('(\\d{1,2})\\s*(?:-|to|a|à|bis|et)\\s*(\\d{1,2})\\s*\\+?\\s*' + UNIT + '[^.;]{0,40}' + EXP_WORD + '|' + EXP_WORD + '[^.;\\d]{0,30}(\\d{1,2})\\s*(?:-|to|a|à|bis)\\s*(\\d{1,2})\\s*' + UNIT, 'g');
+    while ((m = range.exec(t))) push(+(m[1] || m[3]), +(m[2] || m[4]));
+    // "3+ years of experience", "minimum 3 ans d'experience", "at least 5 years", "mindestens 5 Jahre Berufserfahrung", "experience of 3 years"
+    const single = new RegExp('(?:(?:at least|minimum|min\\.?|au moins|mindestens|plus de|more than|over)\\s*)?(\\d{1,2})\\s*\\+?\\s*' + UNIT + '(?:\\s*(?:\\+|or more|minimum|ou plus|und mehr))?[^.;]{0,40}' + EXP_WORD
+      + '|' + EXP_WORD + '[^.;\\d]{0,30}(?:(?:at least|minimum|de|of|von|mindestens|d.au moins)\\s*)?(\\d{1,2})\\s*\\+?\\s*' + UNIT, 'g');
+    while ((m = single.exec(t))) {
+      const n = +(m[1] || m[2]);
+      if (!found.some((f) => f.min === n || (f.max != null && n >= f.min && n <= f.max))) push(n, null);
+    }
+    if (found.length) {
+      const f = found.reduce((a, b) => (b.min > a.min ? b : a));
+      return { min: f.min, max: f.max, label: f.min === 0 && f.max ? `0–${f.max} yrs` : f.max != null ? `${f.min}–${f.max} yrs` : `${f.min}+ yrs` };
+    }
+    if (/\b(no experience (?:required|needed)|sans experience|debutant(?:e)?s? acceptes?|jeunes? diplomes?|entry.level|new grads?|graduate program|berufseinsteiger|keine berufserfahrung|junior)\b/.test(t)) return { min: 0, max: 2, label: 'Entry level' };
+    return null;
+  }
+
   function levelFromTitle(title) {
     const t = norm(title);
     if (/\b(stage|stagiaire|intern(ship)?|pfe|praktikum|werkstudent|alternance|alternant|apprenti)\b/.test(t)) return { lvl: 0, label: 'internship' };
@@ -415,6 +442,6 @@
   }
 
   const profileFromCv = (text) => parseCv(text); // kept for older callers
-  const api = { score, parseCv, profileFromCv, skillsIn, offerLevel, WEIGHTS, SKILL_NAMES: Object.keys(SKILLS), FAMILY, DEGREE_NAME, norm };
+  const api = { score, parseCv, profileFromCv, skillsIn, offerLevel, offerYears, WEIGHTS, SKILL_NAMES: Object.keys(SKILLS), FAMILY, DEGREE_NAME, norm };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ParcoursScore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

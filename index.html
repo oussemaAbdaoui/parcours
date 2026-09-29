@@ -21,6 +21,7 @@
   --ok:#1A7F4E; --warn:#A86A06; --bad:#B8433B;
   --hi:#1A7F4E; --hi-t:#DDF2E6; --mid:#A86A06; --mid-t:#F7EBD3; --lo:#B8433B; --lo-t:#F7E1DE;
   --accent:var(--job); --tint:var(--job-t);
+  --c-yours:#2a78d6; --c-gap:#eb6834; --b-strong:#104281; --b-fair:#2a78d6; --b-weak:#86b6ef;
   --display:'Bricolage Grotesque','Avenir Next','Segoe UI',system-ui,sans-serif;
   --body:'Figtree','Segoe UI',system-ui,-apple-system,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Consolas,monospace;
@@ -33,6 +34,7 @@
     --job-t:#11322D; --master-t:#1F1F45; --phd-t:#3B1728;
     --ok:#5FD08F; --warn:#E6AE4C; --bad:#F08A80;
     --hi:#5FD08F; --hi-t:#123324; --mid:#E6AE4C; --mid-t:#35280F; --lo:#F08A80; --lo-t:#3A1A17;
+    --c-yours:#3987e5; --c-gap:#d95926; --b-strong:#86b6ef; --b-fair:#3987e5; --b-weak:#184f95;
     color-scheme:dark;
   }
 }
@@ -42,6 +44,7 @@
   --job-t:#11322D; --master-t:#1F1F45; --phd-t:#3B1728;
   --ok:#5FD08F; --warn:#E6AE4C; --bad:#F08A80;
   --hi:#5FD08F; --hi-t:#123324; --mid:#E6AE4C; --mid-t:#35280F; --lo:#F08A80; --lo-t:#3A1A17;
+  --c-yours:#3987e5; --c-gap:#d95926; --b-strong:#86b6ef; --b-fair:#3987e5; --b-weak:#184f95;
   color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:inherit}
@@ -188,6 +191,7 @@ svg .dot:hover{stroke:var(--ink);stroke-width:2}
 .score.s-lo{background:var(--lo-t);color:var(--lo)}
 .score.weak::after{border-style:dashed;opacity:.7}
 @media(max-width:640px){.score{width:42px;height:42px;font-size:16px}}
+.xp{display:inline-block;margin-left:5px;border:1px solid var(--line);border-radius:999px;padding:0 8px;font-size:12px;font-weight:600;color:var(--ink);font-family:var(--mono);letter-spacing:-.02em;background:var(--surface-2)}
 .urgent{display:inline-block;background:var(--lo-t);color:var(--lo);border-radius:999px;padding:0 8px;font-size:12px;font-weight:650;vertical-align:1px}
 .new{display:inline-block;background:var(--ink);color:var(--bg);border-radius:999px;padding:0 8px;font-size:11.5px;font-weight:650;vertical-align:1px;letter-spacing:.02em}
 details.why,details.desc{margin-top:6px}
@@ -284,11 +288,51 @@ dialog::backdrop{background:rgba(8,16,14,.55);backdrop-filter:blur(2px)}
 .card.dom p{margin:0;font-size:14px;color:var(--muted)}
 h2.sec{font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-family:var(--body);font-weight:650;margin:30px 0 12px}
 h2.sec:first-of-type{margin-top:6px}
+h2.sec.market{margin-top:34px}
 .card .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
 .best{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;margin-top:8px;padding-top:10px;border-top:1px solid var(--line-2);font-size:13.5px;line-height:1.35}
 .best .score{width:38px;height:38px;font-size:14px;border-radius:9px}
 .best small{display:block;color:var(--muted);font-size:12.5px}
 .best span:last-child{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.charts .panel{margin:0}
+.charts .chart-skills{grid-row:span 2}
+@media(max-width:860px){.charts{grid-template-columns:1fr}.charts .chart-skills{grid-row:auto}}
+.legend2{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:2px 0 12px}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.sw.yours,.hbars b.yours{background:var(--c-yours)}
+.sw.gap,.hbars b.gap{background:var(--c-gap)}
+.hbars b.ns{background:var(--line)}
+.sw.b-strong,.stack b.b-strong{background:var(--b-strong)}
+.sw.b-fair,.stack b.b-fair{background:var(--b-fair)}
+.sw.b-weak,.stack b.b-weak{background:var(--b-weak)}
+.hbars{display:grid;gap:7px}
+.hrow{display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) 62px;gap:10px;align-items:center;font-size:13.5px;border-radius:6px;outline-offset:3px}
+.hrow .hl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .hl em{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--ink);color:var(--bg);border-radius:4px;padding:0 5px;margin-left:4px}
+.hrow.me .hl{font-weight:650}
+.ht{height:10px;background:var(--line-2);border-radius:0 4px 4px 0;overflow:hidden}
+.ht b{display:block;height:100%;border-radius:0 4px 4px 0}
+.hv{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right;white-space:nowrap}
+.hv small{font-family:var(--body);color:var(--muted);font-size:11px;margin-left:5px}
+.stacks{display:grid;gap:12px}
+.srow{display:grid;grid-template-columns:minmax(90px,130px) minmax(0,1fr);gap:10px;align-items:center;font-size:13.5px}
+.srow small{font-family:var(--mono);color:var(--muted);font-size:11.5px;margin-left:4px}
+.stack{display:flex;gap:2px;height:22px}
+.stack b{display:flex;align-items:center;justify-content:center;min-width:4px;color:#fff;font:600 11.5px var(--mono);border-radius:2px;outline-offset:2px}
+.stack b:first-child{border-radius:4px 2px 2px 4px}.stack b:last-child{border-radius:2px 4px 4px 2px}
+.stack b.b-weak{color:var(--ink)}
+:root[data-theme="dark"] .stack b.b-strong{color:#0B1311}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stack b.b-strong{color:#0B1311}:root:not([data-theme="light"]) .stack b.b-weak{color:#E3ECE8}}
+:root[data-theme="dark"] .stack b.b-weak{color:#E3ECE8}
+.ctab{margin-top:10px;font-size:13px}
+.ctab summary{cursor:pointer;color:var(--muted)}
+.ctab .tbl{overflow-x:auto;margin-top:6px}
+.ctab table{border-collapse:collapse;width:100%;font-size:13px}
+.ctab th,.ctab td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--line-2)}
+.ctab td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tip{position:fixed;z-index:50;max-width:280px;background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.4;padding:6px 9px;border-radius:7px;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+[data-tip]:focus-visible{outline:2px solid var(--ink)}
 .card.tool{border-style:dashed}
 .card.tool:hover{border-style:solid;border-color:var(--ink)}
 .card.tool .big{font-size:19px}
@@ -1055,7 +1099,7 @@ function jobCard(j){
   const badges=(j.sources||[j.source]).filter(Boolean).map(id=>`<span class="src">${esc((SRC[id]||{}).label||id)}</span>`).join('');
   const m=matchOf({title:j.title,desc:j.desc,company:j.company,c:j.c,kind:'job',posted:j.posted,type:j.type});
   return `<article class="offer">${scoreBadge(m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a>`:esc(j.title)}${j.isNew?' <span class="new">New</span>':''}</h3>
-  <div class="meta"><b>${esc(j.company)}</b> · ${esc(j.location)}${j.type?' · '+esc(j.type):''}${j.posted?' · '+esc(j.posted):''} ${badges}</div>${scoreWhy(m)}</div>
+  <div class="meta">${expTag(expOf(j))} <b>${esc(j.company)}</b> · ${esc(j.location)}${j.type?' · '+esc(j.type):''}${j.posted?' · '+esc(j.posted):''} ${badges}</div>${scoreWhy(m)}</div>
   <div class="oa"><button class="btn sm" data-jsave="${esc(j.id)}" ${sv?'disabled':''}>${sv?'Saved':'Save'}</button><button class="btn sm" data-jlog="${esc(j.id)}">Log</button></div></article>`;
 }
 function currentQ(){return {search:$('#jS').value.trim(),c:$('#jC').value,location:$('#jL').value.trim(),type:$('#jT').value,visa:$('#jV').checked};}
@@ -1072,6 +1116,11 @@ function renderLinks(){
   const q=currentQ();
   $('#dlBox').innerHTML=deepLinks(q).map(([n,u])=>`<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(n)}</a>`).join('');
 }
+// Experience the offer asks for: stored by the collector, or read here for live results.
+const expOf=x=>x.exp||(SC?SC.offerYears((x.title||'')+' . '+(x.desc||'')):null);
+const expTag=e=>e?`<span class="xp" title="Experience asked">${esc(e.label)}</span>`:'';
+const EXP_FILTERS=[['','Any experience'],['entry','Entry level or up to 2 yrs'],['3','Up to 3 yrs'],['5','Up to 5 yrs'],['none','Not stated']];
+function expOk(e,f){if(!f)return true;if(f==='none')return !e;if(!e)return false;return f==='entry'?e.min<=2&&(e.max==null||e.max<=3||e.label==='Entry level'):e.min<=+f;}
 const KIND_LABEL={job:'Jobs',phd:'PhD positions',master:"Master's programmes"};
 const crumbs=(trail,cur)=>`<div class="crumbs">${trail.map(([l,h])=>`<a href="${h}">${esc(l)}</a><span>/</span>`).join('')}<b>${esc(cur)}</b></div>`;
 // Offers worth showing: not hidden, not a dealbreaker, not already applied. Scores computed once per call.
@@ -1090,9 +1139,70 @@ async function ensureCollected(box){
 }
 function bestLine(list){const b=list.slice().sort((a,c)=>(c.m?c.m.rank:0)-(a.m?a.m.rank:0))[0];
   return b&&b.m?`<span class="best">${scoreBadge(b.m)}<span>${esc(b.title)}<small>${esc(b.org||b.source)}</small></span></span>`:'';}
+/* ---------- Market charts (Opportunities home) ---------- */
+// Colors: validated with the dataviz palette checks. Have/gap is a categorical pair (blue/orange);
+// match bands are one blue ramp, strongest band most visible in each theme.
+function chartTable(head,rows){return `<details class="ctab"><summary>Show as table</summary><div class="tbl"><table><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td${i?' class="num"':''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;}
+function skillsChart(all){
+  const mine=new Set(prof().skills),count={};
+  all.forEach(x=>new Set(SC.skillsIn(x.title+' . '+(x.desc||''))).forEach(k=>{if(!['research','git','agile'].includes(k))count[k]=(count[k]||0)+1;}));
+  // The most asked skills, always including your biggest gaps so the chart shows what to learn next.
+  const ranked=Object.entries(count).sort((a,b)=>b[1]-a[1]);
+  const gapTop=ranked.filter(([k])=>!mine.has(k)).slice(0,4);
+  const top=[...gapTop,...ranked.filter(([k])=>mine.has(k)).slice(0,12-gapTop.length)].sort((a,b)=>b[1]-a[1]);
+  if(!top.length)return '<p class="hint">Not enough offer text yet.</p>';
+  const max=top[0][1],gaps=top.filter(([k])=>!mine.has(k)).map(([k])=>k);
+  return `<div class="legend2"><span><i class="sw yours"></i>You have it</span><span><i class="sw gap"></i>Gap</span></div>
+    <div class="hbars">${top.map(([k,n])=>{const have=mine.has(k),pct=Math.round(n/all.length*100);
+      return `<div class="hrow" tabindex="0" data-tip="${esc(k)}: asked in ${n} of ${all.length} offers (${pct}%). ${have?'In your profile.':'Not in your profile.'}"><span class="hl">${esc(k)}</span>
+      <span class="ht"><b class="${have?'yours':'gap'}" style="width:${Math.max(2,n/max*100)}%"></b></span><span class="hv">${n}<small>${have?'yours':'gap'}</small></span></div>`;}).join('')}</div>
+    <p class="hint" style="margin:10px 0 0">${gaps.length?`Most asked skills missing from your profile: <b>${esc(gaps.slice(0,3).join(', '))}</b>.`:'You cover all of the most asked skills.'}</p>`
+    +chartTable(['Skill','Offers asking','In your profile'],top.map(([k,n])=>[k,n,mine.has(k)?'Yes':'No']));
+}
+function matchChart(all){
+  const bands=[['strong','Strong 75+',m=>m>=75],['fair','Fair 55–74',m=>m>=55&&m<75],['weak','Weak under 55',m=>m<55]];
+  const rows=['job','phd','master'].map(k=>[k,all.filter(x=>x.kind===k&&x.m)]).filter(([,l])=>l.length);
+  if(!rows.length)return '<p class="hint">No scored offers yet.</p>';
+  return `<div class="legend2">${bands.map(([c,l])=>`<span><i class="sw b-${c}"></i>${l}</span>`).join('')}</div>
+    <div class="stacks">${rows.map(([k,l])=>{const n=l.length;
+      return `<div class="srow"><span class="hl">${KIND_LABEL[k]} <small>${n}</small></span><span class="stack">${bands.map(([c,lab,f])=>{const v=l.filter(x=>f(x.m.score)).length;
+        return v?`<b class="b-${c}" style="flex:${v}" tabindex="0" data-tip="${KIND_LABEL[k]}: ${v} ${lab.toLowerCase()} (${Math.round(v/n*100)}%)">${v/n>=0.12?v:''}</b>`:'';}).join('')}</span></div>`;}).join('')}</div>`
+    +chartTable(['Category','Strong 75+','Fair 55–74','Weak <55'],rows.map(([k,l])=>[KIND_LABEL[k],...bands.map(([,,f])=>l.filter(x=>f(x.m.score)).length)]));
+}
+function expChart(all){
+  const years=prof().years||0;
+  const bins=[['Entry–1 yr',e=>e&&(e.label==='Entry level'||e.min<=1)],['2 yrs',e=>e&&e.min===2],['3–4 yrs',e=>e&&e.min>=3&&e.min<=4],['5+ yrs',e=>e&&e.min>=5]];
+  const counts=bins.map(([l,f])=>[l,all.filter(x=>f(x.xp||expOf(x))).length]);
+  const stated=counts.reduce((a,c)=>a+c[1],0),notStated=all.length-stated;
+  if(!stated)return `<p class="hint">None of your ${all.length} offers state an experience requirement yet. Full offer pages are read over the next runs.</p>`;
+  const max=Math.max(1,...counts.map(c=>c[1]));
+  const mineIdx=years<2?0:years<3?1:years<5?2:3;
+  return `<div class="hbars">${counts.map(([l,n],i)=>`<div class="hrow ${i===mineIdx?'me':''}" tabindex="0" data-tip="${esc(l)}: ${n} offers${i===mineIdx?' (your level)':''}"><span class="hl">${esc(l)}${i===mineIdx?' <em>you</em>':''}</span>
+      <span class="ht"><b class="yours" style="width:${n?Math.max(2,n/max*100):0}%"></b></span><span class="hv">${n}</span></div>`).join('')}</div>
+    <p class="hint" style="margin:10px 0 0">${stated} of ${all.length} offers state a requirement; ${notStated} do not say yet. You have ${years} year${years===1?'':'s'} (set in Profile).</p>`
+    +chartTable(['Experience asked','Offers'],[...counts,['Not stated',notStated]]);
+}
+function marketCharts(all){
+  if(!SC||!all.length)return '';
+  return `<h2 class="sec market">Your market at a glance</h2><div class="charts">
+    <div class="panel chart-skills"><h2>Skills in demand</h2><p class="hint">How many of your ${all.length} offers ask for each skill.</p>${skillsChart(all)}</div>
+    <div class="panel"><h2>Match quality</h2><p class="hint">Offers by match score, per category.</p>${matchChart(all)}</div>
+    <div class="panel"><h2>Experience asked</h2><p class="hint">What your offers require, next to your own level.</p>${expChart(all)}</div></div>`;
+}
+// One tooltip for every chart mark with data-tip (mouse and keyboard focus).
+(function(){
+  const tip=document.createElement('div');tip.className='tip';tip.hidden=true;document.body.appendChild(tip);
+  const show=(el,x,y)=>{tip.textContent=el.dataset.tip;tip.hidden=false;const r=tip.getBoundingClientRect();
+    tip.style.left=Math.min(window.innerWidth-r.width-8,Math.max(8,x+12))+'px';tip.style.top=Math.max(8,y-r.height-10)+'px';};
+  document.addEventListener('mousemove',e=>{const el=e.target.closest&&e.target.closest('[data-tip]');if(el)show(el,e.clientX,e.clientY);else tip.hidden=true;});
+  document.addEventListener('focusin',e=>{const el=e.target.closest&&e.target.closest('[data-tip]');if(el){const r=el.getBoundingClientRect();show(el,r.left,r.top);}});
+  document.addEventListener('focusout',()=>{tip.hidden=true;});
+})();
+
 function oppsHub(){
   $('#view').innerHTML=`<h1>Opportunities</h1><p class="sub">Offers collected for you every 6 hours, sorted into categories, plus your own search tools.</p>
   <h2 class="sec">Collected for you</h2><div class="grid" id="hubKinds"><p class="hint">Loading…</p></div>
+  <div id="hubCharts"></div>
   <h2 class="sec">Search and track</h2><div class="grid tools">
     <a class="card tool" href="#/opps/search"><span class="big">Search jobs</span><p>Live search on up to 10 sources, with match scores.</p></a>
     <a class="card tool" href="#/opps/saved-searches"><span class="big">Saved searches</span><p>${state.searches.length} of 4 saved. They also steer the collector.</p></a>
@@ -1103,7 +1213,8 @@ function oppsHub(){
   const box=$('#hubKinds');
   ensureCollected(box).then(ok=>{
     if(!ok||!$('#hubKinds'))return;
-    const all=visibleOffers(),run=(colData.runs||[])[0];
+    const all=visibleOffers().map(x=>Object.assign(x,{xp:expOf(x)})),run=(colData.runs||[])[0];
+    if($('#hubCharts'))$('#hubCharts').innerHTML=marketCharts(all);
     const kinds=['job','phd','master'].filter(k=>all.some(x=>x.kind===k));
     box.innerHTML=kinds.map(k=>{const l=all.filter(x=>x.kind===k),v=DOM[k],nNew=l.filter(x=>x.foundAt>colPrev).length,top=l.filter(x=>x.m&&x.m.score>=75).length;
       return `<a class="card dom" style="--accent:var(${v.color});--tint:var(${v.tint})" href="#/opps/${k}"><span class="big">${KIND_LABEL[k]}</span>
@@ -1175,7 +1286,7 @@ function opps(seg){
 }
 
 /* collected by the scheduled collector */
-let colLock=null,colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,remote:false,hideBlock:true,hideApplied:true},colMax=30;
+let colLock=null,colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,exp:'',remote:false,hideBlock:true,hideApplied:true},colMax=30;
 // Already applied: a logged application at the same company whose role shares most words with the offer title.
 const roleWords=s=>normOrg(s).split(' ').filter(w=>w.length>2&&!['h/f','f/h','the','and','des','les','pour'].includes(w));
 function isApplied(x){
@@ -1196,12 +1307,12 @@ function renderCollected(){
   const hidden=new Set(state.oppsHidden||[]);
   scoreProf=scoringProfile();
   const inScope=x=>!colLock||((!colLock.k||x.kind===colLock.k)&&(!colLock.c||x.c===colLock.c));
-  const all=colData.items.filter(x=>!hidden.has(x.id)&&inScope(x)).map(x=>Object.assign({},x,{m:matchOf(x),applied:isApplied(x)}));
+  const all=colData.items.filter(x=>!hidden.has(x.id)&&inScope(x)).map(x=>Object.assign({},x,{m:matchOf(x),applied:isApplied(x),xp:expOf(x)}));
   scoreProf=null;
   const q=normOrg(colF.q),cutoff=colF.days?Date.now()-colF.days*864e5:0;
   const isRemote=x=>/\b(remote|teletravail|télétravail|homeoffice|anywhere)\b/i.test(x.location+' '+x.title+' '+(x.desc||'').slice(0,600))||x.c==='gl';
   const l=all.filter(x=>(!colF.k||x.kind===colF.k)&&(!colF.c||x.c===colF.c)&&(!colF.onlyNew||x.foundAt>colPrev)&&(!x.m||x.m.score>=colF.min)
-    &&(!colF.src||x.source===colF.src)&&(!cutoff||Math.max(Date.parse(x.posted||'')||0,x.foundAt||0)>=cutoff)&&(!colF.remote||isRemote(x))
+    &&(!colF.src||x.source===colF.src)&&expOk(x.xp,colF.exp)&&(!cutoff||Math.max(Date.parse(x.posted||'')||0,x.foundAt||0)>=cutoff)&&(!colF.remote||isRemote(x))
     &&(!colF.hideBlock||!x.m||!x.m.blockers.length)&&(!colF.hideApplied||!x.applied)
     &&(!q||normOrg(x.title+' '+x.org+' '+(x.desc||'')).includes(q)));
   const sources=[...new Set(all.map(x=>x.source))].sort();
@@ -1222,6 +1333,7 @@ function renderCollected(){
       ${colLock&&colLock.k?'':`<select id="coK" aria-label="Kind"><option value="">All kinds</option><option value="job">Jobs</option><option value="phd">PhD</option><option value="master">Master's</option></select>`}
       ${colLock&&colLock.c?'':`<select id="coC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>`}
       <select id="coSrc" aria-label="Source"><option value="">All sources</option>${sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
+      <select id="coE" aria-label="Experience asked">${EXP_FILTERS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
       <select id="coD" aria-label="Posted within"><option value="0">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
       <label class="sc"><input type="checkbox" id="coN"> New only (${nNew})</label>
       <label class="sc"><input type="checkbox" id="coR"> Remote only</label>
@@ -1231,16 +1343,16 @@ function renderCollected(){
     +(l.length?'<div class="offers">'+l.slice(0,colMax).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:'',name:''},v=DOM[x.kind]||DOM.job;
       const dl=x.deadline?`Apply by ${esc(x.deadline)}`:(x.posted?`Posted ${esc(rel(x.posted))}`:'');
       return `<article class="offer" style="--accent:var(${v.color});--tint:var(${v.tint})">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.foundAt>colPrev?' <span class="new">New</span>':''}${x.m&&x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
-      <div class="meta"><span class="chip">${v.label}</span> <b>${esc(x.org||'')}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}</div>
+      <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${esc(x.org||'')}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}</div>
       ${scoreWhy(x.m)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
       <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>Save</button><button class="btn sm" data-colog="${esc(x.id)}">Log</button><button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></article>`;}).join('')+'</div>'
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
     :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 6 hours.'}</p>`);
   const k=$('#coS');if(k){if($('#coK'))$('#coK').value=colF.k;if($('#coC'))$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
-    $('#coSrc').value=colF.src;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
-    const read=()=>({k:$('#coK')?$('#coK').value:colF.k,c:$('#coC')?$('#coC').value:colF.c,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked});
-    ['coK','coC','coN','coS','coM','coSrc','coD','coR','coB','coA'].filter(id=>$('#'+id)).forEach(id=>$('#'+id).addEventListener('change',()=>{colF=read();colMax=30;renderCollected();}));
+    $('#coSrc').value=colF.src;$('#coE').value=colF.exp;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
+    const read=()=>({k:$('#coK')?$('#coK').value:colF.k,c:$('#coC')?$('#coC').value:colF.c,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,exp:$('#coE').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked});
+    ['coK','coC','coN','coS','coM','coSrc','coE','coD','coR','coB','coA'].filter(id=>$('#'+id)).forEach(id=>$('#'+id).addEventListener('change',()=>{colF=read();colMax=30;renderCollected();}));
     let tq=null;$('#coQ').addEventListener('input',()=>{clearTimeout(tq);tq=setTimeout(()=>{colF=read();colMax=30;renderCollected();const i=$('#coQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250);});}
   const m=$('#coMore');if(m)m.addEventListener('click',()=>{colMax+=30;renderCollected();});
 }
@@ -1295,7 +1407,7 @@ function renderSaved(){
   const b=$('#savedBox');if(!b)return;
   b.innerHTML=state.saved.length?'<div class="offers">'+state.saved.map(j=>{jobReg[j.id]=j;const u=safeUrl(j.url);
     const m=matchOf({title:j.title,desc:j.desc,company:j.rating||j.company,c:j.c,kind:j.kind||'job',posted:j.posted,deadline:j.deadline,type:j.type,applicants:j.applicants});
-    return `<article class="offer">${scoreBadge(m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a>`:esc(j.title)}</h3><div class="meta"><b>${esc(j.company)}</b> · ${esc(j.location)}${j.deadline?' · Apply by '+esc(j.deadline):''}</div>${scoreWhy(m)}</div>
+    return `<article class="offer">${scoreBadge(m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a>`:esc(j.title)}</h3><div class="meta">${expTag(expOf(j))} <b>${esc(j.company)}</b> · ${esc(j.location)}${j.deadline?' · Apply by '+esc(j.deadline):''}</div>${scoreWhy(m)}</div>
     <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-jlog="${esc(j.id)}">Log</button><button class="btn sm ghost" data-jdel="${esc(j.id)}">Remove</button></div></article>`;}).join('')+'</div>'
     :'<p class="hint" style="margin:0">Jobs you save from search results appear here.</p>';
 }
@@ -1498,7 +1610,7 @@ document.addEventListener('click',e=>{
   const jl=e.target.closest('[data-jlog]');
   if(jl){const j=jobReg[jl.dataset.jlog];if(j)openDlg({org:j.company,role:j.title,c:j.c||'fr',d:'job',p:(SRC[j.source]||{}).label||'',link:safeUrl(j.url)});return;}
   const cs=e.target.closest('[data-cosave]');
-  if(cs){const x=colData&&colData.items.find(i=>i.id===cs.dataset.cosave);if(x&&!state.saved.some(s=>s.id==='co'+x.id)){state.saved.unshift({id:'co'+x.id,title:x.title,company:x.org,location:x.location,posted:x.posted,type:x.type||'',url:x.url,c:x.c,source:x.source,kind:x.kind,deadline:x.deadline||'',desc:(x.desc||'').slice(0,1500),applicants:x.applicants,rating:x.company&&x.company.rating?x.company:null});state.saved=state.saved.slice(0,60);save();cs.disabled=true;renderSaved();}return;}
+  if(cs){const x=colData&&colData.items.find(i=>i.id===cs.dataset.cosave);if(x&&!state.saved.some(s=>s.id==='co'+x.id)){state.saved.unshift({id:'co'+x.id,title:x.title,company:x.org,location:x.location,posted:x.posted,type:x.type||'',url:x.url,c:x.c,source:x.source,kind:x.kind,deadline:x.deadline||'',desc:(x.desc||'').slice(0,1500),applicants:x.applicants,rating:x.company&&x.company.rating?x.company:null,exp:x.exp||null});state.saved=state.saved.slice(0,60);save();cs.disabled=true;renderSaved();}return;}
   const cl=e.target.closest('[data-colog]');
   if(cl){const x=colData&&colData.items.find(i=>i.id===cl.dataset.colog);if(x)openDlg({org:x.org||x.source,role:x.title,c:cById(x.c)?x.c:'fr',d:DOM[x.kind]?x.kind:'job',p:x.source,link:safeUrl(x.url)});return;}
   const ch=e.target.closest('[data-cohide]');

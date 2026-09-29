@@ -210,10 +210,11 @@ def save_items(store, items, removed):
 
 
 def dealbreakers(items, state):
-    """{id: [reasons]} for offers that hit a dealbreaker for your profile, using the app's own score.js via Node."""
+    """{id: [reasons]} for offers that hit a dealbreaker for your profile, using the app's own score.js via Node.
+    Also tags each offer with the experience it asks for (item["exp"] = {min, max, label}, e.g. "3+ yrs")."""
     import shutil
     import subprocess
-    if not items or not (state.get("profile") or {}):
+    if not items:
         return {}
     node = shutil.which("node")
     if not node:
@@ -226,7 +227,12 @@ def dealbreakers(items, state):
     if out.returncode:
         print("  dealbreaker filter failed:", out.stderr.decode("utf8", "replace")[:200])
         return {}
-    return json.loads(out.stdout or b"{}")
+    res = json.loads(out.stdout or b"{}")
+    exp = res.get("exp", {})
+    for x in items:
+        if x["id"] in exp:
+            x["exp"] = exp[x["id"]]
+    return res.get("blocked", {})
 
 
 def report_blocked(blocked, label):
