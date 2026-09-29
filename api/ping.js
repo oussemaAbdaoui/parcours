@@ -16,8 +16,7 @@ module.exports = (req, res) => {
       remoteok: true,
       indeed: true,
       linkedin: true,
-      glassdoor: true,
-      google: true
+      glassdoor: true
     },
     sync: !!upstash(),
     ai: aiOn(req),

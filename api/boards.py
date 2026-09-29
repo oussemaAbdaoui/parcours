@@ -108,7 +108,8 @@ class handler(BaseHTTPRequestHandler):
                     for j in jobs:
                         key = re.sub(r"\s+", " ", (j["title"] + "|" + j["company"]).lower())
                         if key in merged:
-                            merged[key]["sources"].append(s)
+                            if s not in merged[key]["sources"]:
+                                merged[key]["sources"].append(s)
                         else:
                             merged[key] = dict(j, c=q["c"], sources=[s])
                 except Exception as e:  # one blocked site should not fail the others

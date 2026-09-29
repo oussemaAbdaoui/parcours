@@ -868,11 +868,10 @@ const SRC={
   remoteok:{label:'RemoteOK',c:['gl'],remote:true},
   indeed:{label:'Indeed',c:['fr','de','ca','ch','gl']},
   linkedin:{label:'LinkedIn',c:['fr','de','ca','ch','tn','gl']},
-  glassdoor:{label:'Glassdoor',c:['fr','de','ca','ch']},
-  google:{label:'Google Jobs',c:['fr','de','ca','ch','tn','gl']}
+  glassdoor:{label:'Glassdoor',c:['fr','de','ca','ch']}
 };
 // Served by api/boards.py (JobSpy). Slower and can be rate-limited, so saved searches leave them to the collector.
-const PY=['indeed','linkedin','glassdoor','google'];
+const PY=['indeed','linkedin','glassdoor'];
 const LOC={fr:'Paris',de:'Berlin',ca:'Montréal',tn:'Tunis',ch:'Zurich',gl:'Remote'};
 const JTYPES=[['','Any type'],['fulltime','Full-time'],['internship','Internship'],['contract','Contract'],['parttime','Part-time']];
 const ACAD=[['Inria doctoral offers','https://jobs.inria.fr/public/classic/fr/offres?filtre=doctorants'],['ABG (France)','https://www.abg.asso.fr'],['Euraxess','https://euraxess.ec.europa.eu/jobs/search'],['DAAD PhDGermany','https://www.daad.de/en/study-and-research-in-germany/phd-studies-and-research-in-germany/'],['Academic Positions','https://academicpositions.com/jobs/position/phd/field/machine-learning'],['jobs.ac.uk','https://www.jobs.ac.uk/'],['ELLIS jobs','https://ellis.eu/jobs'],['Mila','https://mila.quebec']];
@@ -935,7 +934,7 @@ function renderLinks(){
 }
 function opps(){
   $('#view').innerHTML=`<h1>Opportunities</h1><p class="sub">Live listings from several job sources, your own feeds, and a radar of PhDs and master's programmes.</p>
-  <div class="panel"><h2>Collected for you</h2><p class="hint">New jobs, PhD and master's offers found automatically every 6 hours on Indeed, LinkedIn, Google Jobs, jobs.ac.uk, Inria, ELLIS and Keejob, using your saved searches.</p><div id="colBox"></div></div>
+  <div class="panel"><h2>Collected for you</h2><p class="hint">New jobs, PhD and master's offers found automatically every 6 hours on Indeed, LinkedIn, jobs.ac.uk, Inria, ELLIS and Keejob, using your saved searches.</p><div id="colBox"></div></div>
   <div class="panel"><h2>Your saved searches</h2><p class="hint">These run when you open this page. New listings since your last visit are marked.</p><div id="ssBox"></div></div>
   <div class="panel"><h2>Search jobs</h2>
     <div class="g2"><div><label class="lab" for="jS">Keywords</label><input type="text" id="jS" list="jSl" value="machine learning engineer"><datalist id="jSl"><option value="machine learning engineer"><option value="AI engineer"><option value="NLP engineer"><option value="backend developer"><option value="software engineer"><option value="data scientist"></datalist></div>

@@ -23,7 +23,7 @@ To test locally first: `npx vercel dev`, with your variables in a `.env.local` f
 | `JOOBLE_KEY` | No | Jooble listings, including Tunisia and Switzerland | jooble.org/api/about (free, on request) |
 | `ANTHROPIC_API_KEY` | No | "Paste an email" import and "Analyse my search" | console.anthropic.com |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | No | Sync between your devices, and storage for the Gmail connection | Upstash Redis (free tier), or add it from the Vercel Marketplace |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | "Scan Gmail" (also needs `ANTHROPIC_API_KEY` and Upstash) | Google Cloud console, see below |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | "Scan Gmail" (also needs Upstash) | Google Cloud console, see below |
 
 Optional: `ANTHROPIC_MODEL` and `ANTHROPIC_MODEL_FAST` to change the Claude models (defaults: `claude-sonnet-5` and `claude-haiku-4-5-20251001`).
 
@@ -38,26 +38,39 @@ Optional: `ANTHROPIC_MODEL` and `ANTHROPIC_MODEL_FAST` to change the Claude mode
 | Adzuna | Yes | FR, DE, CA, CH | Official API |
 | France Travail | Yes | France | Official API |
 | Jooble | Yes | Many countries, including TN and CH | Official API |
+| Indeed, LinkedIn, Glassdoor | No | Indeed/Glassdoor: FR, DE, CA, CH, remote. LinkedIn: all, including TN | Via [JobSpy](https://github.com/speedyapply/JobSpy) (MIT) in `api/boards.py`. Reads public search pages, so it is slower and can be rate-limited |
 
 Sources without a key work as soon as you deploy. Others appear in the search form once you add their keys.
 
-**Not fetchable:** LinkedIn, Indeed, Welcome to the Jungle, APEC, Glassdoor and similar sites have no public search API, and scraping them breaks their terms and gets blocked. For those, the search page builds ready-made search links that open each site in a new tab. For academic positions the radar page links to Inria, ABG, Euraxess, DAAD, Academic Positions, jobs.ac.uk and ELLIS.
+**Not fetchable:** Welcome to the Jungle, APEC and similar sites have no public search API and block automated access. Indeed, LinkedIn and Glassdoor are read through JobSpy; this goes against their terms of use, so use it for your own searches only and expect the occasional block. For those, the search page builds ready-made search links that open each site in a new tab. For academic positions the radar page links to Inria, ABG, Euraxess, DAAD, Academic Positions, jobs.ac.uk and ELLIS.
 
 **Your feeds:** paste any RSS or Atom feed address and its latest items appear in Opportunities.
 
 ## Gmail scan
 
-**Scan Gmail** on the Applications page reads recent emails that look job-related, has Claude sort them into opportunities, interviews, offers, rejections and other updates, and matches them to your logged applications. You tick what to apply; nothing changes on its own. Access is read-only, and the Google token stays on the server (in Upstash), never in the browser.
+**Scan Gmail** on the Applications page reads recent emails that look job-related, sorts them with free keyword rules (English, French, German; `api/_classify.js`) into opportunities, interviews, offers, rejections and other updates, and matches them to your logged applications. You tick what to apply; nothing changes on its own. Access is read-only, and the Google token stays on the server (in Upstash), never in the browser.
 
 Setup, once:
 
 1. In [console.cloud.google.com](https://console.cloud.google.com) create a project, then enable the **Gmail API** (APIs and services, Library).
 2. **OAuth consent screen**: choose External, fill in the app name and your email, add the scope `https://www.googleapis.com/auth/gmail.readonly`, and add your Gmail address under **Test users**.
 3. **Credentials, Create credentials, OAuth client ID**: type Web application, authorised redirect URI `https://<your-app>.vercel.app/api/gmail-callback`.
-4. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Vercel (plus `ANTHROPIC_API_KEY` and Upstash if not done yet), then redeploy.
+4. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Vercel (plus Upstash if not done yet), then redeploy.
 5. Open Applications, Scan Gmail, Connect Gmail.
 
-While the Google app stays in "Testing" mode, Google expires the connection after 7 days; the app then asks you to connect again. Emails already reviewed are remembered and not sent to Claude twice. Each scan reads up to 40 new emails.
+While the Google app stays in "Testing" mode, Google expires the connection after 7 days; the app then asks you to connect again. Emails already reviewed are remembered and not shown twice. Each scan reads up to 80 new emails. The rules can misread unusual wording, which is why you confirm each change.
+
+## Collected opportunities (scheduled)
+
+`collector/collect.py` runs on GitHub Actions every 6 hours (`.github/workflows/collect.yml`) and saves new offers to Upstash. They appear under **Opportunities, Collected for you**, with details, deadline and an **Apply** link.
+
+- **Job boards:** your saved searches, run through JobSpy on Indeed and LinkedIn (4 default searches until you save your own).
+- **PhD and research:** jobs.ac.uk PhD studentships, Inria PhD and engineer offers, ELLIS positions, filtered on your keywords and AI topics.
+- **Tunisia:** Keejob.
+
+Scraping uses [Scrapling](https://github.com/D4Vinci/Scrapling)'s plain HTTP fetcher on pages the site's robots.txt allows. Sites that block automated access (Academic Positions, ABG, FindAPhD, Tanitjobs) or disallow it (Euraxess) are not scraped: subscribe to their email alerts instead, and Scan Gmail picks them up. Google Jobs returns nothing to servers, so it is not used.
+
+Setup: add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as repository secrets on GitHub. Without them the workflow runs in dry-run mode and only prints what it found. Run it by hand from the Actions tab (**Collect opportunities, Run workflow**). Items older than 45 days or past their deadline are dropped.
 
 ## Updating the radar
 
