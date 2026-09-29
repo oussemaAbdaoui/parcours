@@ -140,14 +140,18 @@ def _apply_page(x, page):
     return False
 
 
-def details(items, limit=60, stealth_limit=30, stealth=True, only_sources=None):
-    """Opens offer pages whose stored description is short and fills desc, deadline, salary, type."""
+def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, budget=360):
+    """Opens offer pages whose stored description is short and fills desc, deadline, salary, type.
+    Stops when the time budget (seconds) runs out; the rest is picked up on later runs."""
+    t0 = time.time()
     todo = [x for x in items if x.get("source") != "LinkedIn" and not x.get("detailed") and len(x.get("desc") or "") < 400
             and x.get("url", "").startswith("http") and (only_sources is None or x.get("source") in only_sources)]
     plain = [x for x in todo if x.get("source") not in STEALTH_SOURCES][:limit]
     hard = [x for x in todo if x.get("source") in STEALTH_SOURCES][:stealth_limit] if stealth else []
     done = failed = 0
     for x in plain:
+        if time.time() - t0 > budget * 0.5:
+            break
         try:
             page = Fetcher.get(x["url"], stealthy_headers=True, timeout=20, follow_redirects=True)
             if page.status == 429:
@@ -163,10 +167,12 @@ def details(items, limit=60, stealth_limit=30, stealth=True, only_sources=None):
     if hard:
         from scrapling.fetchers import StealthySession
         try:
-            with StealthySession(headless=True, solve_cloudflare=True, timeout=60000) as session:
+            with StealthySession(headless=True, solve_cloudflare=True, timeout=30000, disable_resources=True) as session:
                 for x in hard:
+                    if time.time() - t0 > budget:
+                        break
                     try:
-                        page = session.fetch(x["url"], network_idle=True)
+                        page = session.fetch(x["url"], network_idle=False, timeout=30000)
                         if page.status == 200 and _apply_page(x, page):
                             done += 1
                         else:
