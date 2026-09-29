@@ -30,10 +30,14 @@ DEFAULT_KEYWORDS = ["machine learning", "NLP", "artificial intelligence", "deep 
 # Anything matching these counts as relevant on the academic boards, whatever the saved searches say.
 TOPICS = ["machine learning", "deep learning", "artificial intelligence", "intelligence artificielle", " ai ", "nlp",
           "natural language", "language model", "llm", "computer vision", "data science", "apprentissage", "neural",
-          "reinforcement learning", "traitement automatique", "speech", "robot", "data"]
-# JobSpy sites per app country (Indeed and Glassdoor do not cover Tunisia).
-SITES = {"fr": ["indeed", "linkedin", "google"], "de": ["indeed", "linkedin", "google"], "ca": ["indeed", "linkedin", "google"],
-         "ch": ["indeed", "linkedin", "google"], "tn": ["linkedin", "google"], "gl": ["indeed", "linkedin"]}
+          "reinforcement learning", "traitement automatique", "speech", "robot", "data scien", " ia "]
+# Words too generic to show that a job board result matches the search.
+GENERIC = {"engineer", "engineering", "developer", "developpeur", "développeur", "ingenieur", "ingénieur", "senior", "junior",
+           "lead", "stage", "intern", "internship", "stagiaire", "h/f", "f/h", "m/f", "m/w/d", "job", "jobs", "remote"}
+# JobSpy sites per app country (Indeed does not cover Tunisia). Google Jobs returns nothing to datacenter IPs,
+# so it is only offered in the app's live search.
+SITES = {"fr": ["indeed", "linkedin"], "de": ["indeed", "linkedin"], "ca": ["indeed", "linkedin"],
+         "ch": ["indeed", "linkedin"], "tn": ["linkedin"], "gl": ["indeed", "linkedin"]}
 LABEL = {"indeed": "Indeed", "linkedin": "LinkedIn", "google": "Google Jobs", "glassdoor": "Glassdoor"}
 
 
@@ -60,6 +64,14 @@ def relevant(item, words):
     return any(w.lower() in text for w in words) or any(t in text for t in TOPICS)
 
 
+def matches_search(job, search):
+    """Job boards return loose matches: keep a result only if its title has a meaningful search word
+    or a known topic, or its description contains the whole search phrase."""
+    title, desc = f" {job['title'].lower()} ", job.get("desc", "").lower()
+    words = [w for w in re.split(r"[^\w+#/]+", search.lower()) if len(w) > 1 and w not in GENERIC]
+    return any(w in title for w in words) or any(t in title for t in TOPICS) or search.lower() in desc
+
+
 def run_jobspy(searches, status):
     items = []
     for s in searches:
@@ -67,7 +79,7 @@ def run_jobspy(searches, status):
         for site in SITES.get(s["c"], ["linkedin"]):
             name = LABEL[site]
             try:
-                found = jobspy_search(site, q, results=25, hours=24 * 7)
+                found = [j for j in jobspy_search(site, q, results=25, hours=24 * 7) if matches_search(j, s["search"])]
                 st = status.setdefault(name, {"ok": True, "count": 0})
                 st["count"] += len(found)
                 for j in found:
@@ -98,10 +110,15 @@ def run_scrapers(keywords, status):
 
 def merge(old_items, found, now):
     by_id = {x["id"]: x for x in old_items}
+    same = {(x["title"].lower(), x.get("org", "").lower()): x["id"] for x in old_items}
     new = 0
     for x in found:
         if not x.get("url", "").startswith("http") or not x.get("title"):
             continue
+        key = (x["title"].lower(), x.get("org", "").lower())
+        if x["id"] not in by_id and key in same:  # same posting from another search or site
+            continue
+        same[key] = x["id"]
         if x["id"] in by_id:
             by_id[x["id"]].update({k: v for k, v in x.items() if v})  # refresh details, keep foundAt
         else:

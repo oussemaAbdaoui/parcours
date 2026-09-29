@@ -13,6 +13,21 @@ from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
 from jobspy import scrape_jobs
+from jobspy.model import Country
+
+# JobSpy raises on countries missing from its list (LinkedIn returns "Tunis, Tunis Governorate, Tunisia"),
+# which fails the whole search. Fall back to "worldwide" instead; city and region are kept.
+_from_string = Country.from_string.__func__
+
+
+def _safe_from_string(cls, country_str):
+    try:
+        return _from_string(cls, country_str)
+    except ValueError:
+        return cls.WORLDWIDE
+
+
+Country.from_string = classmethod(_safe_from_string)
 
 SITES = {"indeed": "indeed", "linkedin": "linkedin", "glassdoor": "glassdoor", "google": "google"}
 # Indeed and Glassdoor need a country; Tunisia is not one of theirs.
