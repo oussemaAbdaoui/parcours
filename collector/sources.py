@@ -206,6 +206,7 @@ def abg(keywords, pages=8):
                 "posted": f"{posted.group(3)}-{posted.group(2)}-{posted.group(1)}" if posted else "", "deadline": "",
                 "type": kind_text, "desc": (desc + (f" Keywords: {mots}." if mots else "") + (" " + " · ".join(extra) if extra else ""))[:600],
             })
+    print(f"  ABG: {len(html_pages)} pages read, {len(out)} offers before topic filter")
     return out
 
 
