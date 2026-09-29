@@ -135,7 +135,7 @@ def keejob(keywords):
             jid = re.search(r"/offres-emploi/(\d+)/", href)
             spans = [_t(s) for s in art.css("span::text").getall() if _t(s)]
             posted = next((_fr_date(s) for s in spans if re.search(r"\d{4}", s)), "")
-            where = next((s for s in spans if s and not re.search(r"\d{4}|/", s) and len(s) < 30), "")
+            where = next((s for s in spans if s and not re.search(r"\d{4}|/", s) and len(s) < 30 and not re.fullmatch(r"(?i)cdi|cdd|stage|sivp|freelance|int[eé]rim|temps (plein|partiel)|karama|alternance", s)), "")
             desc = _t(art.css("p.text-sm::text").get())
             out.append({
                 "id": "keejob:" + (jid.group(1) if jid else href), "title": _t(a[0].get_all_text()),
@@ -391,7 +391,7 @@ def farojob(keywords):
             title = _t(a[0].get_all_text())
             m = re.match(r"(.+?)\s+recrute\s+(.+)", title, re.I)
             out.append({
-                "id": "farojob:" + href.rstrip("/").split("/")[-1], "title": _t(m.group(2)) if m else title,
+                "id": "farojob:" + href.rstrip("/").split("/")[-1], "title": re.sub(r"^(un|une|des)\s+", "", _t(m.group(2)), flags=re.I) if m else title,
                 "org": _t(m.group(1)) if m else "", "location": "Tunisie", "c": "tn", "kind": "job", "source": "Farojob",
                 "url": href, "posted": "", "deadline": "", "desc": _t(art.css("p::text").get())[:600],
             })
@@ -462,5 +462,100 @@ SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": 
             "jobs.ch": jobs_ch, "Job Bank": jobbank, "CNRS": cnrs, "Max Planck": max_planck, "jobRxiv": jobrxiv,
             "Farojob": farojob, "Himalayas": himalayas, "Jobicy": jobicy, "Working Nomads": working_nomads,
             "We Work Remotely": we_work_remotely}
+COUNTRY_WORDS = (("france", "fr"), ("germany", "de"), ("deutschland", "de"), ("switzerland", "ch"), ("schweiz", "ch"),
+                 ("suisse", "ch"), ("canada", "ca"), ("tunisia", "tn"), ("tunisie", "tn"))
+
+
+def _country(text):
+    low = (text or "").lower()
+    return next((c for w, c in COUNTRY_WORDS if w in low), "gl")
+
+
+def _stealth_pages(urls):
+    """Loads pages in one stealth browser session (passes Cloudflare challenges)."""
+    from scrapling.fetchers import StealthySession  # needs `scrapling install` (browser) on the runner
+    pages = []
+    with StealthySession(headless=True, solve_cloudflare=True, timeout=90000) as session:
+        for url in urls:
+            page = session.fetch(url, network_idle=True)
+            if page.status != 200:
+                raise RuntimeError(f"HTTP {page.status} from {url.split('/')[2]}")
+            pages.append(page)
+            time.sleep(UA_PAUSE)
+    return pages
+
+
+def academic_positions(keywords):
+    """Academic Positions: PhD, postdoc and faculty jobs in Europe (behind Cloudflare)."""
+    out = []
+    for page in _stealth_pages(["https://academicpositions.com/find-jobs?search=" + kw.replace(" ", "%20") for kw in keywords[:3]]):
+        for a in page.css('a[href*="academicpositions.com/ad/"]'):
+            if not a.css("h4"):
+                continue
+            card = a.parent
+            for _ in range(4):  # climb to the card that also holds employer and location
+                if card is None or card.css("a.job-link"):
+                    break
+                card = card.parent
+            text = _t(card.get_all_text()) if card is not None else ""
+            closing = re.search(r"Closing on:\s*(\d{4}-\d{2}-\d{2})", text)
+            loc = ", ".join(_t(x).strip(", ") for x in card.css(".job-locations a::text").getall()) if card is not None else ""
+            title = _t(a.css("h4::text").get())
+            href = a.attrib.get("href", "")
+            out.append({
+                "id": "ap:" + href.rstrip("/").split("/")[-1], "title": title,
+                "org": _t(card.css("a.job-link::text").get()) if card is not None else "", "location": loc, "c": _country(loc),
+                "kind": "phd" if re.search(r"\bph\.?d\b|doctoral", title.lower()) else "job", "source": "Academic Positions",
+                "url": href, "posted": "", "deadline": closing.group(1) if closing else "",
+                "desc": _t(a.css("p::text").get())[:600],
+            })
+    return out
+
+
+def scholarshipdb(keywords):
+    """ScholarshipDB: PhD, postdoc and scholarship offers worldwide (behind Cloudflare)."""
+    out = []
+    for page in _stealth_pages(["https://scholarshipdb.net/scholarships?q=" + kw.replace(" ", "+") for kw in keywords[:3]]):
+        for li in page.css("ul.list-unstyled > li"):
+            a = li.css("h4 a")
+            if not a:
+                continue
+            href = a[0].attrib.get("href", "")
+            title = _t(a[0].get_all_text())
+            city = _t(li.css("span.text-success::text").get())
+            country = _t(li.css("a.text-success::text").get())
+            orgs = [_t(x) for x in li.css("div > a:not(.text-success)::text").getall() if _t(x)]
+            p = li.css("p")
+            low = title.lower()
+            out.append({
+                "id": "sdb:" + href.rstrip("/").split("=")[-1], "title": title, "org": orgs[0] if orgs else "",
+                "location": ", ".join(x for x in (city, country) if x), "c": _country(country),
+                "kind": "phd" if re.search(r"\bph\.?d\b|doctoral|doctorate", low) else "job", "source": "ScholarshipDB",
+                "url": page.urljoin(href), "posted": "", "deadline": "", "desc": _t(p[0].get_all_text())[:600] if p else "",
+            })
+    return out
+
+
+def stepstone(keywords):
+    """StepStone, main German job board (behind bot protection)."""
+    out = []
+    urls = ["https://www.stepstone.de/jobs/" + re.sub(r"\s+", "-", kw.strip().lower()) for kw in keywords[:3]]
+    for page in _stealth_pages(urls):
+        for art in page.css('[data-at="job-item"]'):
+            a = art.css('a[data-at="job-item-title"]')
+            if not a:
+                continue
+            href = a[0].attrib.get("href", "")
+            jid = re.search(r"--(\d+)-inline", href)
+            out.append({
+                "id": "stepstone:" + (jid.group(1) if jid else href), "title": _t(a[0].get_all_text()),
+                "org": _t(art.css('[data-at="job-item-company-name"]')[0].get_all_text()) if art.css('[data-at="job-item-company-name"]') else "",
+                "location": _t(art.css('[data-at="job-item-location"]')[0].get_all_text()) if art.css('[data-at="job-item-location"]') else "",
+                "c": "de", "kind": "job", "source": "StepStone", "url": page.urljoin(href), "posted": "", "deadline": "",
+                "desc": _t(art.css('[data-at="job-item-middle"]')[0].get_all_text())[:600] if art.css('[data-at="job-item-middle"]') else "",
+            })
+    return out
+
+
 # Browser-based (StealthyFetcher). Only run where a browser is installed (STEALTH=1 in the workflow).
-STEALTH_SCRAPERS = {"ABG": abg}
+STEALTH_SCRAPERS = {"ABG": abg, "Academic Positions": academic_positions, "ScholarshipDB": scholarshipdb, "StepStone": stepstone}
