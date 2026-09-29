@@ -169,6 +169,17 @@ def main():
     old = (store.get_json(key) if store else None) or {}
     items, new = merge(old.get("items", []), found, now)
     print(f"{len(found)} found, {new} new, {len(items)} kept")
+    if not home:  # applicant counts, full descriptions and company ratings for the match score
+        from enrich import company_ratings, linkedin_details
+        for name, fn in (("LinkedIn details", lambda: linkedin_details(items)),
+                         ("Company reviews", lambda: company_ratings(items, store))):
+            try:
+                n, err = fn()
+                status[name] = {"ok": not err, "count": n, **({"error": err} if err else {})}
+            except Exception as e:
+                status[name] = {"ok": False, "count": 0, "error": str(e)[:160]}
+            print(f"  {name:16} {'ok ' if status[name]['ok'] else 'ERR'} {status[name]['count']:4}  {status[name].get('error', '')}")
+        print(f"  with applicants: {sum(1 for x in items if x.get('applicants'))}, with company rating: {sum(1 for x in items if x.get('company'))}")
     if dry:
         for x in items[:15]:
             print(f"  [{x['kind']:5}] {x['source']:12} {x['title'][:60]:60} | {x['org'][:25]:25} | {x.get('deadline') or x.get('posted')}")
