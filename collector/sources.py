@@ -1,14 +1,16 @@
 """Scrapers for PhD, master's and job platforms, built on Scrapling (BSD-3, github.com/D4Vinci/Scrapling).
 
-Only plain HTTP fetching of public listing pages that the site's robots.txt allows. No stealth browser,
-no CAPTCHA or Cloudflare bypass: sites that block automated access (Academic Positions, ABG, FindAPhD,
-Tanitjobs) or disallow it in robots.txt (Euraxess) are covered through their email alerts and the Gmail scan.
+SCRAPERS use Scrapling's plain HTTP fetcher (or a site's public API/RSS) on pages the site's robots.txt allows.
+STEALTH_SCRAPERS use StealthyFetcher, a real browser that passes Cloudflare challenges (ABG). Sites that block
+GitHub's IP addresses outright (FindAPhD, Tanitjobs, MastersPortal, ZipRecruiter...) cannot be reached from there,
+and Euraxess disallows its search in robots.txt; their email alerts reach the app through the Gmail scan.
 
 Every scraper returns a list of dicts: id, title, org, location, c, kind, source, url, posted, deadline, desc.
 """
+import json
 import re
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from scrapling.fetchers import Fetcher
 
@@ -210,6 +212,255 @@ def abg(keywords, pages=8):
     return out
 
 
-SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": keejob}
+EN_MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
+                                         "september", "october", "november", "december"], 1)}
+DE_MONTHS = {m: i for i, m in enumerate(["januar", "februar", "marz", "april", "mai", "juni", "juli", "august",
+                                         "september", "oktober", "november", "dezember"], 1)}
+
+
+def _long_date(s):
+    """'September 25, 2026' or '25. September 2026' -> ISO date."""
+    s = (s or "").lower().replace("ä", "a")
+    m = re.search(r"([a-z]+)\s+(\d{1,2}),\s*(\d{4})", s)
+    if m and m.group(1) in EN_MONTHS:
+        return date(int(m.group(3)), EN_MONTHS[m.group(1)], int(m.group(2))).isoformat()
+    m = re.search(r"(\d{1,2})\.?\s+([a-z]+)\s+(\d{4})", s)
+    if m and m.group(2) in DE_MONTHS:
+        return date(int(m.group(3)), DE_MONTHS[m.group(2)], int(m.group(1))).isoformat()
+    return ""
+
+
+def _json(url):
+    page = Fetcher.get(url, stealthy_headers=True, timeout=30)
+    if page.status != 200:
+        raise RuntimeError(f"HTTP {page.status} from {url.split('/')[2]}")
+    time.sleep(UA_PAUSE)
+    return page.json()
+
+
+def _strip_html(s):
+    return _t(re.sub(r"<[^>]+>", " ", s or "")).replace("&amp;", "&").replace("&#39;", "'")
+
+
+def hellowork(keywords):
+    """HelloWork, large French job board."""
+    out = []
+    for kw in keywords[:3]:
+        page = _get("https://www.hellowork.com/fr-fr/emploi/recherche.html?k=" + kw.replace(" ", "+"))
+        for li in page.css('li[data-id-storage-target="item"]'):
+            oid = li.attrib.get("data-id-storage-item-id", "")
+            title = li.css('input[name="title"]::attr(value)').get() or ""
+            org = li.css('input[name="company"]::attr(value)').get() or ""
+            href = li.css('a[href*="/fr-fr/emplois/"]::attr(href)').get() or ""
+            if not oid or not title or not href:
+                continue
+            bits = [b for b in (_t(x) for x in li.css("*::text").getall()) if b and len(b) < 60]
+            after = bits[bits.index(org) + 1:] if org in bits else []
+            out.append({
+                "id": "hellowork:" + oid, "title": _t(title), "org": _t(org), "location": after[0] if after else "",
+                "c": "fr", "kind": "job", "source": "HelloWork", "url": page.urljoin(href), "posted": "", "deadline": "",
+                "type": after[1] if len(after) > 1 else "", "desc": " · ".join(after[1:4]),
+            })
+    return out
+
+
+def jobs_ch(keywords):
+    """jobs.ch, main Swiss job board (reads the page's JobPosting structured data)."""
+    out = []
+    for kw in keywords[:3]:
+        page = _get("https://www.jobs.ch/en/vacancies/?term=" + kw.replace(" ", "%20"))
+        for raw in page.css('script[type="application/ld+json"]::text').getall():
+            try:
+                data = json.loads(raw)
+            except ValueError:
+                continue
+            for block in data if isinstance(data, list) else [data]:
+                if block.get("@type") != "ItemList":
+                    continue
+                for el in block.get("itemListElement", []):
+                    j = el.get("item", {})
+                    if not j.get("url"):
+                        continue
+                    addr = (j.get("jobLocation") or {}).get("address") or {}
+                    out.append({
+                        "id": "jobsch:" + str((j.get("identifier") or {}).get("value") or j["url"]), "title": _t(j.get("title")),
+                        "org": _t((j.get("hiringOrganization") or {}).get("name")),
+                        "location": _t(addr.get("addressLocality") or "Switzerland"), "c": "ch", "kind": "job",
+                        "source": "jobs.ch", "url": j["url"], "posted": str(j.get("datePosted", ""))[:10], "deadline": "",
+                        "type": _t(j.get("employmentType")), "desc": _strip_html(j.get("description"))[:600],
+                    })
+    return out
+
+
+def jobbank(keywords):
+    """Job Bank, the Government of Canada job board (robots.txt asks for 5 s between requests)."""
+    out = []
+    for kw in keywords[:2]:
+        page = _get("https://www.jobbank.gc.ca/jobsearch/jobsearch?searchstring=" + kw.replace(" ", "+"))
+        time.sleep(5)
+        for a in page.css("a.resultJobItem"):
+            jid = re.search(r"jobposting/(\d+)", a.attrib.get("href", ""))
+            if not jid:
+                continue
+            out.append({
+                "id": "jobbank:" + jid.group(1), "title": _t(a.css(".noctitle::text").get()),
+                "org": _t(a.css("li.business::text").get()), "location": _t(" ".join(a.css("li.location::text").getall())),
+                "c": "ca", "kind": "job", "source": "Job Bank",
+                "url": "https://www.jobbank.gc.ca/jobsearch/jobposting/" + jid.group(1),
+                "posted": _long_date(a.css("li.date::text").get()), "deadline": "", "type": "",
+                "desc": _t(" ".join(a.css("li.salary::text").getall())),
+            })
+    return out
+
+
+def cnrs(keywords):
+    """CNRS job portal: research engineer, fixed-term and PhD offers (France)."""
+    out = []
+    page = _get("https://emploi.cnrs.fr/Offres/Recherche.aspx")
+    for card in page.css("div.card"):
+        a = card.css("h3 a")
+        if not a:
+            continue
+        href = a[0].attrib.get("href", "")
+        ref = re.search(r"/Offres/\w+/([^/]+)/", href)
+        metas = [_t(p.get_all_text()) for p in card.css(".meta p")]
+        labels = [_t(x) for x in card.css("li.label span::text").getall()]
+        out.append({
+            "id": "cnrs:" + (ref.group(1) if ref else href), "title": _t(a[0].get_all_text()),
+            "org": "CNRS" + (f" ({metas[0]})" if metas else ""), "location": metas[1].title() if len(metas) > 1 else "",
+            "c": "fr", "kind": "phd" if "/Doctorant/" in href else "job", "source": "CNRS", "url": page.urljoin(href),
+            "posted": "", "deadline": "", "type": " · ".join(labels), "desc": " · ".join(labels),
+        })
+    return out
+
+
+def max_planck(keywords):
+    """Max Planck Society job board (Germany): PhD, postdoc and research positions across institutes."""
+    out = []
+    page = _get("https://www.mpg.de/stellenboerse")
+    for li in page.css("li.teaser"):
+        a = li.css("h3 a")
+        href = a[0].attrib.get("href", "") if a else ""
+        if "/job-" not in href:
+            continue
+        box = li.css(".text-box")
+        texts = [_t(x) for x in (box[0].css("div::text").getall() if box else []) if _t(x)]
+        inst = texts[-1] if texts else ""
+        title = _t(a[0].get_all_text())
+        out.append({
+            "id": "mpg:" + href.split("job-")[-1], "title": title, "org": inst.split(",")[0],
+            "location": inst.split(",")[-1].strip() if "," in inst else "", "c": "de",
+            "kind": "phd" if re.search(r"phd|doktorand|doctoral", title.lower()) else "job", "source": "Max Planck",
+            "url": page.urljoin(href), "posted": _long_date(li.css(".date::text").get()), "deadline": "", "desc": "",
+        })
+    return out
+
+
+def jobrxiv(keywords):
+    """jobRxiv: academic jobs board (PhD, postdoc, faculty), worldwide."""
+    out = []
+    for kw in keywords[:3]:
+        page = _get("https://jobrxiv.org/?s=" + kw.replace(" ", "+"))
+        for art in page.css("article.job_listing"):
+            a = art.css("section.post-content > a")
+            if not a:
+                continue
+            cls = art.attrib.get("class", "")
+            region = re.search(r"job_listing_region-([\w-]+)", cls)
+            out.append({
+                "id": "jobrxiv:" + (art.attrib.get("id", "") or a[0].attrib.get("href", "")), "title": _t(a[0].get_all_text()),
+                "org": _t(art.css(".author-link::text").get()),
+                "location": region.group(1).replace("-", " ").title() if region else "", "c": "gl",
+                "kind": "phd" if "job_listing_category-phd" in cls else "job", "source": "jobRxiv",
+                "url": a[0].attrib.get("href", ""), "posted": "", "deadline": "",
+                "desc": _t(art.css("section.post-content > p::text").get())[:600],
+            })
+    return out
+
+
+def farojob(keywords):
+    """Farojob, Tunisian job board (job offers only, not CVs)."""
+    out = []
+    for kw in keywords[:3]:
+        page = _get("https://www.farojob.net/?s=" + kw.replace(" ", "+") + "&post_type=job_listing")
+        for art in page.css("article.result"):
+            a = art.css("h2 a")
+            href = a[0].attrib.get("href", "") if a else ""
+            if "/jobs/" not in href:
+                continue
+            title = _t(a[0].get_all_text())
+            m = re.match(r"(.+?)\s+recrute\s+(.+)", title, re.I)
+            out.append({
+                "id": "farojob:" + href.rstrip("/").split("/")[-1], "title": _t(m.group(2)) if m else title,
+                "org": _t(m.group(1)) if m else "", "location": "Tunisie", "c": "tn", "kind": "job", "source": "Farojob",
+                "url": href, "posted": "", "deadline": "", "desc": _t(art.css("p::text").get())[:600],
+            })
+    return out
+
+
+def himalayas(keywords):
+    """Himalayas remote jobs (public API, newest first)."""
+    out = []
+    for j in _json("https://himalayas.app/jobs/api?limit=100").get("jobs", []):
+        pub = j.get("pubDate")
+        out.append({
+            "id": "himalayas:" + str(j.get("guid") or j.get("applicationLink")), "title": _t(j.get("title")),
+            "org": _t(j.get("companyName")), "location": ", ".join(j.get("locationRestrictions") or []) or "Remote",
+            "c": "gl", "kind": "job", "source": "Himalayas", "url": j.get("applicationLink") or j.get("guid") or "",
+            "posted": datetime.fromtimestamp(pub, timezone.utc).date().isoformat() if isinstance(pub, (int, float)) else str(pub or "")[:10],
+            "deadline": "", "type": _t(j.get("employmentType")), "desc": _t(j.get("excerpt"))[:600],
+        })
+    return out
+
+
+def jobicy(keywords):
+    """Jobicy remote jobs (public API; credited as the source, links go to the original offer)."""
+    return [{
+        "id": "jobicy:" + str(j.get("id")), "title": _strip_html(j.get("jobTitle")), "org": _t(j.get("companyName")),
+        "location": _t(j.get("jobGeo")) or "Remote", "c": "gl", "kind": "job", "source": "Jobicy", "url": j.get("url", ""),
+        "posted": str(j.get("pubDate", ""))[:10], "deadline": "", "type": _t(" ".join(j.get("jobType") or [])),
+        "desc": _strip_html(j.get("jobExcerpt"))[:600],
+    } for j in _json("https://jobicy.com/api/v2/remote-jobs?count=50").get("jobs", [])]
+
+
+def working_nomads(keywords):
+    """Working Nomads remote jobs (public API)."""
+    return [{
+        "id": "wn:" + j.get("url", ""), "title": _t(j.get("title")), "org": _t(j.get("company_name")),
+        "location": _t(j.get("location")) or "Remote", "c": "gl", "kind": "job", "source": "Working Nomads",
+        "url": j.get("url", ""), "posted": str(j.get("pub_date", ""))[:10], "deadline": "", "type": _t(j.get("category_name")),
+        "desc": _strip_html(j.get("description"))[:600],
+    } for j in _json("https://www.workingnomads.com/api/exposed_jobs/")]
+
+
+def _rss_field(item, tag):
+    m = re.search(rf"<{tag}>(.*?)</{tag}>", item, re.S)
+    return _t(re.sub(r"<!\[CDATA\[|\]\]>", "", m.group(1))) if m else ""
+
+
+def we_work_remotely(keywords):
+    """We Work Remotely, official RSS feed for programming jobs."""
+    page = _get("https://weworkremotely.com/categories/remote-programming-jobs.rss")
+    xml = page.body.decode("utf8", "replace") if isinstance(page.body, bytes) else str(page.body)
+    out = []
+    for item in re.findall(r"<item>(.*?)</item>", xml, re.S):
+        full, link = _rss_field(item, "title"), _rss_field(item, "link")
+        org, _, title = full.partition(": ")
+        try:
+            posted = datetime.strptime(_rss_field(item, "pubDate")[:25].strip(), "%a, %d %b %Y %H:%M:%S").date().isoformat()
+        except ValueError:
+            posted = ""
+        out.append({
+            "id": "wwr:" + link, "title": title or full, "org": org if title else "",
+            "location": _rss_field(item, "region") or "Remote", "c": "gl", "kind": "job", "source": "We Work Remotely",
+            "url": link, "posted": posted, "deadline": "", "desc": _strip_html(_rss_field(item, "description"))[:600],
+        })
+    return out
+
+
+SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
+            "jobs.ch": jobs_ch, "Job Bank": jobbank, "CNRS": cnrs, "Max Planck": max_planck, "jobRxiv": jobrxiv,
+            "Farojob": farojob, "Himalayas": himalayas, "Jobicy": jobicy, "Working Nomads": working_nomads,
+            "We Work Remotely": we_work_remotely}
 # Browser-based (StealthyFetcher). Only run where a browser is installed (STEALTH=1 in the workflow).
 STEALTH_SCRAPERS = {"ABG": abg}
