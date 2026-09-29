@@ -8,13 +8,6 @@ from boards import _search  # noqa: E402
 
 CASES = [
     ("glassdoor", {"q": "machine learning engineer", "c": "fr", "loc": "Paris", "type": ""}),
-    ("glassdoor", {"q": "machine learning engineer", "c": "de", "loc": "Berlin", "type": ""}),
-    ("zip_recruiter", {"q": "machine learning engineer", "c": "ca", "loc": "Toronto", "type": ""}),
-    ("zip_recruiter", {"q": "machine learning engineer", "c": "gl", "loc": "Remote", "type": ""}),
-    ("google", {"q": "machine learning engineer", "c": "fr", "loc": "Paris", "type": ""}),
-    ("google", {"q": "software engineer", "c": "tn", "loc": "Tunis", "type": ""}),
-    ("bayt", {"q": "software engineer", "c": "tn", "loc": "Tunis", "type": ""}),
-    ("indeed", {"q": "machine learning engineer", "c": "ch", "loc": "Zurich", "type": ""}),
 ]
 for site, q in CASES:
     t = time.time()

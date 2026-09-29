@@ -51,7 +51,8 @@ def _search(site, q, results=20, hours=24 * 30):
     if site == "zip_recruiter" and q["c"] not in ("ca", "gl"):
         raise ValueError("Only covers the USA and Canada")
     loc = "" if remote else q["loc"]
-    if loc and q["c"] in COUNTRY_NAME and COUNTRY_NAME[q["c"]].lower() not in loc.lower():
+    # Glassdoor looks the location up itself and fails on "City, Country"; the others need the country.
+    if loc and site != "glassdoor" and q["c"] in COUNTRY_NAME and COUNTRY_NAME[q["c"]].lower() not in loc.lower():
         loc = loc + ", " + COUNTRY_NAME[q["c"]]
     args = dict(
         site_name=[site], search_term=q["q"], location=loc or None, results_wanted=results, hours_old=hours,
