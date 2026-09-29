@@ -1,0 +1,3 @@
+python-jobspy==1.1.82
+scrapling[fetchers]==0.4.15
+requests>=2.31
