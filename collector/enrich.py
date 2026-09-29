@@ -56,12 +56,128 @@ def linkedin_details(items, limit=40):
             x["applicants"] = None
         desc = page.css(".show-more-less-html__markup")
         if desc:
-            x["desc"] = _t(desc[0].get_all_text())[:1500]
+            x["desc"] = _t(desc[0].get_all_text())[:2500]
         level = re.search(r"Seniority level\s+([A-Za-z -]+?)\s+Employment type", text)
         if level:
             x["type"] = (x.get("type") or "") + (" · " if x.get("type") else "") + level.group(1)
         time.sleep(1.5)
     return done, ""
+
+
+STEALTH_SOURCES = {"ABG", "Academic Positions", "ScholarshipDB", "StepStone", "Tanitjobs"}
+MAIN_SELECTORS = ['[itemprop="description"]', ".job-description", "#job-description", ".jobsearch-JobComponent-description",
+                  ".description", "article", "main"]
+
+
+def _html_text(h):
+    h = re.sub(r"<(script|style)[\s\S]*?</\1>", " ", str(h or ""), flags=re.I)
+    h = re.sub(r"<br\s*/?>|</p>|</li>|</h\d>", "\n", h, flags=re.I)
+    h = re.sub(r"<[^>]+>", " ", h)
+    for a, b in (("&nbsp;", " "), ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"), ("&#39;", "'"), ("&quot;", '"'), ("&rsquo;", "'")):
+        h = h.replace(a, b)
+    return re.sub(r"[ \t]+", " ", re.sub(r"\n\s*\n+", "\n", h)).strip()
+
+
+def _job_posting(page):
+    """First schema.org JobPosting in the page's JSON-LD, if any."""
+    for raw in page.css('script[type="application/ld+json"]::text').getall():
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        stack = data if isinstance(data, list) else [data]
+        while stack:
+            d = stack.pop()
+            if isinstance(d, dict):
+                t = d.get("@type")
+                if t == "JobPosting" or (isinstance(t, list) and "JobPosting" in t):
+                    return d
+                stack.extend(v for v in d.values() if isinstance(v, (list, dict)))
+            elif isinstance(d, list):
+                stack.extend(d)
+    return None
+
+
+def _salary(bs):
+    if not isinstance(bs, dict):
+        return ""
+    v = bs.get("value") or {}
+    lo, hi = (v.get("minValue"), v.get("maxValue")) if isinstance(v, dict) else (v, None)
+    unit = v.get("unitText", "") if isinstance(v, dict) else ""
+    if not lo and not hi:
+        return ""
+    return f"{lo or ''}{'-' + str(hi) if hi else ''} {bs.get('currency', '')} {unit.lower()}".strip()
+
+
+def _apply_page(x, page):
+    jp = _job_posting(page)
+    if jp:
+        text = _html_text(jp.get("description"))
+        if len(text) > len(x.get("desc") or ""):
+            x["desc"] = text[:2500]
+        if jp.get("validThrough") and not x.get("deadline"):
+            x["deadline"] = str(jp["validThrough"])[:10]
+        if jp.get("datePosted") and not x.get("posted"):
+            x["posted"] = str(jp["datePosted"])[:10]
+        et = jp.get("employmentType")
+        if et and not x.get("type"):
+            x["type"] = ", ".join(et) if isinstance(et, list) else str(et)
+        sal = _salary(jp.get("baseSalary"))
+        if sal:
+            x["salary"] = sal
+        org = (jp.get("hiringOrganization") or {}).get("name") if isinstance(jp.get("hiringOrganization"), dict) else None
+        if org and not x.get("org"):
+            x["org"] = _t(org)
+        return True
+    for sel in MAIN_SELECTORS:
+        el = page.css(sel)
+        if el:
+            text = _t(el[0].get_all_text())
+            if len(text) > 400:
+                if len(text) > len(x.get("desc") or ""):
+                    x["desc"] = text[:2500]
+                return True
+    return False
+
+
+def details(items, limit=60, stealth_limit=30, stealth=True, only_sources=None):
+    """Opens offer pages whose stored description is short and fills desc, deadline, salary, type."""
+    todo = [x for x in items if x.get("source") != "LinkedIn" and not x.get("detailed") and len(x.get("desc") or "") < 400
+            and x.get("url", "").startswith("http") and (only_sources is None or x.get("source") in only_sources)]
+    plain = [x for x in todo if x.get("source") not in STEALTH_SOURCES][:limit]
+    hard = [x for x in todo if x.get("source") in STEALTH_SOURCES][:stealth_limit] if stealth else []
+    done = failed = 0
+    for x in plain:
+        try:
+            page = Fetcher.get(x["url"], stealthy_headers=True, timeout=20, follow_redirects=True)
+            if page.status == 429:
+                break
+            if page.status == 200 and _apply_page(x, page):
+                done += 1
+            else:
+                failed += 1
+        except Exception:
+            failed += 1
+        x["detailed"] = True  # one attempt per offer
+        time.sleep(1.2)
+    if hard:
+        from scrapling.fetchers import StealthySession
+        try:
+            with StealthySession(headless=True, solve_cloudflare=True, timeout=60000) as session:
+                for x in hard:
+                    try:
+                        page = session.fetch(x["url"], network_idle=True)
+                        if page.status == 200 and _apply_page(x, page):
+                            done += 1
+                        else:
+                            failed += 1
+                    except Exception:
+                        failed += 1
+                    x["detailed"] = True
+                    time.sleep(1.2)
+        except Exception as e:
+            return done, f"stealth browser: {str(e)[:80]}"
+    return done, (f"{failed} pages without readable details" if failed and not done else "")
 
 
 def _indeed_lookup(session, name):

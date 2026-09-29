@@ -230,6 +230,13 @@ details.why summary:hover,details.desc summary:hover{color:var(--ink)}
 .order li{counter-increment:o;display:grid;grid-template-columns:26px 1fr auto auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface-2)}
 .order li::before{content:counter(o);font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center}
 .order .btn.sm{padding:2px 9px}
+.fams{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px 22px}
+.fam .lab{margin-bottom:6px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:520px){.g4{grid-template-columns:1fr 1fr}}
+.found{margin-top:12px;font-size:14px;color:var(--ink);background:var(--hi-t);border-radius:10px;padding:0 14px;line-height:1.55}
+.found:not(:empty){padding:10px 14px}
+input[type=search]{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 10px;font-size:14px;min-width:220px;flex:1 1 220px}
 
 /* applications */
 .app{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 16px 13px 18px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;position:relative;overflow:hidden}
@@ -664,8 +671,10 @@ async function loadBest(){
   if(!colData){b.innerHTML='<p class="hint" style="margin:0">Loading…</p>';try{colData=await api('/api/opps');}catch(e){b.innerHTML='<p class="hint" style="margin:0">Could not load collected offers.</p>';return;}}
   if(!$('#bestBox'))return;
   const hidden=new Set(state.oppsHidden||[]);
-  const top=colData.items.filter(x=>!hidden.has(x.id)).map(x=>Object.assign({},x,{m:matchOf(x)})).filter(x=>x.m&&!x.m.blockers.length)
+  scoreProf=scoringProfile();
+  const top=colData.items.filter(x=>!hidden.has(x.id)&&!isApplied(x)).map(x=>Object.assign({},x,{m:matchOf(x)})).filter(x=>x.m&&!x.m.blockers.length)
     .sort((a,b)=>b.m.score-a.m.score).slice(0,5);
+  scoreProf=null;
   b.innerHTML=(!hasCv()?`<p class="nudge">These use default skills. <a href="#/profile">Add your CV</a> for real matches.</p>`:'')
     +(top.length?'<div class="offers compact">'+top.map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:''};
       return `<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
@@ -1078,7 +1087,14 @@ function opps(){
 }
 
 /* collected by the scheduled collector */
-let colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0},colMax=30;
+let colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,remote:false,hideBlock:true,hideApplied:true},colMax=30;
+// Already applied: a logged application at the same company whose role shares most words with the offer title.
+const roleWords=s=>normOrg(s).split(' ').filter(w=>w.length>2&&!['h/f','f/h','the','and','des','les','pour'].includes(w));
+function isApplied(x){
+  const o=normOrg(x.org);if(!o)return false;const tw=roleWords(x.title);
+  return state.apps.some(a=>{const ao=normOrg(a.org);if(!ao||!(ao===o||(Math.min(ao.length,o.length)>=4&&(ao.includes(o)||o.includes(ao)))))return false;
+    const rw=roleWords(a.role);if(!rw.length||!tw.length)return true;return rw.filter(w=>tw.includes(w)).length/Math.min(rw.length,tw.length)>=0.5;});
+}
 async function loadCollected(){
   const b=$('#colBox');if(!b)return;
   if(!caps.online){b.innerHTML='<p class="hint" style="margin:0">Available in the deployed app once you are signed in.</p>';return;}
@@ -1090,8 +1106,17 @@ async function loadCollected(){
 function renderCollected(){
   const b=$('#colBox');if(!b||!colData)return;
   const hidden=new Set(state.oppsHidden||[]);
-  const all=colData.items.filter(x=>!hidden.has(x.id)).map(x=>Object.assign({},x,{m:matchOf(x)}));
-  const l=all.filter(x=>(!colF.k||x.kind===colF.k)&&(!colF.c||x.c===colF.c)&&(!colF.onlyNew||x.foundAt>colPrev)&&(!x.m||x.m.score>=colF.min));
+  scoreProf=scoringProfile();
+  const all=colData.items.filter(x=>!hidden.has(x.id)).map(x=>Object.assign({},x,{m:matchOf(x),applied:isApplied(x)}));
+  scoreProf=null;
+  const q=normOrg(colF.q),cutoff=colF.days?Date.now()-colF.days*864e5:0;
+  const isRemote=x=>/\b(remote|teletravail|télétravail|homeoffice|anywhere)\b/i.test(x.location+' '+x.title+' '+(x.desc||'').slice(0,600))||x.c==='gl';
+  const l=all.filter(x=>(!colF.k||x.kind===colF.k)&&(!colF.c||x.c===colF.c)&&(!colF.onlyNew||x.foundAt>colPrev)&&(!x.m||x.m.score>=colF.min)
+    &&(!colF.src||x.source===colF.src)&&(!cutoff||Math.max(Date.parse(x.posted||'')||0,x.foundAt||0)>=cutoff)&&(!colF.remote||isRemote(x))
+    &&(!colF.hideBlock||!x.m||!x.m.blockers.length)&&(!colF.hideApplied||!x.applied)
+    &&(!q||normOrg(x.title+' '+x.org+' '+(x.desc||'')).includes(q)));
+  const sources=[...new Set(all.map(x=>x.source))].sort();
+  const nBlock=all.filter(x=>x.m&&x.m.blockers.length).length,nApplied=all.filter(x=>x.applied).length;
   const ms=x=>x.m?x.m.score:0;
   if(colF.sort==='match')l.sort((a,b)=>ms(b)-ms(a)||(b.foundAt||0)-(a.foundAt||0));
   else if(colF.sort==='deadline')l.sort((a,b)=>(a.deadline||'9999').localeCompare(b.deadline||'9999')||ms(b)-ms(a));
@@ -1101,11 +1126,17 @@ function renderCollected(){
   const failed=run?Object.entries(run.sources||{}).filter(([,v])=>!v.ok).map(([k,v])=>`<span title="${esc(v.error||'')}">${esc(k)}</span>`).join(', '):'';
   b.innerHTML=(!hasCv()&&all.length?`<p class="nudge">Scores use default skills until you add your CV. <a href="#/profile">Add it in Profile</a>.</p>`:'')
     +(all.length||run?`<div class="toolbar">
+      <input type="search" id="coQ" placeholder="Search title, company, details" aria-label="Search collected offers" value="${esc(colF.q)}">
       <select id="coS" aria-label="Sort"><option value="match">Best match first</option><option value="new">Newest first</option><option value="deadline">Deadline first</option></select>
       <select id="coM" aria-label="Minimum match"><option value="0">Any match</option><option value="55">Match 55+</option><option value="65">Match 65+</option><option value="75">Match 75+</option></select>
       <select id="coK" aria-label="Kind"><option value="">All kinds</option><option value="job">Jobs</option><option value="phd">PhD</option><option value="master">Master's</option></select>
       <select id="coC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>
-      <label class="sc"><input type="checkbox" id="coN"> New only (${nNew})</label></div>
+      <select id="coSrc" aria-label="Source"><option value="">All sources</option>${sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
+      <select id="coD" aria-label="Posted within"><option value="0">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
+      <label class="sc"><input type="checkbox" id="coN"> New only (${nNew})</label>
+      <label class="sc"><input type="checkbox" id="coR"> Remote only</label>
+      <label class="sc"><input type="checkbox" id="coB"> Hide dealbreakers (${nBlock})</label>
+      <label class="sc"><input type="checkbox" id="coA"> Hide already applied (${nApplied})</label></div>
     <p class="hint" style="margin:0 0 8px">${l.length} of ${all.length} shown${when?` · last run ${esc(when)}, ${run.new} new`:''}${failed?` · failed: ${failed}`:''}</p>`:'')
     +(l.length?'<div class="offers">'+l.slice(0,colMax).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:'',name:''},v=DOM[x.kind]||DOM.job;
       const dl=x.deadline?`Apply by ${esc(x.deadline)}`:(x.posted?`Posted ${esc(rel(x.posted))}`:'');
@@ -1117,7 +1148,10 @@ function renderCollected(){
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
     :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 6 hours.'}</p>`);
   const k=$('#coK');if(k){k.value=colF.k;$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
-    ['coK','coC','coN','coS','coM'].forEach(id=>$('#'+id).addEventListener('change',()=>{colF={k:$('#coK').value,c:$('#coC').value,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value};colMax=30;renderCollected();}));}
+    $('#coSrc').value=colF.src;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
+    const read=()=>({k:$('#coK').value,c:$('#coC').value,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked});
+    ['coK','coC','coN','coS','coM','coSrc','coD','coR','coB','coA'].forEach(id=>$('#'+id).addEventListener('change',()=>{colF=read();colMax=30;renderCollected();}));
+    let tq=null;$('#coQ').addEventListener('input',()=>{clearTimeout(tq);tq=setTimeout(()=>{colF=read();colMax=30;renderCollected();const i=$('#coQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250);});}
   const m=$('#coMore');if(m)m.addEventListener('click',()=>{colMax+=30;renderCollected();});
 }
 let lastQ=null;
@@ -1217,16 +1251,21 @@ function renderRadar(){
 /* ---------- Profile and match score ---------- */
 const SC=window.ParcoursScore||null;
 const LEVELS=['','A1','A2','B1','B2','C1','C2','native'];
-const PROFILE_DEFAULT={cv:'',skills:[],years:0,languages:{en:'C1',fr:'B2',de:''},countries:['fr','de','ca','ch','gl','tn'],remote:'ok',visa:{fr:true,de:true,ca:true,ch:true,gl:false,tn:false}};
-const prof=()=>{const p=Object.assign(clone(PROFILE_DEFAULT),state.profile||{});p.languages=Object.assign({},PROFILE_DEFAULT.languages,p.languages);p.visa=Object.assign({},PROFILE_DEFAULT.visa,p.visa);return p;};
+const LANG_NAMES=[['en','English'],['fr','French'],['de','German'],['ar','Arabic']];
+const FAMILY_LABEL={lang:'Programming languages',ml:'Machine learning',nlp:'Language',llm:'LLMs and agents',ir:'Search and retrieval',xai:'Explainability',cv:'Vision',dlfw:'Deep learning frameworks',llmfw:'LLM frameworks',mllib:'Data libraries',data:'Data engineering',mlops:'MLOps',opt:'Optimization',research:'Research',backend:'Backend',api:'APIs',pyweb:'Python web',jvmweb:'Java web',jsweb:'JavaScript backend',phpweb:'PHP web',front:'Frontend',mobile:'Mobile',db:'SQL databases',nosql:'NoSQL and search',devops:'DevOps',cloud:'Cloud',tools:'Tools',quality:'Testing',sec:'Security',embedded:'Embedded and IoT',method:'Ways of working'};
+const PROFILE_DEFAULT={cv:'',skills:[],extra:[],roles:[],exclude:[],years:0,degree:{level:3,name:"Master's or engineer",field:'',year:null},languages:{en:'C1',fr:'B2',de:'',ar:''},countries:['fr','de','ca','ch','gl','tn'],remote:'ok',visa:{fr:true,de:true,ca:true,ch:true,gl:false,tn:false}};
+const prof=()=>{const p=Object.assign(clone(PROFILE_DEFAULT),state.profile||{});p.languages=Object.assign({},PROFILE_DEFAULT.languages,p.languages);p.visa=Object.assign({},PROFILE_DEFAULT.visa,p.visa);p.degree=Object.assign({},PROFILE_DEFAULT.degree,p.degree);return p;};
 const hasCv=()=>((state.profile&&state.profile.skills)||[]).length>0;
-const PART_LABEL={skills:'Skills',seniority:'Level',languages:'Languages',place:'Place and visa',competition:'Competition',company:'Company reviews',timing:'Timing'};
+// Saved searches count as target roles too.
+const scoringProfile=()=>Object.assign(prof(),{targets:state.searches.map(s=>s.search)});
+const PART_LABEL={skills:'Skills',role:'Role fit',seniority:'Level',education:'Education',languages:'Languages',place:'Place and visa',competition:'Competition',company:'Company reviews',timing:'Timing'};
+let scoreProf=null;
 function matchOf(x){
   if(!SC)return null;
-  return SC.score({title:x.title,desc:x.desc||'',org:x.org||x.company||'',c:x.c,kind:x.kind||'job',posted:x.posted,deadline:x.deadline,type:x.type,applicants:x.applicants,applicantsCapped:x.applicantsCapped,company:x.company&&typeof x.company==='object'?x.company:null,foundAt:x.foundAt},prof());
+  return SC.score({title:x.title,desc:x.desc||'',org:x.org||x.company||'',c:x.c,kind:x.kind||'job',posted:x.posted,deadline:x.deadline,type:x.type,applicants:x.applicants,applicantsCapped:x.applicantsCapped,company:x.company&&typeof x.company==='object'?x.company:null,foundAt:x.foundAt},scoreProf||scoringProfile());
 }
 const band=s=>s>=75?'hi':s>=55?'mid':'lo';
-function scoreBadge(m){if(!m)return '';return `<span class="score s-${band(m.score)}" title="Match ${m.score}/100, based on ${Math.round(m.confidence*7)} of 7 signals">${m.score}</span>`;}
+function scoreBadge(m){if(!m)return '';const n=Object.values(m.parts).filter(p=>p.known).length;return `<span class="score s-${band(m.score)}" title="Match ${m.score}/100, based on ${n} of ${Object.keys(m.parts).length} signals">${m.score}</span>`;}
 function scoreWhy(m){
   if(!m)return '';
   return `<details class="why"><summary>Why ${m.score}${m.blockers.length?` · ${esc(m.blockers.join(', '))}`:''}${m.urgent?' · apply soon':''}</summary><div class="bars">${Object.entries(m.parts).map(([k,p])=>
@@ -1243,39 +1282,67 @@ function loadPdf(){
 async function fileText(f){
   if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){
     const lib=await loadPdf();const doc=await lib.getDocument({data:await f.arrayBuffer()}).promise;let out='';
-    for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const tc=await pg.getTextContent();out+=tc.items.map(t=>t.str).join(' ')+'\n';}
+    // Keep line breaks: a new line whenever the text jumps down the page, so sections and dates stay apart.
+    for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const tc=await pg.getTextContent();let lastY=null;
+      for(const t of tc.items){const y=t.transform?Math.round(t.transform[5]):null;if(lastY!==null&&y!==null&&Math.abs(y-lastY)>2)out+='\n';else if(out&&!out.endsWith(' ')&&!out.endsWith('\n'))out+=' ';out+=t.str;lastY=y;}
+      out+='\n';}
     return out;
   }
   return f.text();
 }
 function setProfile(patch){state.profile=Object.assign(prof(),patch);save();}
+const listVal=v=>String(v||'').split(/[,;\n]/).map(s=>s.trim()).filter(Boolean);
 function profilePage(){
-  const p=prof(),names=SC?SC.SKILL_NAMES:[];
+  const p=prof(),names=SC?SC.SKILL_NAMES:[],fam=SC?SC.FAMILY:{};
+  const groups={};names.forEach(n=>{(groups[fam[n]]=groups[fam[n]]||[]).push(n);});
   $('#view').innerHTML=`<h1>Profile</h1><p class="sub">The match score compares every offer with this. It stays in your data and syncs with your other devices.</p>
-  <div class="panel"><h2>Your CV</h2><p class="hint">Paste your CV or upload it as PDF or text. Skills and years of experience are read from it; adjust them below.</p>
-    <textarea id="pfCv" rows="9" placeholder="Paste your CV here…">${esc(p.cv)}</textarea>
+  <div class="panel"><h2>Your CV</h2><p class="hint">Paste your CV or upload it as PDF or text, then read it. Everything below is filled from it and stays editable.</p>
+    <textarea id="pfCv" rows="8" placeholder="Paste your CV here…">${esc(p.cv)}</textarea>
     <div class="row" style="margin-top:10px"><label class="btn" for="pfFile" style="cursor:pointer">Upload PDF or text</label><input type="file" id="pfFile" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden>
-    <button class="btn primary" id="pfRead">Read skills from CV</button><span class="hint" id="pfMsg" style="margin:0"></span></div></div>
-  <div class="panel"><h2>Skills</h2><p class="hint">Select the ones you can defend in an interview. ${p.skills.length} selected.</p>
-    <div class="skills" id="pfSkills">${names.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="${p.skills.includes(n)}">${esc(n)}</button>`).join('')}</div></div>
+    <button class="btn primary" id="pfRead">Read everything from CV</button></div>
+    <div id="pfMsg" class="found" aria-live="polite"></div></div>
+  <div class="panel"><h2>Skills</h2><p class="hint">${p.skills.length} selected. Offers asking for a skill in the same family as yours get half credit.</p>
+    <div class="fams">${Object.entries(groups).map(([f,l])=>`<div class="fam"><span class="lab">${esc(FAMILY_LABEL[f]||f)}</span><div class="skills">${l.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="${p.skills.includes(n)}">${esc(n)}</button>`).join('')}</div></div>`).join('')}</div>
+    <label class="lab" for="pfExtra" style="margin-top:16px">Other terms from your CV <span class="hint" style="font-weight:400">(matched word for word in offers, comma separated)</span></label>
+    <textarea id="pfExtra" rows="2">${esc(p.extra.join(', '))}</textarea></div>
   <div class="two">
-    <div class="panel"><h2>Experience and languages</h2>
-      <label class="lab" for="pfYears">Years of professional experience (internships count half)</label><input type="number" id="pfYears" min="0" max="40" step="0.5" value="${esc(p.years??0)}" style="max-width:120px">
-      <div class="g3" style="margin-top:12px">${[['en','English'],['fr','French'],['de','German']].map(([k,l])=>`<div><label class="lab" for="pfL${k}">${l}</label><select id="pfL${k}" data-lang="${k}">${LEVELS.map(v=>`<option value="${v}" ${p.languages[k]===v?'selected':''}>${v||'None'}</option>`).join('')}</select></div>`).join('')}</div>
-      <label class="lab" for="pfRemote" style="margin-top:12px">Remote work</label><select id="pfRemote"><option value="yes" ${p.remote==='yes'?'selected':''}>I want remote</option><option value="ok" ${p.remote==='ok'?'selected':''}>Either is fine</option><option value="no" ${p.remote==='no'?'selected':''}>I prefer on-site</option></select></div>
+    <div class="panel"><h2>Background</h2>
+      <label class="lab" for="pfRoles">Roles you held or target <span class="hint" style="font-weight:400">(comma separated)</span></label><textarea id="pfRoles" rows="2">${esc(p.roles.join(', '))}</textarea>
+      <div class="g3" style="margin-top:12px">
+        <div><label class="lab" for="pfYears">Years of experience</label><input type="number" id="pfYears" min="0" max="40" step="0.5" value="${esc(p.years??0)}"></div>
+        <div><label class="lab" for="pfDeg">Highest degree</label><select id="pfDeg">${[[0,'Not set'],[1,'Two-year'],[2,"Bachelor's"],[3,"Master's or engineer"],[4,'PhD']].map(([v,l])=>`<option value="${v}" ${+p.degree.level===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div><label class="lab" for="pfDegY">Graduation year</label><input type="number" id="pfDegY" min="1990" max="2040" value="${esc(p.degree.year||'')}"></div></div>
+      <label class="lab" for="pfDegF" style="margin-top:12px">Field of study</label><input type="text" id="pfDegF" value="${esc(p.degree.field||'')}">
+      <div class="g4" style="margin-top:12px">${LANG_NAMES.map(([k,l])=>`<div><label class="lab" for="pfL${k}">${l}</label><select id="pfL${k}" data-lang="${k}">${LEVELS.map(v=>`<option value="${v}" ${p.languages[k]===v?'selected':''}>${v||'None'}</option>`).join('')}</select></div>`).join('')}</div></div>
     <div class="panel"><h2>Where, in order</h2><p class="hint">Your first country scores highest. Tick where you need a visa or work permit.</p>
-      <ol class="order" id="pfOrder">${p.countries.map((id,i)=>{const c=cById(id);return c?`<li><span>${c.flag} ${esc(c.name)}</span><label class="sc"><input type="checkbox" data-visa="${id}" ${p.visa[id]?'checked':''}> Visa</label><span class="row"><button class="btn sm" data-up="${i}" ${i?'':'disabled'} aria-label="Move ${esc(c.name)} up">↑</button><button class="btn sm" data-down="${i}" ${i<p.countries.length-1?'':'disabled'} aria-label="Move ${esc(c.name)} down">↓</button></span></li>`:'';}).join('')}</ol></div>
+      <ol class="order" id="pfOrder">${p.countries.map((id,i)=>{const c=cById(id);return c?`<li><span>${c.flag} ${esc(c.name)}</span><label class="sc"><input type="checkbox" data-visa="${id}" ${p.visa[id]?'checked':''}> Visa</label><span class="row"><button class="btn sm" data-up="${i}" ${i?'':'disabled'} aria-label="Move ${esc(c.name)} up">↑</button><button class="btn sm" data-down="${i}" ${i<p.countries.length-1?'':'disabled'} aria-label="Move ${esc(c.name)} down">↓</button></span></li>`:'';}).join('')}</ol>
+      <label class="lab" for="pfRemote" style="margin-top:14px">Remote work</label><select id="pfRemote"><option value="yes" ${p.remote==='yes'?'selected':''}>I want remote</option><option value="ok" ${p.remote==='ok'?'selected':''}>Either is fine</option><option value="no" ${p.remote==='no'?'selected':''}>I prefer on-site</option></select>
+      <label class="lab" for="pfExcl" style="margin-top:14px">Exclude offers whose title or company contains <span class="hint" style="font-weight:400">(comma separated)</span></label>
+      <input type="text" id="pfExcl" placeholder="e.g. senior, lead, commercial, SAP" value="${esc(p.exclude.join(', '))}">
+      <p class="hint" style="margin:6px 0 0">The collector also skips these on its next run.</p></div>
   </div>`;
   const msg=$('#pfMsg');
   const readCv=()=>{const t=$('#pfCv').value;if(!SC||!t.trim()){msg.textContent='Paste or upload your CV first.';return;}
-    const r=SC.profileFromCv(t);setProfile({cv:t,skills:r.skills,years:r.years??prof().years});profilePage();$('#pfMsg').textContent=`Found ${r.skills.length} skills${r.years!=null?` and ${r.years} years of experience`:''}.`;};
+    const r=SC.parseCv(t);
+    const langs=Object.assign({},prof().languages,r.languages);
+    setProfile({cv:t,skills:r.skills,extra:r.extra,roles:r.roles.length?r.roles:prof().roles,years:r.years??prof().years,languages:langs,degree:r.degree.level?r.degree:prof().degree});
+    profilePage();
+    $('#pfMsg').innerHTML=`<b>Read from your CV:</b> ${r.sectionsFound.length} sections (${esc(r.sectionsFound.join(', '))}), ${r.skills.length} skills, ${r.extra.length} other terms, ${r.roles.length} roles, `
+      +`${r.years!=null?`${r.years} years of experience (internships count half)`:'no dated experience found, set your years below'}, `
+      +`${r.degree.level?esc(r.degree.name)+(r.degree.year?` (${r.degree.year})`:''):'no degree found'}, languages: ${Object.entries(r.languages).map(([k,v])=>k.toUpperCase()+' '+v).join(', ')||'none found'}. Check the values below.`;};
   $('#pfRead').addEventListener('click',readCv);
   $('#pfCv').addEventListener('change',()=>setProfile({cv:$('#pfCv').value}));
   $('#pfFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;msg.textContent='Reading '+f.name+'…';
-    try{$('#pfCv').value=(await fileText(f)).replace(/[ \t]+/g,' ').trim();readCv();}catch(x){msg.textContent=x.message||'Could not read that file.';}e.target.value='';});
-  $('#pfSkills').addEventListener('click',e=>{const b=e.target.closest('[data-skill]');if(!b)return;const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);
+    try{$('#pfCv').value=(await fileText(f)).replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();readCv();}catch(x){msg.textContent=x.message||'Could not read that file.';}e.target.value='';});
+  $('#view').querySelector('.fams').addEventListener('click',e=>{const b=e.target.closest('[data-skill]');if(!b)return;const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);
     const s=new Set(prof().skills);on?s.add(b.dataset.skill):s.delete(b.dataset.skill);setProfile({skills:[...s]});});
+  $('#pfExtra').addEventListener('change',e=>setProfile({extra:listVal(e.target.value).map(x=>x.toLowerCase())}));
+  $('#pfRoles').addEventListener('change',e=>setProfile({roles:listVal(e.target.value)}));
+  $('#pfExcl').addEventListener('change',e=>setProfile({exclude:listVal(e.target.value)}));
   $('#pfYears').addEventListener('change',e=>setProfile({years:Math.max(0,+e.target.value||0)}));
+  $('#pfDeg').addEventListener('change',e=>{const v=+e.target.value;setProfile({degree:Object.assign(prof().degree,{level:v,name:SC?SC.DEGREE_NAME[v]||'':''})});});
+  $('#pfDegY').addEventListener('change',e=>setProfile({degree:Object.assign(prof().degree,{year:+e.target.value||null})}));
+  $('#pfDegF').addEventListener('change',e=>setProfile({degree:Object.assign(prof().degree,{field:e.target.value.trim()})}));
   document.querySelectorAll('[data-lang]').forEach(s=>s.addEventListener('change',()=>setProfile({languages:Object.assign(prof().languages,{[s.dataset.lang]:s.value})})));
   $('#pfRemote').addEventListener('change',e=>setProfile({remote:e.target.value}));
   $('#pfOrder').addEventListener('change',e=>{const v=e.target.dataset.visa;if(v)setProfile({visa:Object.assign(prof().visa,{[v]:e.target.checked})});});

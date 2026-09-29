@@ -75,7 +75,7 @@ def _search(site, q, results=20, hours=24 * 30):
             "id": f"{site}:{_val(r.get('id')) or url}", "title": title, "company": _val(r.get("company")),
             "location": where + (" (remote)" if r.get("is_remote") is True else ""),
             "posted": _val(r.get("date_posted"))[:10], "type": _val(r.get("job_type")).replace("_", "-"),
-            "url": url, "source": site, "desc": _val(r.get("description"))[:600],
+            "url": url, "source": site, "desc": _val(r.get("description"))[:2500],
         })
     return out
 
