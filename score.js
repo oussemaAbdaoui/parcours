@@ -215,8 +215,14 @@
   }
 
   /* ---------- offer analysis ---------- */
-  function offerLevel(t) {
-    if (/\b(stage|stagiaire|intern(ship)?|pfe|praktikum|werkstudent|alternance|apprenti)/.test(t)) return { lvl: 0, label: 'internship' };
+  // Level from the title first (clearest signal), then from the text, where only unambiguous phrases count
+  // ("stage" alone also means "early-stage startup").
+  function offerLevel(t, title) {
+    if (title != null) {
+      const tl = levelFromTitle(title);
+      if (tl) return tl;
+      if (/\b(internship|stage de fin d.etudes|stage (?:de|d.) ?\d|stagiaire|pfe|praktikum|werkstudent|alternance|apprentissage en alternance)\b/.test(t)) return { lvl: 0, label: 'internship' };
+    } else if (/\b(stage|stagiaire|intern(ship)?|pfe|praktikum|werkstudent|alternance|apprenti)/.test(t)) return { lvl: 0, label: 'internship' };
     const yrs = t.match(/(\d{1,2})\s*\+?\s*(?:years?|yrs|ans|jahre)/);
     const y = yrs ? +yrs[1] : null;
     if (/\b(principal|staff|head of|director|chef de|leiter)\b/.test(t) || /\blead\b(?! to)/.test(t) || (y !== null && y >= 8)) return { lvl: 4, label: 'lead', years: y };
@@ -224,6 +230,14 @@
     if (/\b(junior|jr\.?|graduate|debutant|entry.level|jeune diplome|berufseinsteiger|new grad)\b/.test(t) || (y !== null && y <= 2)) return { lvl: 1, label: 'junior', years: y };
     if (y !== null) return { lvl: 2, label: 'mid', years: y };
     return { lvl: null, label: 'not stated' };
+  }
+  function levelFromTitle(title) {
+    const t = norm(title);
+    if (/\b(stage|stagiaire|intern(ship)?|pfe|praktikum|werkstudent|alternance|alternant|apprenti)\b/.test(t)) return { lvl: 0, label: 'internship' };
+    if (/\b(principal|staff|head of|director|directeur|chef de|leiter|vp|leader|professor|professeur|lecturer|maitre de conferences|faculty|tenure)\b/.test(t) || /\blead\b/.test(t)) return { lvl: 4, label: 'lead' };
+    if (/\b(senior|sr\.?|confirme|experimente|expert)\b/.test(t)) return { lvl: 3, label: 'senior' };
+    if (/\b(junior|jr\.?|graduate|debutant|entry.level|jeune diplome|new grad)\b/.test(t)) return { lvl: 1, label: 'junior' };
+    return null;
   }
   const profileLevel = (years) => (years == null ? 1 : years < 1 ? 1 : years < 3 ? 1.5 : years < 5 ? 2 : years < 8 ? 3 : 4);
   const LVL = { '': 0, A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6, native: 6 };
@@ -251,7 +265,8 @@
     for (const s of sentences) { if (nice.test(s)) niceText += ' ' + s; else if (req.test(s)) reqText += ' ' + s; }
     return { reqText, niceText };
   }
-  function offerDegree(t) {
+  function offerDegree(t, title) {
+    if (/\b(post.?doc\w*|research fellow|postdoctoral|post-doctoral)\b/.test(norm(title || ''))) return 4;
     if (/\b(ph\.?d|doctorate|doctorat)\b[^.]{0,30}\b(required|requis|mandatory|obligatoire|holder|titulaire)|\b(completed|hold|holding) a ph\.?d/.test(t)) return 4;
     if (/\b(master.?s?|msc|m\.sc|bac\s*\+\s*5|engineering degree|diplome d.ingenieur|ecole d.ingenieurs?)\b/.test(t)) return 3;
     if (/\b(bachelor.?s?|licence|bac\s*\+\s*3|bsc)\b/.test(t)) return 2;
@@ -291,10 +306,11 @@
       }
       // Rare terms from your CV that the offer names literally are strong evidence.
       got += extraHits.length * 1.5; total += extraHits.length * 1.5;
-      const cover = total ? got / total : 0;
+      // Evidence shrinkage: a couple of matched words is weak evidence, so few-skill offers are pulled toward neutral.
+      const K = 3, cover = (got + 0.4 * K) / (total + K);
       missing.sort((a, b) => b.w - a.w);
       parts.skills = {
-        v: clamp(0.1 + 0.9 * cover), known: true,
+        v: clamp(0.05 + 0.95 * cover), known: total >= 3,
         note: `${have.length + extraHits.length} of ${wanted.length + extraHits.length} matched: ${[...have, ...extraHits].slice(0, 6).join(', ') || 'none'}${related.length ? ` · related: ${related.slice(0, 3).join(', ')}` : ''}`,
         missing: missing.slice(0, 5).map((m) => m.k + (inReq.has(m.k) || inTitle.has(m.k) ? ' (required)' : '')),
       };
@@ -314,18 +330,20 @@
     }
 
     // 3. Seniority
-    const lv = offerLevel(body);
+    const lv = offerLevel(body, offer.title || "");
+    let tooSenior = false;
     if (offer.kind === 'phd' || offer.kind === 'master') parts.seniority = { v: (p.years ?? 0) <= 4 ? 1 : 0.7, known: true, note: offer.kind === 'phd' ? 'PhD position' : "Master's programme" };
-    else if (lv.lvl === null) parts.seniority = { v: 0.6, known: false, note: 'Level not stated' };
+    else if (lv.lvl === null) parts.seniority = { v: 0.5, known: false, note: 'Level not stated' };
     else {
       const gap = lv.lvl - profileLevel(p.years);
+      tooSenior = gap >= 1.5;
       const v = gap <= -2 ? 0.55 : gap <= 0 ? 1 : gap <= 1 ? 0.6 : gap <= 2 ? 0.25 : 0.05;
       parts.seniority = { v, known: true, note: `Asks ${lv.label}${lv.years != null ? ` (${lv.years}+ yrs)` : ''}, you have ${p.years ?? 0} yrs` };
     }
 
     // 4. Education
-    const need = offer.kind === 'phd' ? 3 : offerDegree(body), mineD = (p.degree && p.degree.level) || 0;
-    if (!need) parts.education = { v: 0.7, known: false, note: 'No degree stated' };
+    const need = offer.kind === 'phd' ? 3 : offerDegree(body, offer.title), mineD = (p.degree && p.degree.level) || 0;
+    if (!need) parts.education = { v: 0.5, known: false, note: 'No degree stated' };
     else if (!mineD) parts.education = { v: 0.5, known: false, note: `Asks ${DEGREE_NAME[need]}, add your degree in Profile` };
     else parts.education = { v: mineD >= need ? 1 : mineD === need - 1 ? 0.45 : 0.1, known: true, note: `Asks ${DEGREE_NAME[need]}, you have ${DEGREE_NAME[mineD]}` };
 
@@ -333,7 +351,7 @@
     const needL = offerLanguages(body), langs = p.languages || {};
     const needs = Object.entries(needL);
     const names = { en: 'English', fr: 'French', de: 'German' };
-    if (!needs.length) parts.languages = { v: 0.7, known: false, note: 'No language requirement found' };
+    if (!needs.length) parts.languages = { v: 0.5, known: false, note: 'No language requirement found' };
     else {
       const worst = Math.min(...needs.map(([l, req]) => clamp((LVL[langs[l] || ''] || 0) / req)));
       parts.languages = { v: worst, known: true, note: needs.map(([l, r]) => names[l] + (r >= 4 ? ' required' : ' (offer language)') + (langs[l] ? `, you: ${langs[l]}` : ', not in profile')).join(' · ') };
@@ -373,7 +391,7 @@
     if (left != null && left < 0) parts.timing = { v: 0, known: true, note: 'Deadline passed' };
     else if (left != null) parts.timing = { v: left <= 3 ? 0.7 : 1, known: true, note: left <= 7 ? `Deadline in ${left} d, apply soon` : `Deadline in ${left} d` };
     else if (age != null) parts.timing = { v: age <= 7 ? 1 : age <= 21 ? 0.7 : 0.4, known: true, note: `Posted ${age} d ago` };
-    else parts.timing = { v: 0.6, known: false, note: 'Date unknown' };
+    else parts.timing = { v: 0.5, known: false, note: 'Date unknown' };
 
     let total = 0, knownW = 0;
     for (const [k, w] of Object.entries(WEIGHTS)) { total += w * parts[k].v; if (parts[k].known) knownW += w; }
@@ -382,10 +400,18 @@
     if (visaNote === ', work permit restriction') blockers.push('Work permit restriction');
     if (parts.timing.v === 0) blockers.push('Deadline passed');
     if (parts.education.known && parts.education.v <= 0.1) blockers.push('Degree too low');
+    if (tooSenior) blockers.push('Too senior for your experience');
+    // Internships and work-study need student status: closed once you have graduated (September of your
+    // graduation year), unless your profile says you can still take them.
+    const d = new Date(now), gy = p.degree && p.degree.year;
+    const graduated = !!gy && (d.getFullYear() > gy || (d.getFullYear() === gy && d.getMonth() >= 8));
+    const canIntern = p.internships === 'yes' || (p.internships !== 'no' && !graduated);
+    if (lv.lvl === 0 && offer.kind !== 'phd' && !canIntern) blockers.push('Internship needs student status');
     if ((p.exclude || []).some((w) => w && termIn(w, norm(offer.title + ' ' + (offer.org || ''))))) blockers.push('Matches your exclusions');
     if (blockers.length) total = Math.min(total, 40);
     const urgent = left != null && left >= 0 && left <= 7;
-    return { score: Math.round(total), confidence: knownW / 100, parts, urgent, blockers };
+    const conf = knownW / 100;
+    return { score: Math.round(total), confidence: conf, rank: total - (1 - conf) * 12, parts, urgent, blockers };
   }
 
   const profileFromCv = (text) => parseCv(text); // kept for older callers

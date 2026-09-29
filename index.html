@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Parcours</title>
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
+<meta name="theme-color" content="#10201C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -183,6 +186,7 @@ svg .dot:hover{stroke:var(--ink);stroke-width:2}
 .score.s-hi{background:var(--hi-t);color:var(--hi)}
 .score.s-mid{background:var(--mid-t);color:var(--mid)}
 .score.s-lo{background:var(--lo-t);color:var(--lo)}
+.score.weak::after{border-style:dashed;opacity:.7}
 @media(max-width:640px){.score{width:42px;height:42px;font-size:16px}}
 .urgent{display:inline-block;background:var(--lo-t);color:var(--lo);border-radius:999px;padding:0 8px;font-size:12px;font-weight:650;vertical-align:1px}
 .new{display:inline-block;background:var(--ink);color:var(--bg);border-radius:999px;padding:0 8px;font-size:11.5px;font-weight:650;vertical-align:1px;letter-spacing:.02em}
@@ -673,7 +677,7 @@ async function loadBest(){
   const hidden=new Set(state.oppsHidden||[]);
   scoreProf=scoringProfile();
   const top=colData.items.filter(x=>!hidden.has(x.id)&&!isApplied(x)).map(x=>Object.assign({},x,{m:matchOf(x)})).filter(x=>x.m&&!x.m.blockers.length)
-    .sort((a,b)=>b.m.score-a.m.score).slice(0,5);
+    .sort((a,b)=>b.m.rank-a.m.rank).slice(0,5);
   scoreProf=null;
   b.innerHTML=(!hasCv()?`<p class="nudge">These use default skills. <a href="#/profile">Add your CV</a> for real matches.</p>`:'')
     +(top.length?'<div class="offers compact">'+top.map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:''};
@@ -1118,7 +1122,8 @@ function renderCollected(){
   const sources=[...new Set(all.map(x=>x.source))].sort();
   const nBlock=all.filter(x=>x.m&&x.m.blockers.length).length,nApplied=all.filter(x=>x.applied).length;
   const ms=x=>x.m?x.m.score:0;
-  if(colF.sort==='match')l.sort((a,b)=>ms(b)-ms(a)||(b.foundAt||0)-(a.foundAt||0));
+  const mr=x=>x.m?x.m.rank:0;
+  if(colF.sort==='match')l.sort((a,b)=>mr(b)-mr(a)||(b.foundAt||0)-(a.foundAt||0));
   else if(colF.sort==='deadline')l.sort((a,b)=>(a.deadline||'9999').localeCompare(b.deadline||'9999')||ms(b)-ms(a));
   else l.sort((a,b)=>(b.foundAt||0)-(a.foundAt||0));
   const nNew=all.filter(x=>x.foundAt>colPrev).length,run=(colData.runs||[])[0];
@@ -1265,7 +1270,7 @@ function matchOf(x){
   return SC.score({title:x.title,desc:x.desc||'',org:x.org||x.company||'',c:x.c,kind:x.kind||'job',posted:x.posted,deadline:x.deadline,type:x.type,applicants:x.applicants,applicantsCapped:x.applicantsCapped,company:x.company&&typeof x.company==='object'?x.company:null,foundAt:x.foundAt},scoreProf||scoringProfile());
 }
 const band=s=>s>=75?'hi':s>=55?'mid':'lo';
-function scoreBadge(m){if(!m)return '';const n=Object.values(m.parts).filter(p=>p.known).length;return `<span class="score s-${band(m.score)}" title="Match ${m.score}/100, based on ${n} of ${Object.keys(m.parts).length} signals">${m.score}</span>`;}
+function scoreBadge(m){if(!m)return '';const n=Object.values(m.parts).filter(p=>p.known).length;return `<span class="score s-${band(m.score)}${m.confidence<0.6?' weak':''}" title="Match ${m.score}/100, based on ${n} of ${Object.keys(m.parts).length} signals${m.confidence<0.6?'. Little real data: treat as a rough guess':''}">${m.score}</span>`;}
 function scoreWhy(m){
   if(!m)return '';
   return `<details class="why"><summary>Why ${m.score}${m.blockers.length?` · ${esc(m.blockers.join(', '))}`:''}${m.urgent?' · apply soon':''}</summary><div class="bars">${Object.entries(m.parts).map(([k,p])=>
@@ -1316,6 +1321,7 @@ function profilePage(){
       <div class="g4" style="margin-top:12px">${LANG_NAMES.map(([k,l])=>`<div><label class="lab" for="pfL${k}">${l}</label><select id="pfL${k}" data-lang="${k}">${LEVELS.map(v=>`<option value="${v}" ${p.languages[k]===v?'selected':''}>${v||'None'}</option>`).join('')}</select></div>`).join('')}</div></div>
     <div class="panel"><h2>Where, in order</h2><p class="hint">Your first country scores highest. Tick where you need a visa or work permit.</p>
       <ol class="order" id="pfOrder">${p.countries.map((id,i)=>{const c=cById(id);return c?`<li><span>${c.flag} ${esc(c.name)}</span><label class="sc"><input type="checkbox" data-visa="${id}" ${p.visa[id]?'checked':''}> Visa</label><span class="row"><button class="btn sm" data-up="${i}" ${i?'':'disabled'} aria-label="Move ${esc(c.name)} up">↑</button><button class="btn sm" data-down="${i}" ${i<p.countries.length-1?'':'disabled'} aria-label="Move ${esc(c.name)} down">↓</button></span></li>`:'';}).join('')}</ol>
+      <label class="lab" for="pfIntern" style="margin-top:14px">Internships and work-study</label><select id="pfIntern"><option value="auto" ${(p.internships||'auto')==='auto'?'selected':''}>Only until I graduate (${p.degree.year||'set your graduation year'})</option><option value="yes" ${p.internships==='yes'?'selected':''}>I can still take them</option><option value="no" ${p.internships==='no'?'selected':''}>Not interested</option></select>
       <label class="lab" for="pfRemote" style="margin-top:14px">Remote work</label><select id="pfRemote"><option value="yes" ${p.remote==='yes'?'selected':''}>I want remote</option><option value="ok" ${p.remote==='ok'?'selected':''}>Either is fine</option><option value="no" ${p.remote==='no'?'selected':''}>I prefer on-site</option></select>
       <label class="lab" for="pfExcl" style="margin-top:14px">Exclude offers whose title or company contains <span class="hint" style="font-weight:400">(comma separated)</span></label>
       <input type="text" id="pfExcl" placeholder="e.g. senior, lead, commercial, SAP" value="${esc(p.exclude.join(', '))}">
@@ -1345,6 +1351,7 @@ function profilePage(){
   $('#pfDegF').addEventListener('change',e=>setProfile({degree:Object.assign(prof().degree,{field:e.target.value.trim()})}));
   document.querySelectorAll('[data-lang]').forEach(s=>s.addEventListener('change',()=>setProfile({languages:Object.assign(prof().languages,{[s.dataset.lang]:s.value})})));
   $('#pfRemote').addEventListener('change',e=>setProfile({remote:e.target.value}));
+  $('#pfIntern').addEventListener('change',e=>setProfile({internships:e.target.value}));
   $('#pfOrder').addEventListener('change',e=>{const v=e.target.dataset.visa;if(v)setProfile({visa:Object.assign(prof().visa,{[v]:e.target.checked})});});
   $('#pfOrder').addEventListener('click',e=>{const u=e.target.closest('[data-up],[data-down]');if(!u)return;const l=prof().countries,i=+(u.dataset.up??u.dataset.down),j=u.dataset.up!=null?i-1:i+1;
     [l[i],l[j]]=[l[j],l[i]];setProfile({countries:l});profilePage();});
