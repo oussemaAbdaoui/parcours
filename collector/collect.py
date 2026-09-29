@@ -209,6 +209,35 @@ def save_items(store, items, removed):
         store.cmd("HDEL", ITEMS_KEY, *removed[i:i + 100])
 
 
+def dealbreakers(items, state):
+    """{id: [reasons]} for offers that hit a dealbreaker for your profile, using the app's own score.js via Node."""
+    import shutil
+    import subprocess
+    if not items or not (state.get("profile") or {}):
+        return {}
+    node = shutil.which("node")
+    if not node:
+        print("  (node not found: dealbreaker filter skipped)")
+        return {}
+    payload = json.dumps({"profile": state.get("profile"), "targets": [s.get("search", "") for s in state.get("searches", [])],
+                          "items": items}, ensure_ascii=False)
+    out = subprocess.run([node, os.path.join(os.path.dirname(__file__), "dealbreakers.js")], input=payload.encode("utf8"),
+                         capture_output=True, timeout=120)
+    if out.returncode:
+        print("  dealbreaker filter failed:", out.stderr.decode("utf8", "replace")[:200])
+        return {}
+    return json.loads(out.stdout or b"{}")
+
+
+def report_blocked(blocked, label):
+    if blocked:
+        why = {}
+        for reasons in blocked.values():
+            for r in reasons:
+                why[r] = why.get(r, 0) + 1
+        print(f"  {label}: {len(blocked)} dropped ({', '.join(f'{k} {v}' for k, v in sorted(why.items(), key=lambda kv: -kv[1]))})")
+
+
 def main():
     dry, home = "--dry-run" in sys.argv, "--home" in sys.argv
     origin = "home" if home else "cloud"
@@ -236,6 +265,11 @@ def main():
         print(f"  {name:16} {'ok ' if st['ok'] else 'ERR'} {st['count']:4}  {st.get('error', '')}")
     if before != len(found):
         print(f"  excluded by your words: {before - len(found)}")
+    # Offers that are dealbreakers for you (too senior, language, work permit, internship after graduation...)
+    # are not stored at all.
+    blocked = dealbreakers(found, state)
+    report_blocked(blocked, "dealbreakers in new results")
+    found = [x for x in found if x["id"] not in blocked]
 
     stored = load_all(store) if store else []
     mine = [x for x in stored if x.get("origin", "cloud") == origin and not excluded(x, exclude)]
@@ -255,6 +289,13 @@ def main():
         except Exception as e:
             status[name] = {"ok": False, "count": 0, "error": str(e)[:160]}
         print(f"  {name:16} {'ok ' if status[name]['ok'] else 'ERR'} {status[name]['count']:4}  {status[name].get('error', '')}")
+    # Full descriptions can reveal a dealbreaker the listing hid (fluent German, EU citizens only): drop those too,
+    # along with stored offers that became dealbreakers after a profile change.
+    late = dealbreakers(items, state)
+    report_blocked(late, "dealbreakers among stored offers")
+    if late:
+        removed += [x["id"] for x in items if x["id"] in late]
+        items = [x for x in items if x["id"] not in late]
     rich = sum(1 for x in items if len(x.get("desc") or "") >= 400)
     print(f"  full description: {rich}/{len(items)}, applicants: {sum(1 for x in items if x.get('applicants'))}, company rating: {sum(1 for x in items if x.get('company'))}")
 

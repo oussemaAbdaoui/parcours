@@ -282,6 +282,17 @@ dialog::backdrop{background:rgba(8,16,14,.55);backdrop-filter:blur(2px)}
 .card.dom{border-top:4px solid var(--accent)}
 .card.dom .big{color:var(--accent)}
 .card.dom p{margin:0;font-size:14px;color:var(--muted)}
+h2.sec{font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-family:var(--body);font-weight:650;margin:30px 0 12px}
+h2.sec:first-of-type{margin-top:6px}
+.card .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+.best{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;margin-top:8px;padding-top:10px;border-top:1px solid var(--line-2);font-size:13.5px;line-height:1.35}
+.best .score{width:38px;height:38px;font-size:14px;border-radius:9px}
+.best small{display:block;color:var(--muted);font-size:12.5px}
+.best span:last-child{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card.tool{border-style:dashed}
+.card.tool:hover{border-style:solid;border-color:var(--ink)}
+.card.tool .big{font-size:19px}
+.card.tool p{margin:0;font-size:14px;color:var(--muted)}
 .angle{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 22px}
 @media(max-width:640px){.angle{grid-template-columns:1fr}}
 .angle div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-size:14px}
@@ -683,7 +694,7 @@ async function loadBest(){
     +(top.length?'<div class="offers compact">'+top.map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:''};
       return `<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
       <div class="meta"><b>${esc(x.org||'')}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}</div></div></article>`;}).join('')+'</div>'
-      +'<p style="margin:10px 0 0"><a href="#/opps">See all collected offers</a></p>'
+      +'<p style="margin:10px 0 0"><a href="#/opps/all">See all collected offers</a></p>'
     :'<p class="hint" style="margin:0">Nothing collected yet.</p>');
 }
 function timelineSvg(apps){
@@ -1061,11 +1072,73 @@ function renderLinks(){
   const q=currentQ();
   $('#dlBox').innerHTML=deepLinks(q).map(([n,u])=>`<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(n)}</a>`).join('');
 }
-function opps(){
-  $('#view').innerHTML=`<h1>Opportunities</h1><p class="sub">Live listings from several job sources, your own feeds, and a radar of PhDs and master's programmes.</p>
-  <div class="panel"><h2>Collected for you</h2><p class="hint">New jobs and PhD offers found automatically every 6 hours on 21 platforms (LinkedIn, Indeed, StepStone, HelloWork, jobs.ch, Job Bank, ABG, Academic Positions, jobs.ac.uk, Inria, CNRS and more), using your saved searches.</p><div id="colBox"></div></div>
-  <div class="panel"><h2>Your saved searches</h2><p class="hint">These run when you open this page. New listings since your last visit are marked.</p><div id="ssBox"></div></div>
-  <div class="panel"><h2>Search jobs</h2>
+const KIND_LABEL={job:'Jobs',phd:'PhD positions',master:"Master's programmes"};
+const crumbs=(trail,cur)=>`<div class="crumbs">${trail.map(([l,h])=>`<a href="${h}">${esc(l)}</a><span>/</span>`).join('')}<b>${esc(cur)}</b></div>`;
+// Offers worth showing: not hidden, not a dealbreaker, not already applied. Scores computed once per call.
+function visibleOffers(){
+  if(!colData)return [];
+  const hidden=new Set(state.oppsHidden||[]);scoreProf=scoringProfile();
+  const l=colData.items.filter(x=>!hidden.has(x.id)).map(x=>Object.assign({},x,{m:matchOf(x),applied:isApplied(x)})).filter(x=>!(x.m&&x.m.blockers.length)&&!x.applied);
+  scoreProf=null;return l;
+}
+async function ensureCollected(box){
+  if(colData)return true;
+  if(!caps.online){if(box)box.innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return false;}
+  try{colData=await api('/api/opps');}catch(e){if(box)box.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load collected offers.'))}</p>`;return false;}
+  if(colPrev===null){colPrev=state.oppsSeenAt||0;const mx=Math.max(0,...colData.items.map(x=>x.foundAt||0));if(mx>(state.oppsSeenAt||0)&&!demo){state.oppsSeenAt=mx;save();}}
+  return true;
+}
+function bestLine(list){const b=list.slice().sort((a,c)=>(c.m?c.m.rank:0)-(a.m?a.m.rank:0))[0];
+  return b&&b.m?`<span class="best">${scoreBadge(b.m)}<span>${esc(b.title)}<small>${esc(b.org||b.source)}</small></span></span>`:'';}
+function oppsHub(){
+  $('#view').innerHTML=`<h1>Opportunities</h1><p class="sub">Offers collected for you every 6 hours, sorted into categories, plus your own search tools.</p>
+  <h2 class="sec">Collected for you</h2><div class="grid" id="hubKinds"><p class="hint">Loading…</p></div>
+  <h2 class="sec">Search and track</h2><div class="grid tools">
+    <a class="card tool" href="#/opps/search"><span class="big">Search jobs</span><p>Live search on up to 10 sources, with match scores.</p></a>
+    <a class="card tool" href="#/opps/saved-searches"><span class="big">Saved searches</span><p>${state.searches.length} of 4 saved. They also steer the collector.</p></a>
+    <a class="card tool" href="#/opps/radar"><span class="big">PhD and master's radar</span><p>Hand-picked programmes and positions with deadlines.</p></a>
+    <a class="card tool" href="#/opps/feeds"><span class="big">Your feeds</span><p>${state.feeds.length} RSS or Atom feed${state.feeds.length===1?'':'s'}.</p></a>
+    <a class="card tool" href="#/opps/saved"><span class="big">Saved jobs</span><p>${state.saved.length} saved.</p></a>
+  </div>`;
+  const box=$('#hubKinds');
+  ensureCollected(box).then(ok=>{
+    if(!ok||!$('#hubKinds'))return;
+    const all=visibleOffers(),run=(colData.runs||[])[0];
+    const kinds=['job','phd','master'].filter(k=>all.some(x=>x.kind===k));
+    box.innerHTML=kinds.map(k=>{const l=all.filter(x=>x.kind===k),v=DOM[k],nNew=l.filter(x=>x.foundAt>colPrev).length,top=l.filter(x=>x.m&&x.m.score>=75).length;
+      return `<a class="card dom" style="--accent:var(${v.color});--tint:var(${v.tint})" href="#/opps/${k}"><span class="big">${KIND_LABEL[k]}</span>
+        <span class="meta"><b>${l.length}</b> offer${l.length===1?'':'s'}${nNew?` · <b>${nNew}</b> new`:''} · <b>${top}</b> strong matches</span>${bestLine(l)}</a>`;}).join('')
+      +`<a class="card" href="#/opps/all"><span class="big">All offers</span><span class="meta"><b>${all.length}</b> offers from ${new Set(all.map(x=>x.source)).size} platforms</span>
+        <p class="hint" style="margin:0">${run?`Last run ${esc(new Date(run.at).toLocaleString('en',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))}, ${run.new} new.`:''} Dealbreakers and offers you applied to are left out.</p></a>`;
+  });
+}
+function oppsCountries(kind){
+  const v=DOM[kind]||DOM.job;
+  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],KIND_LABEL[kind])+`<div style="--accent:var(${v.color});--tint:var(${v.tint})"><h1>${KIND_LABEL[kind]}</h1><p class="sub">Choose a country. Ordered by your preference in Profile.</p><div class="grid" id="ctyBox"><p class="hint">Loading…</p></div></div>`;
+  const box=$('#ctyBox');
+  ensureCollected(box).then(ok=>{
+    if(!ok||!$('#ctyBox'))return;
+    const l=visibleOffers().filter(x=>x.kind===kind),order=prof().countries;
+    const ids=COUNTRIES.map(c=>c.id).filter(id=>l.some(x=>x.c===id)).sort((a,b)=>(order.indexOf(a)+99)%99-(order.indexOf(b)+99)%99);
+    box.innerHTML=ids.map(id=>{const c=cById(id),cl=l.filter(x=>x.c===id),nNew=cl.filter(x=>x.foundAt>colPrev).length,top=cl.filter(x=>x.m&&x.m.score>=75).length;
+      return `<a class="card" href="#/opps/${kind}/${id}"><span class="flag" aria-hidden="true">${c.flag}</span><span class="big">${esc(c.name)}</span>
+        <span class="meta"><b>${cl.length}</b> offer${cl.length===1?'':'s'}${nNew?` · <b>${nNew}</b> new`:''} · <b>${top}</b> strong</span>${bestLine(cl)}</a>`;}).join('')
+      +(ids.length>1?`<a class="card" href="#/opps/${kind}/any"><span class="flag" aria-hidden="true">🗺️</span><span class="big">All countries</span><span class="meta"><b>${l.length}</b> offer${l.length===1?'':'s'}</span></a>`:'')
+      ||'<p class="hint">Nothing here yet.</p>';
+  });
+}
+function oppsList(kind,c){
+  const cc=c&&c!=='any'?cById(c):null,v=DOM[kind]||DOM.job;
+  const title=kind?(cc?`${KIND_LABEL[kind]} in ${cc.name}`:`${KIND_LABEL[kind]}, all countries`):'All offers';
+  const trail=[['Opportunities','#/opps']];if(kind)trail.push([KIND_LABEL[kind],'#/opps/'+kind]);
+  $('#view').innerHTML=crumbs(trail,cc?cc.name:kind?'All countries':'All offers')+`<div style="--accent:var(${v.color});--tint:var(${v.tint})"><h1>${cc?cc.flag+' ':''}${esc(title)}</h1>
+    <p class="sub">Best matches first. Open "Why" on any offer to see how it was scored.</p><div class="panel"><div id="colBox"></div></div></div>`;
+  colLock={k:kind||'',c:cc?cc.id:''};colF.k=colLock.k;colF.c=colLock.c;colMax=30;
+  loadCollected();
+}
+function oppsSearch(){
+  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],'Search jobs')+`<h1>Search jobs</h1><p class="sub">Live listings from job APIs and boards, scored against your profile.</p>
+  <div class="panel">
     <div class="g2"><div><label class="lab" for="jS">Keywords</label><input type="text" id="jS" list="jSl" value="machine learning engineer"><datalist id="jSl"><option value="machine learning engineer"><option value="AI engineer"><option value="NLP engineer"><option value="backend developer"><option value="software engineer"><option value="data scientist"></datalist></div>
     <div><label class="lab" for="jC">Country</label><select id="jC">${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select></div></div>
     <div class="g2" style="margin-top:10px"><div><label class="lab" for="jL">Location (or "remote")</label><input type="text" id="jL"></div>
@@ -1073,12 +1146,8 @@ function opps(){
     <p class="lab" style="margin:12px 0 4px">Sources</p><div class="srcs" id="srcBox"></div>
     <label class="sc" style="margin-top:8px"><input type="checkbox" id="jV"> Visa sponsorship only (Arbeitnow)</label>
     <div class="row" style="margin-top:12px"><button class="btn primary" id="jGo">Search</button><button class="btn" id="jSaveS" hidden>Save this search</button><span class="hint" id="jMsg" style="margin:0"></span></div>
-    <div id="jRes"></div>
-    <p class="lab" style="margin:18px 0 6px">Search the same thing on other platforms</p><div class="row" id="dlBox"></div>
-    <p class="hint" style="margin:8px 0 0">These open each site's own search in a new tab. A few may need small tweaks on their side.</p></div>
-  <div class="panel"><h2>Your feeds</h2><p class="hint">Add any RSS or Atom feed, for example a job board or a lab's news page, and see its latest items here.</p><div id="feedBox"></div></div>
-  <div class="panel"><h2>PhD and master's radar</h2><div id="radBox"></div></div>
-  <div class="panel"><h2>Saved jobs</h2><div id="savedBox"></div></div>`;
+    <div id="jRes"></div></div>
+  <div class="panel"><h2>Search the same thing elsewhere</h2><p class="hint">These open each site's own search in a new tab.</p><div class="row" id="dlBox"></div></div>`;
   $('#jL').value=LOC.fr;
   renderSrcChips();renderLinks();
   $('#jC').addEventListener('change',()=>{$('#jL').value=LOC[$('#jC').value]||'';renderSrcChips();renderLinks();});
@@ -1087,11 +1156,26 @@ function opps(){
   $('#jS').addEventListener('input',renderLinks);
   $('#jGo').addEventListener('click',doSearch);
   $('#jSaveS').addEventListener('click',saveSearch);
-  renderFeeds();renderRadar();renderSaved();runSaved();loadCollected();
+}
+function oppsTool(name,h,sub,boxId,init){
+  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],h)+`<h1>${esc(h)}</h1><p class="sub">${sub}</p><div class="panel"><div id="${boxId}"></div></div>`;
+  init();
+}
+function opps(seg){
+  const [a,b]=seg||[];colLock=null;
+  if(!a)return oppsHub();
+  if(KIND_LABEL[a])return b?oppsList(a,b):oppsCountries(a);
+  if(a==='all')return oppsList('','');
+  if(a==='search')return oppsSearch();
+  if(a==='saved-searches')return oppsTool(a,'Saved searches','These run when you open this page and steer the collector. New listings since your last visit are marked. Save one from Search jobs.','ssBox',runSaved);
+  if(a==='feeds')return oppsTool(a,'Your feeds','Add any RSS or Atom feed, for example a job board or a lab\'s news page, and see its latest items here.','feedBox',renderFeeds);
+  if(a==='radar')return oppsTool(a,"PhD and master's radar",'Programmes and positions picked for your profile. Deadlines in the past hide automatically.','radBox',renderRadar);
+  if(a==='saved')return oppsTool(a,'Saved jobs','Offers you saved from search results or collected offers.','savedBox',renderSaved);
+  oppsHub();
 }
 
 /* collected by the scheduled collector */
-let colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,remote:false,hideBlock:true,hideApplied:true},colMax=30;
+let colLock=null,colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,remote:false,hideBlock:true,hideApplied:true},colMax=30;
 // Already applied: a logged application at the same company whose role shares most words with the offer title.
 const roleWords=s=>normOrg(s).split(' ').filter(w=>w.length>2&&!['h/f','f/h','the','and','des','les','pour'].includes(w));
 function isApplied(x){
@@ -1111,7 +1195,8 @@ function renderCollected(){
   const b=$('#colBox');if(!b||!colData)return;
   const hidden=new Set(state.oppsHidden||[]);
   scoreProf=scoringProfile();
-  const all=colData.items.filter(x=>!hidden.has(x.id)).map(x=>Object.assign({},x,{m:matchOf(x),applied:isApplied(x)}));
+  const inScope=x=>!colLock||((!colLock.k||x.kind===colLock.k)&&(!colLock.c||x.c===colLock.c));
+  const all=colData.items.filter(x=>!hidden.has(x.id)&&inScope(x)).map(x=>Object.assign({},x,{m:matchOf(x),applied:isApplied(x)}));
   scoreProf=null;
   const q=normOrg(colF.q),cutoff=colF.days?Date.now()-colF.days*864e5:0;
   const isRemote=x=>/\b(remote|teletravail|télétravail|homeoffice|anywhere)\b/i.test(x.location+' '+x.title+' '+(x.desc||'').slice(0,600))||x.c==='gl';
@@ -1134,8 +1219,8 @@ function renderCollected(){
       <input type="search" id="coQ" placeholder="Search title, company, details" aria-label="Search collected offers" value="${esc(colF.q)}">
       <select id="coS" aria-label="Sort"><option value="match">Best match first</option><option value="new">Newest first</option><option value="deadline">Deadline first</option></select>
       <select id="coM" aria-label="Minimum match"><option value="0">Any match</option><option value="55">Match 55+</option><option value="65">Match 65+</option><option value="75">Match 75+</option></select>
-      <select id="coK" aria-label="Kind"><option value="">All kinds</option><option value="job">Jobs</option><option value="phd">PhD</option><option value="master">Master's</option></select>
-      <select id="coC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>
+      ${colLock&&colLock.k?'':`<select id="coK" aria-label="Kind"><option value="">All kinds</option><option value="job">Jobs</option><option value="phd">PhD</option><option value="master">Master's</option></select>`}
+      ${colLock&&colLock.c?'':`<select id="coC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>`}
       <select id="coSrc" aria-label="Source"><option value="">All sources</option>${sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
       <select id="coD" aria-label="Posted within"><option value="0">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
       <label class="sc"><input type="checkbox" id="coN"> New only (${nNew})</label>
@@ -1152,10 +1237,10 @@ function renderCollected(){
       <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>Save</button><button class="btn sm" data-colog="${esc(x.id)}">Log</button><button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></article>`;}).join('')+'</div>'
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
     :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 6 hours.'}</p>`);
-  const k=$('#coK');if(k){k.value=colF.k;$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
+  const k=$('#coS');if(k){if($('#coK'))$('#coK').value=colF.k;if($('#coC'))$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
     $('#coSrc').value=colF.src;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
-    const read=()=>({k:$('#coK').value,c:$('#coC').value,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked});
-    ['coK','coC','coN','coS','coM','coSrc','coD','coR','coB','coA'].forEach(id=>$('#'+id).addEventListener('change',()=>{colF=read();colMax=30;renderCollected();}));
+    const read=()=>({k:$('#coK')?$('#coK').value:colF.k,c:$('#coC')?$('#coC').value:colF.c,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked});
+    ['coK','coC','coN','coS','coM','coSrc','coD','coR','coB','coA'].filter(id=>$('#'+id)).forEach(id=>$('#'+id).addEventListener('change',()=>{colF=read();colMax=30;renderCollected();}));
     let tq=null;$('#coQ').addEventListener('input',()=>{clearTimeout(tq);tq=setTimeout(()=>{colF=read();colMax=30;renderCollected();const i=$('#coQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250);});}
   const m=$('#coMore');if(m)m.addEventListener('click',()=>{colMax+=30;renderCollected();});
 }
@@ -1364,7 +1449,7 @@ function route(){
   document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.t===t)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   $('#demoBar').innerHTML=demo?`<div class="demo"><span>Previewing sample data. Nothing here is saved.</span><button class="btn sm" data-act="exitdemo">Exit preview</button></div>`:'';
   if(t==='apps')apps(qs);
-  else if(t==='opps')opps();
+  else if(t==='opps')opps(seg.slice(1));
   else if(t==='notes')notesPage();
   else if(t==='profile')profilePage();
   else if(t==='explore'){const c=cById(seg[1]);if(c&&DOM[seg[2]])exploreDomain(c,seg[2]);else if(c)exploreCountry(c);else exploreHome();}
