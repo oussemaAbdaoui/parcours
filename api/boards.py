@@ -29,7 +29,8 @@ def _safe_from_string(cls, country_str):
 
 Country.from_string = classmethod(_safe_from_string)
 
-SITES = {"indeed": "indeed", "linkedin": "linkedin", "glassdoor": "glassdoor", "google": "google"}
+SITES = {"indeed": "indeed", "linkedin": "linkedin", "glassdoor": "glassdoor", "google": "google",
+         "zip_recruiter": "zip_recruiter", "bayt": "bayt"}
 # Indeed and Glassdoor need a country; Tunisia is not one of theirs.
 COUNTRY = {"fr": "france", "de": "germany", "ca": "canada", "ch": "switzerland", "gl": "usa"}
 COUNTRY_NAME = {"fr": "France", "de": "Germany", "ca": "Canada", "ch": "Switzerland", "tn": "Tunisia"}
@@ -47,6 +48,8 @@ def _search(site, q, results=20, hours=24 * 30):
     remote = q["c"] == "gl" or bool(REMOTE.search(q["loc"]))
     if site in ("indeed", "glassdoor") and q["c"] not in COUNTRY:
         raise ValueError("Not available for this country")
+    if site == "zip_recruiter" and q["c"] not in ("ca", "gl"):
+        raise ValueError("Only covers the USA and Canada")
     loc = "" if remote else q["loc"]
     if loc and q["c"] in COUNTRY_NAME and COUNTRY_NAME[q["c"]].lower() not in loc.lower():
         loc = loc + ", " + COUNTRY_NAME[q["c"]]
