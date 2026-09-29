@@ -29,6 +29,14 @@ def _t(s):
     return re.sub(r"\s+", " ", str(s or "")).strip()
 
 
+PHD = re.compile(r"\bph\.?d\b|\bdoctoral|\bdoctorate|\bdoctorant|\bdoktorand|\bth[eè]se\b", re.I)
+
+
+def is_phd(title):
+    """PhD offer? Word boundaries keep "postdoctoral" out."""
+    return bool(PHD.search(title or ""))
+
+
 MONTHS = {m: i for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
 FR_MONTHS = {m: i for i, m in enumerate(["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"], 1)}
 
@@ -113,7 +121,7 @@ def ellis(keywords):
             m = re.search(r"Apply by (\d{2})/(\d{2})/(\d{2})\s*•?\s*(.*)", _t(meta))
             title = _t(a.get_all_text())
             low = title.lower()
-            kind = "phd" if "phd" in low or "doctoral" in low else "job"
+            kind = "phd" if is_phd(title) else "job"
             out.append({
                 "id": "ellis:" + href.rstrip("/").split("/")[-1], "title": title, "org": "", "location": _t(m.group(4)) if m else "",
                 "c": "gl", "kind": kind, "source": "ELLIS", "url": page.urljoin(href), "posted": "",
@@ -350,7 +358,7 @@ def max_planck(keywords):
         out.append({
             "id": "mpg:" + href.split("job-")[-1], "title": title, "org": inst.split(",")[0],
             "location": inst.split(",")[-1].strip() if "," in inst else "", "c": "de",
-            "kind": "phd" if re.search(r"phd|doktorand|doctoral", title.lower()) else "job", "source": "Max Planck",
+            "kind": "phd" if is_phd(title) else "job", "source": "Max Planck",
             "url": page.urljoin(href), "posted": _long_date(li.css(".date::text").get()), "deadline": "", "desc": "",
         })
     return out
@@ -505,7 +513,7 @@ def academic_positions(keywords):
             out.append({
                 "id": "ap:" + href.rstrip("/").split("/")[-1], "title": title,
                 "org": _t(card.css("a.job-link::text").get()) if card is not None else "", "location": loc, "c": _country(loc),
-                "kind": "phd" if re.search(r"\bph\.?d\b|doctoral", title.lower()) else "job", "source": "Academic Positions",
+                "kind": "phd" if is_phd(title) else "job", "source": "Academic Positions",
                 "url": href, "posted": "", "deadline": closing.group(1) if closing else "",
                 "desc": _t(a.css("p::text").get())[:600],
             })
@@ -530,7 +538,7 @@ def scholarshipdb(keywords):
             out.append({
                 "id": "sdb:" + href.rstrip("/").split("=")[-1], "title": title, "org": orgs[0] if orgs else "",
                 "location": ", ".join(x for x in (city, country) if x), "c": _country(country),
-                "kind": "phd" if re.search(r"\bph\.?d\b|doctoral|doctorate", low) else "job", "source": "ScholarshipDB",
+                "kind": "phd" if is_phd(title) else "job", "source": "ScholarshipDB",
                 "url": page.urljoin(href), "posted": "", "deadline": "", "desc": _t(p[0].get_all_text())[:600] if p else "",
             })
     return out

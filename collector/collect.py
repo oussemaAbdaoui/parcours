@@ -16,7 +16,7 @@ import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 from boards import _search as jobspy_search  # noqa: E402  (same JobSpy code as the app's live search)
-from sources import SCRAPERS, STEALTH_SCRAPERS  # noqa: E402
+from sources import SCRAPERS, STEALTH_SCRAPERS, is_phd  # noqa: E402
 
 STATE_KEY, OPPS_KEY = "parcours:state", "parcours:opps"
 MAX_ITEMS, MAX_AGE_DAYS = 600, 45
@@ -83,10 +83,9 @@ def run_jobspy(searches, status):
                 st = status.setdefault(name, {"ok": True, "count": 0})
                 st["count"] += len(found)
                 for j in found:
-                    low = j["title"].lower()
                     items.append({
                         "id": j["id"], "title": j["title"], "org": j["company"], "location": j["location"], "c": s["c"],
-                        "kind": "phd" if re.search(r"\bph\.?d\b|doctora|doktorand|these\b|thèse", low) else "job",
+                        "kind": "phd" if is_phd(j["title"]) else "job",
                         "source": name, "url": j["url"], "posted": j["posted"], "deadline": "",
                         "desc": j.get("desc", ""), "type": j.get("type", ""), "query": s["search"],
                     })

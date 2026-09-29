@@ -64,11 +64,21 @@ While the Google app stays in "Testing" mode, Google expires the connection afte
 
 `collector/collect.py` runs on GitHub Actions every 6 hours (`.github/workflows/collect.yml`) and saves new offers to Upstash. They appear under **Opportunities, Collected for you**, with details, deadline and an **Apply** link.
 
-- **Job boards:** your saved searches, run through JobSpy on Indeed and LinkedIn (4 default searches until you save your own).
-- **PhD and research:** jobs.ac.uk PhD studentships, Inria PhD and engineer offers, ELLIS positions, filtered on your keywords and AI topics.
-- **Tunisia:** Keejob.
+Your saved searches drive the job boards (4 defaults until you save your own); academic and remote boards are filtered on your keywords and AI topics.
 
-Scraping uses [Scrapling](https://github.com/D4Vinci/Scrapling)'s plain HTTP fetcher on pages the site's robots.txt allows. Sites that block automated access (Academic Positions, ABG, FindAPhD, Tanitjobs) or disallow it (Euraxess) are not scraped: subscribe to their email alerts instead, and Scan Gmail picks them up. Google Jobs returns nothing to servers, so it is not used.
+| Area | Platforms | How |
+|---|---|---|
+| Job boards | LinkedIn, Indeed | JobSpy |
+| France | HelloWork, CNRS, Inria, ABG | Scrapling (ABG in stealth mode) |
+| Germany | StepStone, Max Planck | Scrapling (StepStone in stealth mode) |
+| Switzerland, Canada | jobs.ch, Job Bank | Scrapling |
+| Tunisia | Keejob, Farojob | Scrapling |
+| PhD and research | jobs.ac.uk, ELLIS, jobRxiv, Academic Positions, ScholarshipDB | Scrapling (the last two in stealth mode) |
+| Remote | We Work Remotely (RSS), Himalayas, Jobicy, Working Nomads (APIs) | Public feeds |
+
+**Stealth mode.** ABG, Academic Positions, ScholarshipDB and StepStone sit behind Cloudflare or similar bot protection, so they are read with Scrapling's `StealthyFetcher`, a real browser that passes those challenges (the workflow installs it with `scrapling install`). This goes against those sites' terms; it reads a few listing pages per run and a failure only marks that source as failed.
+
+**Not reachable from GitHub:** FindAPhD, Tanitjobs, MastersPortal, PhDPortal, DAAD, ZipRecruiter, Glassdoor and Bayt block GitHub's IP addresses outright, and Google Jobs returns nothing to servers. Euraxess disallows its search in robots.txt. Subscribe to their email alerts; Scan Gmail picks them up. No master's programme catalogue is reachable yet.
 
 Setup: add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as repository secrets on GitHub. Without them the workflow runs in dry-run mode and only prints what it found. Run it by hand from the Actions tab (**Collect opportunities, Run workflow**). Items older than 45 days or past their deadline are dropped.
 
