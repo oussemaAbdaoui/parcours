@@ -565,5 +565,30 @@ def stepstone(keywords):
     return out
 
 
+def tanitjobs(keywords):
+    """Tanitjobs, main Tunisian job board. Cloudflare blocks datacenter IPs, so this only works from a home
+    connection: it runs in the PC collector (collect.py --home), not on GitHub."""
+    out = []
+    for page in _stealth_pages(["https://www.tanitjobs.com/jobs/?keywords=" + kw.replace(" ", "+") for kw in keywords[:3]]):
+        for card in page.css("div.sj-job-card"):
+            a = card.css(".sj-card-title a")
+            if not a:
+                continue
+            href = a[0].attrib.get("href", "")
+            jid = re.search(r"/job/(\d+)/", href)
+            date_txt = re.search(r"(\d{2})/(\d{2})/(\d{4})", " ".join(card.css(".sj-card-date ::text").getall()))
+            tags = [_t(x) for x in card.css(".sj-card-tag::text").getall() if _t(x)]
+            out.append({
+                "id": "tanitjobs:" + (jid.group(1) if jid else href), "title": _t(a[0].get_all_text()),
+                "org": _t(card.css(".sj-card-company a::text").get()), "location": _t(card.css(".sj-loc::text").get()),
+                "c": "tn", "kind": "job", "source": "Tanitjobs", "url": href,
+                "posted": f"{date_txt.group(3)}-{date_txt.group(2)}-{date_txt.group(1)}" if date_txt else "", "deadline": "",
+                "type": " · ".join(tags[1:]), "desc": _t(card.css(".sj-card-desc::text").get())[:600],
+            })
+    return out
+
+
 # Browser-based (StealthyFetcher). Only run where a browser is installed (STEALTH=1 in the workflow).
 STEALTH_SCRAPERS = {"ABG": abg, "Academic Positions": academic_positions, "ScholarshipDB": scholarshipdb, "StepStone": stepstone}
+# Need a home IP (blocked from datacenters). Run by the PC collector: collect.py --home.
+HOME_SCRAPERS = {"Tanitjobs": tanitjobs}

@@ -1,7 +1,8 @@
 """Collects new opportunities on a schedule (GitHub Actions) and saves them to Upstash for the app.
 
-  python collector/collect.py            # run and save
+  python collector/collect.py            # run and save (GitHub Actions)
   python collector/collect.py --dry-run  # run and print, without Upstash
+  python collector/collect.py --home --env=PATH  # PC collector: home-IP-only sources (Tanitjobs), own key
 
 Searches come from the app's saved searches (Opportunities page); defaults are used until you save some.
 """
@@ -15,10 +16,11 @@ from datetime import date, datetime, timedelta, timezone
 import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
-from boards import _search as jobspy_search  # noqa: E402  (same JobSpy code as the app's live search)
-from sources import SCRAPERS, STEALTH_SCRAPERS, is_phd  # noqa: E402
+from sources import HOME_SCRAPERS, SCRAPERS, STEALTH_SCRAPERS, is_phd  # noqa: E402
 
-STATE_KEY, OPPS_KEY = "parcours:state", "parcours:opps"
+# The PC collector writes its own key so it never races the GitHub run; /api/opps merges both.
+STATE_KEY, OPPS_KEY, HOME_KEY = "parcours:state", "parcours:opps", "parcours:opps:home"
+HOME_KEYWORDS = ["développeur", "machine learning", "data scientist", "intelligence artificielle"]
 MAX_ITEMS, MAX_AGE_DAYS = 600, 45
 DEFAULT_SEARCHES = [
     {"search": "machine learning engineer", "c": "fr", "location": "Paris", "type": ""},
@@ -73,6 +75,7 @@ def matches_search(job, search):
 
 
 def run_jobspy(searches, status):
+    from boards import _search as jobspy_search  # same JobSpy code as the app's live search
     items = []
     for s in searches:
         q = {"q": s["search"], "c": s["c"], "loc": s.get("location", ""), "type": s.get("type", "")}
@@ -95,9 +98,9 @@ def run_jobspy(searches, status):
     return items
 
 
-def run_scrapers(keywords, status):
+def run_scrapers(keywords, status, scrapers=None):
     items = []
-    scrapers = dict(SCRAPERS, **(STEALTH_SCRAPERS if os.environ.get("STEALTH") == "1" else {}))
+    scrapers = scrapers or dict(SCRAPERS, **(STEALTH_SCRAPERS if os.environ.get("STEALTH") == "1" else {}))
     for name, fn in scrapers.items():
         try:
             found = [x for x in fn(keywords) if relevant(x, keywords)]
@@ -132,20 +135,38 @@ def merge(old_items, found, now):
     return kept[:MAX_ITEMS], new
 
 
+def load_env(path):
+    """KEY=value lines (like Vercel's .env.local), for the PC collector."""
+    for line in open(path, encoding="utf8"):
+        k, sep, v = line.strip().partition("=")
+        if sep and k and not k.startswith("#"):
+            os.environ.setdefault(k.strip(), v.strip().strip('"'))
+
+
 def main():
-    dry = "--dry-run" in sys.argv
+    dry, home = "--dry-run" in sys.argv, "--home" in sys.argv
+    env = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--env=")), "")
+    if env:
+        load_env(env)
     store = None if dry else Store()
     state = (store.get_json(STATE_KEY) if store else None) or {}
     searches = [s for s in state.get("searches", []) if s.get("search")] or DEFAULT_SEARCHES
-    keywords = list(dict.fromkeys([s["search"] for s in searches] + DEFAULT_KEYWORDS))[:6]
-    print(f"{len(searches)} searches, keywords: {keywords}")
+    if home:
+        keywords = list(dict.fromkeys([s["search"] for s in searches if s.get("c") == "tn"] + HOME_KEYWORDS))[:4]
+    else:
+        keywords = list(dict.fromkeys([s["search"] for s in searches] + DEFAULT_KEYWORDS))[:6]
+    print(f"{'home' if home else 'cloud'} run, {len(searches)} searches, keywords: {keywords}")
 
     status, now = {}, int(time.time() * 1000)
-    found = run_jobspy(searches, status) + run_scrapers(keywords, status)
+    if home:
+        found = run_scrapers(keywords, status, HOME_SCRAPERS)
+    else:
+        found = run_jobspy(searches, status) + run_scrapers(keywords, status)
     for name, st in status.items():
         print(f"  {name:12} {'ok ' if st['ok'] else 'ERR'} {st['count']:4}  {st.get('error', '')}")
 
-    old = (store.get_json(OPPS_KEY) if store else None) or {}
+    key = HOME_KEY if home else OPPS_KEY
+    old = (store.get_json(key) if store else None) or {}
     items, new = merge(old.get("items", []), found, now)
     print(f"{len(found)} found, {new} new, {len(items)} kept")
     if dry:
@@ -153,7 +174,7 @@ def main():
             print(f"  [{x['kind']:5}] {x['source']:12} {x['title'][:60]:60} | {x['org'][:25]:25} | {x.get('deadline') or x.get('posted')}")
         return
     runs = ([{"at": now, "new": new, "sources": status}] + old.get("runs", []))[:10]
-    store.cmd("SET", OPPS_KEY, json.dumps({"updatedAt": now, "runs": runs, "items": items}, ensure_ascii=False))
+    store.cmd("SET", key, json.dumps({"updatedAt": now, "runs": runs, "items": items}, ensure_ascii=False))
     print("saved")
 
 
