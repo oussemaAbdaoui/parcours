@@ -143,4 +143,51 @@ def keejob(keywords):
     return out
 
 
+def abg(keywords, pages=8):
+    """ABG (Association Bernard Gregory): thesis offers, research jobs and M2 internships, mostly France.
+    Behind Cloudflare, so this uses Scrapling's StealthyFetcher (a real browser); robots.txt disallows nothing."""
+    from scrapling.fetchers import StealthySession  # needs `scrapling install` (browser) on the runner
+
+    out = []
+    with StealthySession(headless=True, solve_cloudflare=True, timeout=90000) as session:
+        urls = ["https://www.abg.asso.fr/fr/candidatOffres"] + [
+            f"https://www.abg.asso.fr/fr/candidatOffres/recherche/page/{n}" for n in range(2, pages + 1)]
+        for url in urls:
+            page = session.fetch(url, network_idle=True)
+            if page.status != 200:
+                if not out:
+                    raise RuntimeError(f"HTTP {page.status} from ABG")
+                break
+            for it in page.css("div.it_offre"):
+                a = it.css("h2 a")
+                if not a:
+                    continue
+                href = a[0].attrib.get("href", "")
+                kind_text = _t(it.css(".ligne_infos .type::text").get()).lower()
+                kind = "phd" if "thèse" in kind_text or "these" in kind_text else "job"
+                ref = re.search(r"id_offre/(\d+)", href)
+                posted = re.search(r"(\d{2})/(\d{2})/(\d{4})", _t(it.css(".l_date::text").get()))
+                org_el = it.css(".societe")
+                org = _t(org_el[0].get_all_text()) if org_el else ""
+                org = re.sub(r"\s*(Emploi|Stage|Thèse|These)$", "", org)
+                extra = [_t(x) for x in (it.css(".contrat::text").get(), it.css(".salaire::text").get()) if _t(x)]
+                mots = _t(it.css(".mots::text").getall()[-1] if it.css(".mots::text").getall() else "")
+                desc = _t(it.css(".text::text").get())
+                loc = _t(it.css(".adresse::text").get()).strip(", ")
+                low = loc.lower()
+                c = next((v for k, v in (("allemagne", "de"), ("suisse", "ch"), ("canada", "ca"), ("tunisie", "tn")) if k in low),
+                         "fr" if not loc or "france" in low or "," not in loc else "gl")
+                out.append({
+                    "id": "abg:" + (ref.group(1) if ref else href), "title": _t(a[0].get_all_text()), "org": org,
+                    "location": loc, "c": c, "kind": kind, "source": "ABG",
+                    "url": page.urljoin(href), "posted": f"{posted.group(3)}-{posted.group(2)}-{posted.group(1)}" if posted else "",
+                    "deadline": "", "type": kind_text,
+                    "desc": (desc + (f" Keywords: {mots}." if mots else "") + (" " + " · ".join(extra) if extra else ""))[:600],
+                })
+            time.sleep(UA_PAUSE)
+    return out
+
+
 SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": keejob}
+# Browser-based (StealthyFetcher). Only run where a browser is installed (STEALTH=1 in the workflow).
+STEALTH_SCRAPERS = {"ABG": abg}

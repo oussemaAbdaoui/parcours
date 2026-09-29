@@ -16,7 +16,7 @@ import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 from boards import _search as jobspy_search  # noqa: E402  (same JobSpy code as the app's live search)
-from sources import SCRAPERS  # noqa: E402
+from sources import SCRAPERS, STEALTH_SCRAPERS  # noqa: E402
 
 STATE_KEY, OPPS_KEY = "parcours:state", "parcours:opps"
 MAX_ITEMS, MAX_AGE_DAYS = 600, 45
@@ -98,7 +98,8 @@ def run_jobspy(searches, status):
 
 def run_scrapers(keywords, status):
     items = []
-    for name, fn in SCRAPERS.items():
+    scrapers = dict(SCRAPERS, **(STEALTH_SCRAPERS if os.environ.get("STEALTH") == "1" else {}))
+    for name, fn in scrapers.items():
         try:
             found = [x for x in fn(keywords) if relevant(x, keywords)]
             status[name] = {"ok": True, "count": len(found)}
