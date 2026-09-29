@@ -20,7 +20,9 @@ jobs:
           cache-dependency-path: collector/requirements.txt
       - run: pip install -r collector/requirements.txt
       - run: scrapling install
-      - run: python collector/probe.py ${{ inputs.urls }}
+      - run: python collector/probe.py $URLS
+        env:
+          URLS: ${{ inputs.urls }}
       - uses: actions/upload-artifact@v4
         with:
           name: probe-out

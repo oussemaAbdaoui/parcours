@@ -21,4 +21,6 @@ jobs:
           cache-dependency-path: collector/requirements.txt
       - run: pip install -r collector/requirements.txt
       - run: scrapling install
-      - run: python "collector/${{ inputs.script }}"
+      - run: python "collector/$SCRIPT"
+        env:
+          SCRIPT: ${{ inputs.script }}
