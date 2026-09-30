@@ -32,5 +32,7 @@ jobs:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           STEALTH: "1"
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           PYTHONUNBUFFERED: "1"
         run: python collector/collect.py ${{ (inputs.dry_run || secrets.UPSTASH_REDIS_REST_URL == '') && '--dry-run' || '' }}

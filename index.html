@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Parcours</title>
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
-<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Parcours">
 <meta name="theme-color" content="#10201C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -394,6 +397,9 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .dl textarea{min-height:70px}
 .dl .acts{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
 
+.colink{text-decoration:none}
+.linkbtn{border:0;background:none;padding:0;color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-size:inherit;cursor:pointer}
+.colink:hover{text-decoration:underline;text-underline-offset:3px}
 .foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
 .foot button{border:0;background:none;text-decoration:underline;color:var(--muted);padding:0;font-size:12px}
 .foot button:hover{color:var(--ink)}
@@ -413,6 +419,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <a href="#/explore" data-t="explore"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/><circle cx="12" cy="12" r="10"/></svg>Explore</a>
     <div class="navlab">Track</div>
     <a href="#/apps" data-t="apps"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 7v7"/><path d="M12 7v4"/><path d="M16 7v9"/></svg>Applications</a>
+    <a href="#/companies" data-t="companies"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg>Companies</a>
     <a href="#/notes" data-t="notes"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Notes</a>
     <div class="navlab">You</div>
     <a href="#/profile" data-t="profile"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>Profile</a>
@@ -634,7 +641,7 @@ const pk=(c,d,i)=>`${c}:${d}:${i}`;
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'–';
 const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
 const clone=o=>JSON.parse(JSON.stringify(o));
-const emptyState=()=>({apps:[],status:{},notes:{},journal:[],saved:[],searches:[],seen:{},seenAt:0,feeds:[],mailSeen:[],oppsHidden:[],oppsSeenAt:0,profile:null,updatedAt:0});
+const emptyState=()=>({apps:[],status:{},notes:{},journal:[],saved:[],searches:[],seen:{},seenAt:0,feeds:[],mailSeen:[],oppsHidden:[],oppsSeenAt:0,profile:null,companyNotes:{},updatedAt:0});
 
 /* state + persistence */
 const LKEY='parcours-v1', PWKEY='parcours-pw';
@@ -725,15 +732,17 @@ function overview(){
   const apps=state.apps;
   if(!apps.length){
     $('#view').innerHTML=`<h1>Overview</h1><p class="sub">Your search at a glance.</p>
+    <h2 class="sec">This week</h2><div id="weekBox"><p class="hint">Loading…</p></div><h2 class="sec market">Your applications</h2>
     <div class="panel empty"><h2>No applications yet</h2>
     <p>Log applications as you send them, or paste an email and let Claude fill in the details. Your charts appear here.</p>
     <div class="row"><button class="btn primary" data-act="new">Log an application</button><a class="btn" href="#/apps?import=1" style="text-decoration:none">Paste an email</a><button class="btn" data-act="demo">Preview with sample data</button></div></div>
     <div class="panel"><h2>Best matches right now</h2><div id="bestBox"></div></div>`;
-    loadBest();
+    loadBest();weekPanel();
     return;
   }
   const m=metrics(apps);
   $('#view').innerHTML=`<h1>Overview</h1><p class="sub">${m.n} application${m.n===1?'':'s'} logged. Everything below updates as you log more.</p>
+  <h2 class="sec">This week</h2><div id="weekBox"><p class="hint">Loading…</p></div><h2 class="sec market">Your search so far</h2>
   <div class="panel"><h2>Best matches right now</h2><div id="bestBox"></div></div>
   <div class="stats">
     <div class="stat"><b>${m.n}</b><span>Applications</span></div>
@@ -753,7 +762,7 @@ function overview(){
   <div class="panel"><h2>Read my search</h2><p class="hint">Claude looks at your numbers and points out patterns and next steps.</p>
     <button class="btn" id="insBtn" ${sample?'':'hidden'}>Analyse my search</button>
     <div class="insight" id="insOut" aria-live="polite"></div></div>`;
-  loadBest();
+  loadBest();weekPanel();
 }
 async function loadBest(){
   const b=$('#bestBox');if(!b)return;
@@ -894,7 +903,7 @@ function renderList(){
   if(appView==='board'&&state.apps.length){renderBoard(l);return;}
   $('#list').innerHTML=l.length?l.map(a=>{const v=DOM[a.d]||DOM.job,c=cById(a.c)||{flag:'',name:a.c};const u=safeUrl(a.link);
     return `<div class="app" style="--accent:var(${v.color});--tint:var(${v.tint})">
-      <div><h3>${esc(a.org)}${a.role?` <small>${esc(a.role)}</small>`:''}</h3>
+      <div><h3>${coLink(a.org)}${a.role?` <small>${esc(a.role)}</small>`:''}</h3>
       <div class="meta">${c.flag} ${esc(c.name)} · <span class="chip">${v.label}</span> · ${esc(a.p||'Direct')} · ${esc(rel(a.date))}${u?` · <a href="${esc(u)}" target="_blank" rel="noopener noreferrer">Link</a>`:''}</div></div>
       <button class="btn sm" data-edit="${esc(a.id)}">Edit</button>
       <div class="ctl"><select data-stage="${esc(a.id)}" aria-label="Stage">${STAGES.map(s=>`<option value="${s}" ${a.stage===s?'selected':''}>${STAGE_LABEL[s]}</option>`).join('')}</select>
@@ -1261,6 +1270,7 @@ function oppsHub(){
   <h2 class="sec">Search and track</h2><div class="grid tools">
     <a class="card tool" href="#/opps/search"><span class="big">Search jobs</span><p>Live search on up to 10 sources, with match scores.</p></a>
     <a class="card tool" href="#/opps/saved-searches"><span class="big">Saved searches</span><p>${state.searches.length} of 4 saved. They also steer the collector.</p></a>
+    <a class="card tool" href="#/opps/labs"><span class="big">PhD supervisors</span><p>Who publishes on your topic lately, and where. From OpenAlex and HAL.</p></a>
     <a class="card tool" href="#/opps/radar"><span class="big">PhD and master's radar</span><p>Hand-picked programmes and positions with deadlines.</p></a>
     <a class="card tool" href="#/opps/feeds"><span class="big">Your feeds</span><p>${state.feeds.length} RSS or Atom feed${state.feeds.length===1?'':'s'}.</p></a>
     <a class="card tool" href="#/opps/saved"><span class="big">Saved jobs</span><p>${state.saved.length} saved.</p></a>
@@ -1327,12 +1337,53 @@ function oppsTool(name,h,sub,boxId,init){
   $('#view').innerHTML=crumbs([['Opportunities','#/opps']],h)+`<h1>${esc(h)}</h1><p class="sub">${sub}</p><div class="panel"><div id="${boxId}"></div></div>`;
   init();
 }
+/* PhD supervisor finder (OpenAlex, HAL) */
+let labRes=null,labQ={q:'',c:'fr',years:2};
+function oppsLabs(){
+  const p=prof();
+  const sugg=[...new Set([...(p.skills||[]).filter(s=>SC&&['nlp','llm','xai','ir','cv','ml','opt'].includes(SC.FAMILY[s])),...(p.roles||[]).filter(r=>/research|phd|these/i.test(r))])].slice(0,10);
+  if(!labQ.q)labQ.q=sugg.includes('explainable ai')?'explainable AI':sugg[0]||'natural language processing';
+  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],'PhD supervisors')+`<h1>PhD supervisors</h1>
+    <p class="sub">Researchers publishing on your topic lately, ranked by recent papers. Papers where they are last author count double, since that is usually the supervisor. Writing to them directly is the strongest PhD route.</p>
+    <div class="panel"><form id="lbF" class="toolbar" style="margin:0">
+      <input type="search" id="lbQ" list="lbS" placeholder="Research topic, e.g. explainable AI" value="${esc(labQ.q)}" aria-label="Research topic" style="max-width:360px">
+      <datalist id="lbS">${sugg.map(s=>`<option value="${esc(s)}">`).join('')}</datalist>
+      <select id="lbC" aria-label="Country"><option value="any">Any country</option>${COUNTRIES.filter(c=>c.id!=='gl').map(c=>`<option value="${c.id}" ${labQ.c===c.id?'selected':''}>${c.flag} ${esc(c.name)}</option>`).join('')}</select>
+      <select id="lbY" aria-label="Period">${[1,2,3,5].map(y=>`<option value="${y}" ${labQ.years===y?'selected':''}>Last ${y} year${y>1?'s':''}</option>`).join('')}</select>
+      <button class="btn primary" type="submit">Find researchers</button><span class="hint" id="lbMsg" style="margin:0"></span></form></div>
+    <div id="lbOut"></div>`;
+  $('#lbF').addEventListener('submit',async e=>{e.preventDefault();labQ={q:$('#lbQ').value.trim(),c:$('#lbC').value,years:+$('#lbY').value};await runLabs();});
+  if(labRes)renderLabs();
+}
+async function runLabs(){
+  const msg=$('#lbMsg');if(!labQ.q){msg.textContent='Add a topic.';return;}
+  msg.textContent='Searching recent papers… this can take up to a minute.';$('#lbOut').innerHTML='';
+  try{labRes=await api('/api/labs?'+new URLSearchParams({q:labQ.q,c:labQ.c,years:labQ.years}));msg.textContent='';renderLabs();}
+  catch(e){msg.textContent=errText(e,{},'Search failed. Try again.');}
+}
+function renderLabs(){
+  const r=labRes,b=$('#lbOut');if(!b||!r)return;
+  const scholar=p=>'https://scholar.google.com/scholar?q='+encodeURIComponent(`"${p.name}" ${labQ.q}`);
+  b.innerHTML=`<p class="hint">${r.people.length} researchers from ${r.scanned} recent papers (${r.total.toLocaleString('en')} in total) · source: ${esc(r.source)}${r.cached?' · from today\'s cache':''}${r.note?` · ${esc(r.note)}`:''}</p>
+    ${r.labs.length?`<h2 class="sec">Most active labs and institutions</h2><div class="grid">${r.labs.slice(0,6).map(l=>`<div class="card"><span class="big">${esc(l.name)}</span><span class="meta"><b>${l.papers}</b> papers · <b>${l.people}</b> researchers</span></div>`).join('')}</div>`:''}
+    <h2 class="sec market">Researchers</h2>
+    <div class="offers"><div class="thead" style="grid-template-columns:56px minmax(0,1fr) auto"><span>Papers</span><span>Researcher and latest paper</span><span>Actions</span></div>
+    ${r.people.map((p,i)=>`<article class="offer"><span class="score ${p.lastAuthor?'s-hi':'s-mid'}" title="${p.papers} papers, ${p.lastAuthor} as last author">${p.papers}</span>
+      <div class="ob"><h3>${esc(p.name)}</h3><div class="meta"><b>${esc(p.inst||'')}</b>${p.country?` · ${esc(p.country)}`:''} · ${p.lastAuthor} as last author</div>
+      ${p.latest?`<div class="meta" style="margin-top:4px">Latest: ${safeUrl(p.latest.url)?`<a href="${esc(safeUrl(p.latest.url))}" target="_blank" rel="noopener noreferrer">${esc(p.latest.title)}</a>`:esc(p.latest.title)} (${esc(p.latest.year)})</div>`:''}</div>
+      <div class="oa">${p.openalex?`<a class="btn sm" href="${esc(p.openalex)}" target="_blank" rel="noopener noreferrer">Profile</a>`:''}<a class="btn sm" href="${esc(scholar(p))}" target="_blank" rel="noopener noreferrer">Scholar</a><button class="btn sm ghost" data-labtrack="${i}">Track</button></div></article>`).join('')}</div>
+    <p class="hint" style="margin-top:12px">Before writing: read their two latest papers, say which one connects to your work, and propose a concrete question. Keep the email under 200 words with your CV attached.</p>`;
+}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-labtrack]');if(!t||!labRes)return;const p=labRes.people[+t.dataset.labtrack];if(!p)return;
+  const c=Object.entries({fr:'FR',de:'DE',ca:'CA',ch:'CH',tn:'TN'}).find(([,v])=>v===p.country);
+  openDlg({org:p.inst||p.name,role:`PhD contact: ${p.name}`,c:c?c[0]:'gl',d:'phd',p:'',link:safeUrl(p.openalex||''),notes:`Supervisor lead from the finder (${labQ.q}). Latest paper: ${p.latest?p.latest.title:''}`});});
 function opps(seg){
   const [a,b]=seg||[];colLock=null;
   if(!a)return oppsHub();
   if(KIND_LABEL[a])return b?oppsList(a,b):oppsCountries(a);
   if(a==='all')return oppsList('','');
   if(a==='search')return oppsSearch();
+  if(a==='labs')return oppsLabs();
   if(a==='saved-searches')return oppsTool(a,'Saved searches','These run when you open this page and steer the collector. New listings since your last visit are marked. Save one from Search jobs.','ssBox',runSaved);
   if(a==='feeds')return oppsTool(a,'Your feeds','Add any RSS or Atom feed, for example a job board or a lab\'s news page, and see its latest items here.','feedBox',renderFeeds);
   if(a==='radar')return oppsTool(a,"PhD and master's radar",'Programmes and positions picked for your profile. Deadlines in the past hide automatically.','radBox',renderRadar);
@@ -1398,7 +1449,7 @@ function renderCollected(){
     +(l.length?'<div class="offers"><div class="thead"><span>Match</span><span>Offer</span><span>Actions</span></div>'+l.slice(0,colMax).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:'',name:''},v=DOM[x.kind]||DOM.job;
       const dl=x.deadline?`Apply by ${esc(x.deadline)}`:(x.posted?`Posted ${esc(rel(x.posted))}`:'');
       return `<article class="offer" style="--accent:var(${v.color});--tint:var(${v.tint})">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.foundAt>colPrev?' <span class="new">New</span>':''}${x.m&&x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
-      <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${esc(x.org||'')}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}</div>
+      <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${coLink(x.org)}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}</div>
       ${scoreWhy(x.m)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
       <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm ghost" data-colog="${esc(x.id)}">Log</button><button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></article>`;}).join('')+'</div>'
@@ -1578,7 +1629,9 @@ function profilePage(){
       <label class="lab" for="pfExcl" style="margin-top:14px">Exclude offers whose title or company contains <span class="hint" style="font-weight:400">(comma separated)</span></label>
       <input type="text" id="pfExcl" placeholder="e.g. senior, lead, commercial, SAP" value="${esc(p.exclude.join(', '))}">
       <p class="hint" style="margin:6px 0 0">The collector also skips these on its next run.</p></div>
-  </div>`;
+  </div>
+  <div class="panel"><h2>Notifications</h2><p class="hint">Get a notification on this phone or computer when strong new matches arrive, and a short summary every Monday.</p><div id="pushBox"><p class="hint">Checking…</p></div></div>`;
+  renderPush();
   const msg=$('#pfMsg');
   const readCv=()=>{const t=$('#pfCv').value;if(!SC||!t.trim()){msg.textContent='Paste or upload your CV first.';return;}
     const r=SC.parseCv(t);
@@ -1609,16 +1662,132 @@ function profilePage(){
     [l[i],l[j]]=[l[j],l[i]];setProfile({countries:l});profilePage();});
 }
 
+/* ---------- Companies ---------- */
+const coKey=name=>normOrg(name).replace(/\s+/g,'-');
+const coLink=name=>name?`<a class="colink" href="#/company/${encodeURIComponent(coKey(name))}">${esc(name)}</a>`:'';
+const sameCo=(name,key)=>!!name&&coKey(name)===key;
+async function companiesPage(){
+  $('#view').innerHTML=`<h1>Companies</h1><p class="sub">Every company you applied to, saved or took notes on, plus the ones hiring most for you right now.</p><div id="coBox"><p class="hint">Loading…</p></div>`;
+  await ensureCollected(null);
+  const box=$('#coBox');if(!box)return;
+  const map=new Map(),add=(name,f)=>{if(!name)return;const k=coKey(name);if(!k)return;const r=map.get(k)||{name,apps:0,saved:0,offers:0,rating:null,note:!!(state.companyNotes||{})[k]};f(r);map.set(k,r);};
+  state.apps.forEach(a=>add(a.org,r=>r.apps++));
+  state.saved.forEach(j=>add(j.company,r=>r.saved++));
+  Object.keys(state.companyNotes||{}).forEach(k=>{const n=state.companyNotes[k];if(n&&n.text)add(n.name||k,r=>{r.note=true;});});
+  const offers=colData?visibleOffers():[];
+  offers.forEach(x=>{if(!x.org)return;const k=coKey(x.org);const r=map.get(k);if(r){r.offers++;if(x.company&&x.company.rating)r.rating=x.company;}});
+  const hiring=new Map();offers.forEach(x=>{if(!x.org)return;const k=coKey(x.org);if(map.has(k))return;const r=hiring.get(k)||{name:x.org,offers:0,best:0,rating:null};r.offers++;r.best=Math.max(r.best,x.m?x.m.score:0);if(x.company&&x.company.rating)r.rating=x.company;hiring.set(k,r);});
+  const mine=[...map.values()].sort((a,b)=>b.apps-a.apps||b.saved-a.saved||b.offers-a.offers);
+  const hot=[...hiring.values()].filter(r=>r.offers>=2||r.best>=75).sort((a,b)=>b.offers-a.offers||b.best-a.best).slice(0,20);
+  const table=(rows,cols)=>`<div class="offers"><div class="thead" style="grid-template-columns:minmax(0,1fr) repeat(${cols.length},90px)"><span>Company</span>${cols.map(c=>`<span>${c[0]}</span>`).join('')}</div>
+    ${rows.map(r=>`<div class="offer" style="grid-template-columns:minmax(0,1fr) repeat(${cols.length},90px);align-items:center"><h3>${coLink(r.name)}${r.note?' <span class="xp">notes</span>':''}</h3>${cols.map(c=>`<span class="hv" style="text-align:left">${c[1](r)}</span>`).join('')}</div>`).join('')}</div>`;
+  const rate=r=>r.rating?`★ ${r.rating.rating.toFixed(1)}`:'–';
+  box.innerHTML=(mine.length?`<h2 class="sec">Yours</h2>`+table(mine,[['Applied',r=>r.apps||'–'],['Saved',r=>r.saved||'–'],['Open offers',r=>r.offers||'–'],['Rating',rate]]):'<p class="hint">No companies yet. They appear when you log an application, save a job or write notes.</p>')
+    +(hot.length?`<h2 class="sec market">Hiring most for you</h2>`+table(hot,[['Offers',r=>r.offers],['Best match',r=>r.best||'–'],['Rating',rate]]):'');
+}
+async function companyPage(key){
+  key=decodeURIComponent(key||'');
+  await ensureCollected(null);
+  const offers=(colData?visibleOffers():[]).filter(x=>sameCo(x.org,key));
+  const apps=state.apps.filter(a=>sameCo(a.org,key)),saved=state.saved.filter(j=>sameCo(j.company,key));
+  const name=(apps[0]&&apps[0].org)||(offers[0]&&offers[0].org)||(saved[0]&&saved[0].company)||((state.companyNotes||{})[key]||{}).name||key.replace(/-/g,' ');
+  const rating=(offers.find(x=>x.company&&x.company.rating)||{}).company||(saved.find(j=>j.rating)||{}).rating;
+  const note=((state.companyNotes||{})[key]||{}).text||'';
+  const q=encodeURIComponent(name);
+  $('#view').innerHTML=crumbs([['Companies','#/companies']],name)+`<h1>${esc(name)}</h1>
+    <p class="sub">${offers.length} open offer${offers.length===1?'':'s'} for you · ${apps.length} application${apps.length===1?'':'s'}${rating?` · ★ ${rating.rating.toFixed(1)} from ${rating.count} reviews (${esc(rating.source)})`:''}</p>
+    <div class="row" style="margin-bottom:16px">
+      <a class="btn sm" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener noreferrer">Website</a>
+      <a class="btn sm" href="https://www.linkedin.com/search/results/companies/?keywords=${q}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a class="btn sm" href="https://www.glassdoor.com/Search/results.htm?keyword=${q}" target="_blank" rel="noopener noreferrer">Glassdoor</a>
+      ${rating&&safeUrl(rating.url)?`<a class="btn sm" href="${esc(rating.url)}" target="_blank" rel="noopener noreferrer">Indeed reviews</a>`:''}
+      <button class="btn sm primary" data-act="newco">Log an application here</button></div>
+    <div class="two">
+      <div class="panel"><h2>Your notes</h2><p class="hint">Contacts, culture, interview questions, salary talk. Private to you.</p><textarea id="coNote" rows="7" placeholder="What do you know about ${esc(name)}?">${esc(note)}</textarea></div>
+      <div class="panel"><h2>Your applications</h2>${apps.length?apps.map(a=>`<div class="rn" data-edit="${esc(a.id)}" style="cursor:pointer"><b>${esc(a.role||'Application')}</b><span>${STAGE_LABEL[a.stage]}, ${RES_LABEL[a.result]} · ${esc(rel(a.date))}</span></div>`).join(''):'<p class="hint" style="margin:0">None yet.</p>'}
+        ${saved.length?`<h2 style="margin-top:14px">Saved jobs</h2>${saved.map(j=>`<div class="rn"><b>${esc(j.title)}</b><span>${esc(j.location||'')}</span></div>`).join('')}`:''}</div>
+    </div>
+    <div class="panel"><h2>Open offers for you</h2>${offers.length?'<div class="offers compact">'+offers.sort((a,b)=>(b.m?b.m.rank:0)-(a.m?a.m.rank:0)).map(x=>{const u=safeUrl(x.url);
+      return `<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}</h3><div class="meta">${expTag(x.xp||expOf(x))} ${esc(x.location||'')} · ${esc(x.source)}${x.posted?' · '+esc(rel(x.posted)):''}</div>${scoreWhy(x.m)}</div></article>`;}).join('')+'</div>':'<p class="hint" style="margin:0">No collected offers from this company right now.</p>'}</div>`;
+  $('#coNote').addEventListener('input',e=>{state.companyNotes=state.companyNotes||{};state.companyNotes[key]={name,text:e.target.value,updatedAt:Date.now()};save();});
+  const nb=$('#view').querySelector('[data-act="newco"]');nb.dataset.org=name;
+}
+
+/* ---------- Notifications (installable app + Web Push) ---------- */
+const swReady=('serviceWorker' in navigator)?navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).catch(()=>null):Promise.resolve(null);
+const isIos=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+function b64uToBytes(s){const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0));}
+async function pushState(){
+  const reg=await swReady;if(!reg||!('PushManager' in window))return {supported:false,reg};
+  return {supported:true,reg,sub:await reg.pushManager.getSubscription(),perm:Notification.permission};
+}
+async function renderPush(){
+  const box=$('#pushBox');if(!box)return;
+  const st=await pushState(),pr=prof();
+  if(!st.supported){box.innerHTML=isIos&&!isStandalone?`<p class="hint" style="margin:0">On iPhone, notifications work once the app is on your Home Screen: open this page in Safari, tap Share, then <b>Add to Home Screen</b>, and open Parcours from there.</p>`:'<p class="hint" style="margin:0">This browser does not support notifications.</p>';return;}
+  const on=!!st.sub&&st.perm==='granted';
+  box.innerHTML=`<div class="row" style="margin-bottom:12px"><span class="chip" style="--accent:var(${on?'--ok':'--ring'})">${on?'On for this device':st.perm==='denied'?'Blocked in browser settings':'Off for this device'}</span></div>
+    <div class="g2"><div><label class="lab" for="puT">Alert me about new offers scoring at least</label><select id="puT">${[70,75,80,85,90].map(v=>`<option value="${v}" ${(pr.pushThreshold||80)===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div><label class="lab" for="puD">Weekly digest</label><select id="puD"><option value="1" ${pr.pushDigest!==false?'selected':''}>Monday morning summary</option><option value="0" ${pr.pushDigest===false?'selected':''}>Off</option></select></div></div>
+    <div class="row" style="margin-top:12px">${on?`<button class="btn" id="puTest">Send a test</button><button class="btn ghost" id="puOff">Turn off</button>`:`<button class="btn primary" id="puOn" ${st.perm==='denied'?'disabled':''}>Turn on notifications</button>`}<span class="hint" id="puMsg" style="margin:0"></span></div>
+    <p class="hint" style="margin:10px 0 0">The collectors check after each run (every 6 hours). ${isIos&&!isStandalone?'On iPhone, add the app to your Home Screen first.':''}</p>`;
+  const msg=$('#puMsg');
+  const saveSub=async sub=>api('/api/push',{method:'POST',body:JSON.stringify({action:'subscribe',subscription:sub.toJSON(),threshold:+$('#puT').value,digest:$('#puD').value==='1',device:navigator.userAgent.slice(0,80)})});
+  const change=async()=>{setProfile({pushThreshold:+$('#puT').value,pushDigest:$('#puD').value==='1'});const s=(await pushState()).sub;if(s)try{await saveSub(s);}catch(e){}};
+  $('#puT').addEventListener('change',change);$('#puD').addEventListener('change',change);
+  const onB=$('#puOn');if(onB)onB.addEventListener('click',async()=>{
+    onB.disabled=true;msg.textContent='Asking for permission…';
+    try{const info=await api('/api/push');const perm=await Notification.requestPermission();if(perm!=='granted'){msg.textContent='Permission was not granted.';onB.disabled=false;return;}
+      const sub=await st.reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uToBytes(info.publicKey)});
+      await saveSub(sub);setProfile({pushThreshold:+$('#puT').value,pushDigest:$('#puD').value==='1'});renderPush();}
+    catch(e){msg.textContent=errText(e,{http_501:'Notifications are not configured on the server.'},'Could not turn on notifications.');onB.disabled=false;}});
+  const tB=$('#puTest');if(tB)tB.addEventListener('click',async()=>{msg.textContent='Sending…';try{await api('/api/push',{method:'POST',body:JSON.stringify({action:'test',subscription:st.sub.toJSON()})});msg.textContent='Sent. It should appear in a few seconds.';}catch(e){msg.textContent=errText(e,{},'Test failed.');}});
+  const oB=$('#puOff');if(oB)oB.addEventListener('click',async()=>{try{await api('/api/push',{method:'POST',body:JSON.stringify({action:'unsubscribe',subscription:st.sub.toJSON()})});}catch(e){}await st.sub.unsubscribe();renderPush();});
+}
+
+/* ---------- This week (digest) ---------- */
+async function weekPanel(){
+  const box=$('#weekBox');if(!box)return;
+  if(caps.online&&!demo)await ensureCollected(null);
+  if(!$('#weekBox'))return;
+  const now=Date.now(),wk=now-7*864e5,today0=tms(today());
+  const offers=colData&&!demo?visibleOffers():[];
+  const strong=offers.filter(x=>(x.foundAt||0)>=wk&&x.m&&x.m.score>=75).sort((a,b)=>b.m.rank-a.m.rank);
+  const dl=[];
+  offers.forEach(x=>{if(x.deadline)dl.push({t:x.title,org:x.org,d:x.deadline,url:x.url,src:'Collected'});});
+  state.saved.forEach(j=>{if(j.deadline)dl.push({t:j.title,org:j.company,d:j.deadline,url:j.url,src:'Saved'});});
+  ((radar&&radar.items)||[]).forEach(x=>{if(x.deadline)dl.push({t:x.title,org:x.org,d:x.deadline,url:x.url,src:'Radar'});});
+  const soon=dl.filter(x=>{const t=tms(x.d);return t>=today0&&t<=today0+14*864e5;}).sort((a,b)=>a.d.localeCompare(b.d));
+  const follow=state.apps.filter(a=>a.stage==='applied'&&a.result==='open'&&daysAgo(a.date)>=14).sort((a,b)=>tms(a.date)-tms(b.date));
+  const logged=state.apps.filter(a=>daysAgo(a.date)<7).length;
+  const link=(u,t)=>safeUrl(u)?`<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener noreferrer">${esc(t)}</a>`:esc(t);
+  box.innerHTML=`<div class="stats" style="margin-bottom:12px">
+      <div class="stat"><span>New strong matches</span><b>${strong.length}</b><small>Score 75+, last 7 days</small></div>
+      <div class="stat"><span>Deadlines</span><b>${soon.length}</b><small>Next 14 days</small></div>
+      <div class="stat"><span>Follow-ups due</span><b>${follow.length}</b><small>No reply after 14 days</small></div>
+      <div class="stat"><span>Applications this week</span><b>${logged}</b><small>Logged in the last 7 days</small></div></div>
+    <div class="charts">
+      <div class="panel"><h2>New strong matches</h2>${strong.length?'<div class="offers compact">'+strong.slice(0,5).map(x=>`<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${link(x.url,x.title)}</h3><div class="meta"><b>${coLink(x.org)}</b> · ${esc(x.source)}</div></div></article>`).join('')+'</div>'+(strong.length>5?`<p style="margin:8px 0 0"><a href="#/opps/all">All ${strong.length}</a></p>`:''):'<p class="hint" style="margin:0">None this week yet.</p>'}</div>
+      <div class="panel"><h2>Coming up</h2>
+        ${soon.length?soon.slice(0,6).map(x=>{const n=Math.round((tms(x.d)-today0)/864e5);return `<div class="rn"><b>${link(x.url,x.t)}</b><span>${esc(x.org||'')} · ${n===0?'today':n===1?'tomorrow':'in '+n+' days'} (${esc(x.d)}) · ${x.src}</span></div>`;}).join(''):'<p class="hint">No deadlines in the next two weeks.</p>'}
+        <h2 style="margin-top:14px">Follow up</h2>
+        ${follow.length?follow.slice(0,6).map(a=>`<div class="rn"><b>${coLink(a.org)}${a.role?' · '+esc(a.role):''}</b><span>Applied ${esc(rel(a.date))} · <button class="linkbtn" data-replied="${esc(a.id)}">Mark replied</button> · <button class="linkbtn" data-edit="${esc(a.id)}">Edit</button></span></div>`).join(''):'<p class="hint" style="margin:0">Nothing waiting too long.</p>'}</div></div>`;
+}
+document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('[data-replied]');if(!r)return;const a=state.apps.find(x=>x.id===r.dataset.replied);if(a){a.stage='replied';save();weekPanel();}});
+
 /* ---------- Router ---------- */
 function route(){
   const h=location.hash.replace(/^#\/?/,'');const [path,qs]=h.split('?');const seg=path.split('/').filter(Boolean);
   const t=seg[0]||'overview';
-  document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.t===t){a.setAttribute('aria-current','page');const ts=$('#topSec');if(ts)ts.textContent=a.textContent.trim();}else a.removeAttribute('aria-current');});
+  const tab=t==='company'?'companies':t;
+  document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.t===tab){a.setAttribute('aria-current','page');const ts=$('#topSec');if(ts)ts.textContent=a.textContent.trim();}else a.removeAttribute('aria-current');});
   $('#demoBar').innerHTML=demo?`<div class="demo"><span>Previewing sample data. Nothing here is saved.</span><button class="btn sm" data-act="exitdemo">Exit preview</button></div>`:'';
   if(t==='apps')apps(qs);
   else if(t==='opps')opps(seg.slice(1));
   else if(t==='notes')notesPage();
   else if(t==='profile')profilePage();
+  else if(t==='companies')companiesPage();
+  else if(t==='company')companyPage(seg[1]);
   else if(t==='explore'){const c=cById(seg[1]);if(c&&DOM[seg[2]])exploreDomain(c,seg[2]);else if(c)exploreCountry(c);else exploreHome();}
   else overview();
   window.scrollTo(0,0);
@@ -1654,6 +1823,7 @@ document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]');
   if(a){const act=a.dataset.act;
     if(act==='new')openDlg({});
+    else if(act==='newco')openDlg({org:a.dataset.org||''});
     else if(act==='import'){const b=$('#imp');if(b)b.hidden=!b.hidden;}
     else if(act==='gmail'){const b=$('#gm');if(b){b.hidden=!b.hidden;if(!b.hidden)gmStatus();}}
     else if(act==='csv')exportCsv();

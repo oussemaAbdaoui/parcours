@@ -9,13 +9,14 @@ process.stdin.on('data', (d) => (raw += d)).on('end', () => {
   const { profile, targets, items } = JSON.parse(raw);
   const hasProfile = profile && Object.keys(profile).length;
   const p = Object.assign({ countries: ['fr', 'de', 'ca', 'ch', 'gl', 'tn'], visa: { fr: true, de: true, ca: true, ch: true } }, profile || {}, { targets: targets || [] });
-  const blocked = {}, exp = {};
+  const blocked = {}, exp = {}, scores = {};
   for (const x of items) {
     const e = S.offerYears((x.title || '') + ' . ' + (x.desc || ''));
     if (e) exp[x.id] = e;
     if (!hasProfile) continue;
     const m = S.score(x, p);
+    scores[x.id] = m.score;
     if (m.blockers.length) blocked[x.id] = m.blockers;
   }
-  process.stdout.write(JSON.stringify({ blocked, exp }));
+  process.stdout.write(JSON.stringify({ blocked, exp, scores }));
 });

@@ -372,7 +372,7 @@
     const need = offer.kind === 'phd' ? 3 : offerDegree(body, offer.title), mineD = (p.degree && p.degree.level) || 0;
     if (!need) parts.education = { v: 0.5, known: false, note: 'No degree stated' };
     else if (!mineD) parts.education = { v: 0.5, known: false, note: `Asks ${DEGREE_NAME[need]}, add your degree in Profile` };
-    else parts.education = { v: mineD >= need ? 1 : mineD === need - 1 ? 0.45 : 0.1, known: true, note: `Asks ${DEGREE_NAME[need]}, you have ${DEGREE_NAME[mineD]}` };
+    else parts.education = { v: mineD >= need ? 1 : need === 4 ? 0.05 : mineD === need - 1 ? 0.45 : 0.1, known: true, note: `Asks ${DEGREE_NAME[need]}, you have ${DEGREE_NAME[mineD]}` };
 
     // 5. Languages
     const needL = offerLanguages(body), langs = p.languages || {};

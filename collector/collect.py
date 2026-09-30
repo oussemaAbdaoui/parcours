@@ -209,7 +209,7 @@ def save_items(store, items, removed):
         store.cmd("HDEL", ITEMS_KEY, *removed[i:i + 100])
 
 
-def dealbreakers(items, state):
+def dealbreakers(items, state, scores=None):
     """{id: [reasons]} for offers that hit a dealbreaker for your profile, using the app's own score.js via Node.
     Also tags each offer with the experience it asks for (item["exp"] = {min, max, label}, e.g. "3+ yrs")."""
     import shutil
@@ -228,6 +228,8 @@ def dealbreakers(items, state):
         print("  dealbreaker filter failed:", out.stderr.decode("utf8", "replace")[:200])
         return {}
     res = json.loads(out.stdout or b"{}")
+    if scores is not None:
+        scores.update(res.get("scores", {}))
     exp = res.get("exp", {})
     for x in items:
         if x["id"] in exp:
@@ -297,7 +299,8 @@ def main():
         print(f"  {name:16} {'ok ' if status[name]['ok'] else 'ERR'} {status[name]['count']:4}  {status[name].get('error', '')}")
     # Full descriptions can reveal a dealbreaker the listing hid (fluent German, EU citizens only): drop those too,
     # along with stored offers that became dealbreakers after a profile change.
-    late = dealbreakers(items, state)
+    scores = {}
+    late = dealbreakers(items, state, scores)
     report_blocked(late, "dealbreakers among stored offers")
     if late:
         removed += [x["id"] for x in items if x["id"] in late]
@@ -310,6 +313,12 @@ def main():
             print(f"  [{x['kind']:5}] {x['source']:12} {x['title'][:60]:60} | {x['org'][:25]:25} | {len(x.get('desc') or ''):4} chars")
         return
     save_items(store, items, removed + removed_excl)
+    try:
+        from notify import notify
+        status["Notifications"] = {"ok": True, "count": 0, "error": notify(store, items, scores, now, state, origin)}
+    except Exception as e:
+        status["Notifications"] = {"ok": False, "count": 0, "error": str(e)[:160]}
+    print("  notifications:", status["Notifications"]["error"])
     meta = store.get_json(META_KEY) or {}
     runs = meta.get("runs") if isinstance(meta.get("runs"), dict) else {}
     runs[origin] = ([{"at": now, "new": new, "sources": status}] + runs.get(origin, []))[:10]
