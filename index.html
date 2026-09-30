@@ -57,7 +57,7 @@ svg.lucide{width:16px;height:16px;stroke-width:1.75;flex:none}
 .side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px;padding:12px;border-right:1px solid var(--line);background:var(--surface-2);overflow-y:auto}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;font-size:15px;padding:8px;border-radius:var(--r);margin-bottom:6px}
 .brand:hover{background:var(--soft)}
-.brand .logo{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--ink);color:var(--bg)}
+.brand .logo-mark{flex:none}
 .brand small{display:block;font-weight:400;color:var(--muted);font-size:12px;line-height:1.2}
 .navlab{font-size:12px;font-weight:500;color:var(--muted);padding:12px 8px 4px}
 .tabs{display:flex;flex-direction:column;gap:1px}
@@ -404,7 +404,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 <body>
 <div class="shell">
 <aside class="side">
-  <a class="brand" href="#/" aria-label="Parcours home"><span class="logo"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span><span>Parcours<small>Jobs, master's and PhD</small></span></a>
+  <a class="brand" href="#/" aria-label="Parcours home"><svg class="logo-mark" width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><path d="M5 22 C5 13, 23 15, 23 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="5" cy="22" r="3.4" fill="var(--job)"/><circle cx="14" cy="14.2" r="2.6" fill="var(--master)"/><circle cx="23" cy="6" r="3.4" fill="var(--phd)"/></svg><span>Parcours<small>Jobs, master's and PhD</small></span></a>
   <nav class="tabs" id="tabs" aria-label="Sections">
     <div class="navlab">General</div>
     <a href="#/" data-t="overview"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>Overview</a>
