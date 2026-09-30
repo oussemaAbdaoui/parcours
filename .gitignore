@@ -11,3 +11,4 @@ __pycache__/
 .claude/
 skills-lock.json
 probe-out/
+.playwright-cli/
