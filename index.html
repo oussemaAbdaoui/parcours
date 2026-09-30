@@ -82,16 +82,6 @@ svg.lucide{width:16px;height:16px;stroke-width:1.75;flex:none}
 .iconbtn:hover{background:var(--soft)}
 .theme{display:none}
 .wrap{width:100%;max-width:1200px;margin:0 auto;padding-inline:24px;padding-block:24px 64px}
-@media(max-width:900px){
-  .shell{grid-template-columns:1fr}
-  .side{position:sticky;top:0;height:auto;z-index:7;flex-direction:row;align-items:center;gap:4px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto}
-  .brand{margin:0;padding:4px}.brand span,.navlab,.side-foot .syncl{display:none}
-  .tabs{flex-direction:row}
-  .tabs a{white-space:nowrap;padding:6px 10px}
-  .side-foot{margin:0 0 0 auto;border:0;padding:0}
-  .topbar{position:static;height:44px;padding-inline:16px}
-  .wrap{padding-inline:16px;padding-block:16px 56px}
-}
 
 /* ---------- type ---------- */
 h1{font-family:var(--display);font-weight:600;font-size:24px;line-height:1.25;letter-spacing:-.02em;margin:0 0 4px;text-wrap:balance}
@@ -371,6 +361,7 @@ p.tip{font-size:13px;color:var(--muted);margin:0 0 18px;padding:10px 14px;border
 .fam .lab{margin-bottom:6px;color:var(--muted);font-weight:500;font-size:12px}
 .found{margin-top:12px;font-size:13px;border:1px solid var(--line);background:var(--soft);border-radius:var(--r);padding:0 14px;line-height:1.55}
 .found:not(:empty){padding:10px 14px}
+.found:empty{display:none}
 .order{list-style:none;margin:0;padding:0;counter-reset:o;display:flex;flex-direction:column;gap:6px}
 .order li{counter-increment:o;display:grid;grid-template-columns:24px 1fr auto auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:var(--r)}
 .order li::before{content:counter(o);font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
@@ -405,6 +396,60 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .foot button:hover{color:var(--ink)}
 [hidden]{display:none!important}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- phones (last, so it wins over the desktop rules above) ---------- */
+.bottombar,.sheet,.tb-logo,.fbtn{display:none}
+@media(max-width:900px){
+  .shell{display:block}
+  .side{display:none}
+  .topbar{height:52px;padding-inline:16px;gap:10px}
+  .tb-logo{display:inline-flex;color:var(--ink)}
+  .tb-app{display:none}
+  .topbar .where b{font-size:15px;font-weight:600}
+  .wrap{padding-inline:16px;padding-block:16px calc(84px + env(safe-area-inset-bottom,0px))}
+  .bottombar{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+  .bottombar a,.bottombar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:48px;border:0;background:none;text-decoration:none;color:var(--muted);font-size:11px;font-weight:500;border-radius:10px}
+  .bottombar svg.lucide{width:22px;height:22px}
+  .bottombar [aria-current="page"]{color:var(--ink)}
+  .bottombar [aria-current="page"] svg{stroke-width:2.2}
+  .sheet:not([hidden]){display:flex;flex-direction:column;gap:2px;position:fixed;right:10px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:21;min-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 12px 36px rgba(0,0,0,.18)}
+  .sheet a,.sheet button{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border:0;background:none;border-radius:8px;text-decoration:none;color:var(--ink);font-size:15px;text-align:left}
+  .sheet a:hover,.sheet button:hover{background:var(--soft)}
+  .sheet .syncl{padding:8px 12px 4px;border-top:1px solid var(--line);margin-top:4px}
+  h1{font-size:22px}
+  .sub{margin-bottom:16px}
+  /* offer lists: search and sort always visible, the other filters behind "Filters" */
+  .fbtn{display:inline-flex}
+  .toolbar .xf{display:none}
+  .toolbar.open label.xf{display:inline-flex}
+  .toolbar.open select.xf{display:block;flex:1 1 45%}
+  .toolbar input[type=search]{flex:1 1 100%;max-width:none}
+  .toolbar #coS{flex:1}
+  .offer{grid-template-columns:44px minmax(0,1fr);gap:4px 10px;padding:12px}
+  .offer .score{width:38px}
+  .oa{grid-column:1 / -1;justify-content:flex-start;flex-wrap:nowrap;margin-top:8px;gap:6px}
+  .oa .btn.sm{height:34px;padding:0 12px}
+  .oa .btn.primary{flex:1}
+  .offers .thead{display:none}
+  details.why,details.desc{margin-top:8px}
+  .bar{grid-template-columns:1fr 70px}.bar em{grid-column:1 / -1}
+  /* board: one column at a time, swipe sideways */
+  .board{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:82%;scroll-snap-type:x mandatory;margin-inline:-16px;padding-inline:16px;scroll-padding-inline:16px}
+  .col{scroll-snap-align:start}
+  .filters .seg{margin-left:0!important}
+  .stats{grid-template-columns:1fr 1fr;gap:10px}
+  .stat{padding:12px 14px}
+  .stat b{font-size:22px}
+  .panel{padding:16px}
+  .charts{gap:12px}
+  .hrow{grid-template-columns:minmax(80px,110px) minmax(0,1fr) 54px}
+  .grid{grid-template-columns:1fr 1fr;gap:10px}
+  .card{padding:14px}
+  dialog{width:calc(100vw - 16px)}
+  .panel:has(> #colBox){padding:0;border:0;background:none;box-shadow:none}
+  .offers .oa{grid-column:1 / -1}
+}
+@media(max-width:420px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -427,7 +472,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <div class="side-foot"><span class="syncl" id="sync"></span></div>
 </aside>
 <div class="main">
-<header class="topbar"><div class="where"><span>Parcours</span><span>/</span><b id="topSec">Overview</b></div><span class="sp"></span>
+<header class="topbar"><a class="tb-logo" href="#/" aria-label="Parcours home"><svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true"><path d="M5 22 C5 13, 23 15, 23 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="5" cy="22" r="3.4" fill="var(--job)"/><circle cx="14" cy="14.2" r="2.6" fill="var(--master)"/><circle cx="23" cy="6" r="3.4" fill="var(--phd)"/></svg></a><div class="where"><span class="tb-app">Parcours</span><span class="tb-app">/</span><b id="topSec">Overview</b></div><span class="sp"></span>
   <button class="iconbtn" id="themeBtn" type="button" aria-label="Toggle light and dark theme" title="Toggle theme"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></svg></button></header>
 <div class="wrap">
   <div class="demo warn" id="notice" hidden></div>
@@ -436,6 +481,20 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <p class="foot">Platform lists come from general knowledge, so check each site for current deadlines and eligibility. <button type="button" id="exp">Export backup</button> · <button type="button" id="bkImp">Import backup</button> · <button type="button" id="reset">Reset all data</button> · <button type="button" id="signout">Sign out</button></p><input type="file" id="bkFile" accept="application/json" hidden>
 </div>
 </div>
+</div>
+<nav class="bottombar" aria-label="Sections">
+  <a href="#/" data-t="overview"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>Home</span></a>
+  <a href="#/opps" data-t="opps"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12h.01"/><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M22 13a18.15 18.15 0 0 1-20 0"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg><span>Offers</span></a>
+  <a href="#/apps" data-t="apps"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 7v7"/><path d="M12 7v4"/><path d="M16 7v9"/></svg><span>Board</span></a>
+  <a href="#/explore" data-t="explore"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/><circle cx="12" cy="12" r="10"/></svg><span>Explore</span></a>
+  <a href="#/profile" data-t="profile"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg><span>Profile</span></a>
+  <button type="button" id="moreBtn" data-t="more" aria-expanded="false" aria-controls="moreSheet"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>More</span></button>
+</nav>
+<div class="sheet" id="moreSheet" hidden>
+  <a href="#/companies"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg>Companies</a>
+  <a href="#/notes"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Notes</a>
+  <button type="button" id="themeBtn2"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></svg>Switch light and dark</button>
+  <span class="syncl" id="sync2"></span>
 </div>
 
 <dialog id="loginDlg" aria-labelledby="loginT">
@@ -652,7 +711,7 @@ try{const s=localStorage.getItem(LKEY);if(s)state=Object.assign(emptyState(),JSO
 const stat=k=>state.status[k]||'todo';
 const hasData=s=>s.apps.length||s.journal.length||Object.keys(s.status).length||Object.keys(s.notes).length;
 const getPw=()=>{try{return localStorage.getItem(PWKEY)||'';}catch(e){return '';}};
-function setSync(m){const el=$('#sync');if(!el)return;el.className='syncl'+(m==='saved'?' on':m==='error'?' err':'');el.textContent={saving:'Saving…',saved:'Synced',local:'Saved on this device only',error:'Sync failed, saved on this device'}[m]||'';}
+function setSync(m){setTimeout(()=>{const a=$('#sync'),b=$('#sync2');if(a&&b){b.className=a.className;b.textContent=a.textContent;}},0);const el=$('#sync');if(!el)return;el.className='syncl'+(m==='saved'?' on':m==='error'?' err':'');el.textContent={saving:'Saving…',saved:'Synced',local:'Saved on this device only',error:'Sync failed, saved on this device'}[m]||'';}
 function persistLocal(){try{localStorage.setItem(LKEY,JSON.stringify(state));}catch(e){}}
 async function api(path,opts={}){
   let r;
@@ -1392,7 +1451,7 @@ function opps(seg){
 }
 
 /* collected by the scheduled collector */
-let colLock=null,colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,exp:'',remote:false,hideBlock:true,hideApplied:true},colMax=30;
+let colFiltersOpen=false,colLock=null,colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,exp:'',remote:false,hideBlock:true,hideApplied:true},colMax=30;
 // Already applied: a logged application at the same company whose role shares most words with the offer title.
 const roleWords=s=>normOrg(s).split(' ').filter(w=>w.length>2&&!['h/f','f/h','the','and','des','les','pour'].includes(w));
 function isApplied(x){
@@ -1422,6 +1481,7 @@ function renderCollected(){
     &&(!colF.hideBlock||!x.m||!x.m.blockers.length)&&(!colF.hideApplied||!x.applied)
     &&(!q||normOrg(x.title+' '+x.org+' '+(x.desc||'')).includes(q)));
   const sources=[...new Set(all.map(x=>x.source))].sort();
+  const nActive=[colF.min,colF.src,colF.exp,colF.days,colF.onlyNew,colF.remote,!colLock&&colF.k,!colLock&&colF.c].filter(Boolean).length;
   const nBlock=all.filter(x=>x.m&&x.m.blockers.length).length,nApplied=all.filter(x=>x.applied).length;
   const ms=x=>x.m?x.m.score:0;
   const mr=x=>x.m?x.m.rank:0;
@@ -1432,19 +1492,20 @@ function renderCollected(){
   const when=run?new Date(run.at).toLocaleString('en',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const failed=run?Object.entries(run.sources||{}).filter(([,v])=>!v.ok).map(([k,v])=>`<span title="${esc(v.error||'')}">${esc(k)}</span>`).join(', '):'';
   b.innerHTML=(!hasCv()&&all.length?`<p class="nudge">Scores use default skills until you add your CV. <a href="#/profile">Add it in Profile</a>.</p>`:'')
-    +(all.length||run?`<div class="toolbar">
+    +(all.length||run?`<div class="toolbar${colFiltersOpen?' open':''}">
       <input type="search" id="coQ" placeholder="Search title, company, details" aria-label="Search collected offers" value="${esc(colF.q)}">
+      <button type="button" class="btn sm fbtn" id="coF" aria-expanded="${colFiltersOpen}">Filters${nActive?` · ${nActive}`:''}</button>
       <select id="coS" aria-label="Sort"><option value="match">Best match first</option><option value="new">Newest first</option><option value="deadline">Deadline first</option></select>
-      <select id="coM" aria-label="Minimum match"><option value="0">Any match</option><option value="55">Match 55+</option><option value="65">Match 65+</option><option value="75">Match 75+</option></select>
-      ${colLock&&colLock.k?'':`<select id="coK" aria-label="Kind"><option value="">All kinds</option><option value="job">Jobs</option><option value="phd">PhD</option><option value="master">Master's</option></select>`}
-      ${colLock&&colLock.c?'':`<select id="coC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>`}
-      <select id="coSrc" aria-label="Source"><option value="">All sources</option>${sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
-      <select id="coE" aria-label="Experience asked">${EXP_FILTERS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
-      <select id="coD" aria-label="Posted within"><option value="0">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
-      <label class="sc"><input type="checkbox" id="coN"> New only (${nNew})</label>
-      <label class="sc"><input type="checkbox" id="coR"> Remote only</label>
-      <label class="sc"><input type="checkbox" id="coB"> Hide dealbreakers (${nBlock})</label>
-      <label class="sc"><input type="checkbox" id="coA"> Hide already applied (${nApplied})</label></div>
+      <select class="xf" id="coM" aria-label="Minimum match"><option value="0">Any match</option><option value="55">Match 55+</option><option value="65">Match 65+</option><option value="75">Match 75+</option></select>
+      ${colLock&&colLock.k?'':`<select class="xf" id="coK" aria-label="Kind"><option value="">All kinds</option><option value="job">Jobs</option><option value="phd">PhD</option><option value="master">Master's</option></select>`}
+      ${colLock&&colLock.c?'':`<select class="xf" id="coC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>`}
+      <select class="xf" id="coSrc" aria-label="Source"><option value="">All sources</option>${sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
+      <select class="xf" id="coE" aria-label="Experience asked">${EXP_FILTERS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+      <select class="xf" id="coD" aria-label="Posted within"><option value="0">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
+      <label class="sc xf"><input type="checkbox" id="coN"> New only (${nNew})</label>
+      <label class="sc xf"><input type="checkbox" id="coR"> Remote only</label>
+      <label class="sc xf"><input type="checkbox" id="coB"> Hide dealbreakers (${nBlock})</label>
+      <label class="sc xf"><input type="checkbox" id="coA"> Hide already applied (${nApplied})</label></div>
     <p class="hint" style="margin:0 0 8px">${l.length} of ${all.length} shown${when?` · last run ${esc(when)}, ${run.new} new`:''}${failed?` · failed: ${failed}`:''}</p>`:'')
     +(l.length?'<div class="offers"><div class="thead"><span>Match</span><span>Offer</span><span>Actions</span></div>'+l.slice(0,colMax).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:'',name:''},v=DOM[x.kind]||DOM.job;
       const dl=x.deadline?`Apply by ${esc(x.deadline)}`:(x.posted?`Posted ${esc(rel(x.posted))}`:'');
@@ -1459,6 +1520,7 @@ function renderCollected(){
     $('#coSrc').value=colF.src;$('#coE').value=colF.exp;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
     const read=()=>({k:$('#coK')?$('#coK').value:colF.k,c:$('#coC')?$('#coC').value:colF.c,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,exp:$('#coE').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked});
     ['coK','coC','coN','coS','coM','coSrc','coE','coD','coR','coB','coA'].filter(id=>$('#'+id)).forEach(id=>$('#'+id).addEventListener('change',()=>{colF=read();colMax=30;renderCollected();}));
+    $('#coF').addEventListener('click',()=>{colFiltersOpen=!colFiltersOpen;$('#colBox .toolbar').classList.toggle('open',colFiltersOpen);$('#coF').setAttribute('aria-expanded',String(colFiltersOpen));});
     let tq=null;$('#coQ').addEventListener('input',()=>{clearTimeout(tq);tq=setTimeout(()=>{colF=read();colMax=30;renderCollected();const i=$('#coQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250);});}
   const m=$('#coMore');if(m)m.addEventListener('click',()=>{colMax+=30;renderCollected();});
 }
@@ -1780,6 +1842,8 @@ function route(){
   const h=location.hash.replace(/^#\/?/,'');const [path,qs]=h.split('?');const seg=path.split('/').filter(Boolean);
   const t=seg[0]||'overview';
   const tab=t==='company'?'companies':t;
+  document.querySelectorAll('.bottombar [data-t]').forEach(a=>{const on=a.dataset.t===tab||(a.dataset.t==='more'&&['companies','notes'].includes(tab));if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  const ms=$('#moreSheet');if(ms){ms.hidden=true;$('#moreBtn').setAttribute('aria-expanded','false');}
   document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.t===tab){a.setAttribute('aria-current','page');const ts=$('#topSec');if(ts)ts.textContent=a.textContent.trim();}else a.removeAttribute('aria-current');});
   $('#demoBar').innerHTML=demo?`<div class="demo"><span>Previewing sample data. Nothing here is saved.</span><button class="btn sm" data-act="exitdemo">Exit preview</button></div>`:'';
   if(t==='apps')apps(qs);
@@ -1873,6 +1937,9 @@ $('#fSave').addEventListener('click',saveDlg);
 $('#fCancel').addEventListener('click',()=>$('#dlg').close());
 $('#fDel').addEventListener('click',()=>{if(editId&&confirm('Delete this application?')){state.apps=state.apps.filter(a=>a.id!==editId);save();$('#dlg').close();route();}});
 $('#reset').addEventListener('click',()=>{if(confirm('Clear all applications, statuses and notes? This cannot be undone.')){state=emptyState();demo=false;real=null;save();route();}});
+$('#moreBtn').addEventListener('click',()=>{const sh=$('#moreSheet');sh.hidden=!sh.hidden;$('#moreBtn').setAttribute('aria-expanded',String(!sh.hidden));});
+document.addEventListener('click',e=>{const sh=$('#moreSheet');if(sh&&!sh.hidden&&!e.target.closest('#moreSheet,#moreBtn')){sh.hidden=true;$('#moreBtn').setAttribute('aria-expanded','false');}});
+$('#themeBtn2').addEventListener('click',()=>$('#themeBtn').click());
 $('#themeBtn').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark';});
 window.addEventListener('hashchange',route);
 
