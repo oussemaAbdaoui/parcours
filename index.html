@@ -388,6 +388,14 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .dl textarea{min-height:70px}
 .dl .acts{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
 
+.stories{display:grid;gap:10px}
+.story{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.story .sh{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.story .sh b{font-weight:500}
+.story .meta{font-size:12.5px;color:var(--muted);margin:2px 0 6px}
+.story p{margin:6px 0 0;font-size:13.5px}
+.story .qs{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
+.story .qs li{margin:2px 0}
 .colink{text-decoration:none}
 .linkbtn{border:0;background:none;padding:0;color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-size:inherit;cursor:pointer}
 .colink:hover{text-decoration:underline;text-underline-offset:3px}
@@ -1513,7 +1521,7 @@ function renderCollected(){
       <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${coLink(x.org)}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}</div>
       ${scoreWhy(x.m)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
-      <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm ghost" data-colog="${esc(x.id)}">Log</button><button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></article>`;}).join('')+'</div>'
+      <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm ghost" data-colog="${esc(x.id)}">Log</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Stories</a>`:''}<button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></article>`;}).join('')+'</div>'
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
     :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 6 hours.'}</p>`);
   const k=$('#coS');if(k){if($('#coK'))$('#coK').value=colF.k;if($('#coC'))$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
@@ -1724,6 +1732,45 @@ function profilePage(){
     [l[i],l[j]]=[l[j],l[i]];setProfile({countries:l});profilePage();});
 }
 
+/* ---------- Interview stories (Glassdoor, Reddit via the PC collector) ---------- */
+let storiesAccepted=false;
+async function loadStories(company,role){
+  const box=$('#stBox');if(!box)return;
+  box.innerHTML='<p class="hint">Loading…</p>';
+  let r;try{r=await api('/api/insights?'+new URLSearchParams({company,role}));}catch(e){box.innerHTML=`<p class="hint">${esc(errText(e,{},'Could not load stories.'))}</p>`;return;}
+  renderStories(r,company,role);
+}
+function renderStories(r,company,role){
+  const box=$('#stBox');if(!box)return;const d=r.data;
+  const ask=`<button class="btn sm${d?'':' primary'}" id="stAsk" ${r.pending?'disabled':''}>${r.pending?'Requested':d?'Refresh':'Get stories'}</button>`;
+  if(!d){box.innerHTML=`<div class="row">${ask}<span class="hint" style="margin:0">${r.pending?'Your PC fetches them within 30 minutes while it is on (Glassdoor and Reddit block servers).':'Fetched from Glassdoor and Reddit by your PC, usually within 30 minutes.'}</span></div>`;bindAsk(company,role);return;}
+  const g=d.glassdoor||{},sm=g.summary||{},all=g.stories||[];
+  const list=storiesAccepted?all.filter(s=>/accepted/i.test(s.outcome)):all;
+  const oc=s=>/accepted/i.test(s.outcome)?'s-hi':/declined/i.test(s.outcome)?'s-mid':/no offer/i.test(s.outcome)?'s-lo':'';
+  const stages=Object.entries(sm.stages||{}).sort((a,b)=>b[1]-a[1]);
+  const nAcc=all.filter(s=>/accepted/i.test(s.outcome)).length;
+  box.innerHTML=`<div class="row" style="margin-bottom:12px">${ask}<span class="hint" style="margin:0">Fetched ${esc(rel(new Date(d.fetchedAt).toISOString().slice(0,10)))}${g.url?` · <a href="${esc(g.url)}" target="_blank" rel="noopener noreferrer">Glassdoor page</a>`:''}${r.pending?' · refresh requested':''}</span></div>
+    ${sm.rating||sm.daysToHire||stages.length?`<div class="stats" style="margin-bottom:12px">
+      ${sm.rating?`<div class="stat"><span>Interview rating</span><b>${sm.rating} / 5</b><small>From candidates for this role</small></div>`:''}
+      ${sm.daysToHire?`<div class="stat"><span>Time to hire</span><b>${sm.daysToHire} days</b><small>Average, application to offer</small></div>`:''}
+      <div class="stat"><span>Accepted offers</span><b>${nAcc} of ${all.length}</b><small>Stories below</small></div></div>
+      ${stages.length?`<div class="hbars" style="margin-bottom:14px">${stages.map(([k,v])=>`<div class="hrow"><span class="hl">${esc(k)}</span><span class="ht"><b class="yours" style="width:${v}%"></b></span><span class="hv">${v}%</span></div>`).join('')}</div>`:''}`:''}
+    ${all.length?`<label class="sc" style="margin-bottom:10px"><input type="checkbox" id="stAcc" ${storiesAccepted?'checked':''}> Accepted offers only (${nAcc})</label>
+    <div class="stories">${list.map(s=>`<article class="story"><div class="sh"><b>${esc(s.title)}</b>${s.outcome?`<span class="score ${oc(s)}" style="width:auto;padding:0 8px;font-family:var(--body);font-size:12px">${esc(s.outcome)}</span>`:''}</div>
+      <div class="meta">${esc(s.date)}${s.location?' · '+esc(s.location):''}${s.experience?' · '+esc(s.experience):''}${s.difficulty?' · '+esc(s.difficulty):''}</div>
+      ${s.application?`<p><span class="lab" style="display:inline">Application</span> ${esc(s.application)}</p>`:''}
+      ${s.interview?`<p><span class="lab" style="display:inline">Interview</span> ${esc(s.interview)}</p>`:''}
+      ${s.questions&&s.questions.length?`<ul class="qs">${s.questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ul>`:''}</article>`).join('')||'<p class="hint">No accepted-offer stories for this role yet.</p>'}</div>`
+      :`<p class="hint">${esc(g.note||'No Glassdoor interview reviews for this role yet.')}</p>`}
+    ${(d.reddit||[]).length?`<h2 style="margin-top:16px">On Reddit</h2>${d.reddit.map(t=>`<div class="rn"><b><a href="${esc(safeUrl(t.url))}" target="_blank" rel="noopener noreferrer">${esc(t.title)}</a></b><span>r/${esc(t.sub)}</span></div>`).join('')}`:''}`;
+  bindAsk(company,role);
+  const acc=$('#stAcc');if(acc)acc.addEventListener('change',()=>{storiesAccepted=acc.checked;renderStories(r,company,role);});
+}
+function bindAsk(company,role){
+  const b=$('#stAsk');if(!b)return;
+  b.addEventListener('click',async()=>{b.disabled=true;b.textContent='Requested';try{await api('/api/insights',{method:'POST',body:JSON.stringify({company,role})});}catch(e){b.disabled=false;b.textContent='Try again';}});
+}
+
 /* ---------- Companies ---------- */
 const coKey=name=>normOrg(name).replace(/\s+/g,'-');
 const coLink=name=>name?`<a class="colink" href="#/company/${encodeURIComponent(coKey(name))}">${esc(name)}</a>`:'';
@@ -1747,14 +1794,16 @@ async function companiesPage(){
   box.innerHTML=(mine.length?`<h2 class="sec">Yours</h2>`+table(mine,[['Applied',r=>r.apps||'–'],['Saved',r=>r.saved||'–'],['Open offers',r=>r.offers||'–'],['Rating',rate]]):'<p class="hint">No companies yet. They appear when you log an application, save a job or write notes.</p>')
     +(hot.length?`<h2 class="sec market">Hiring most for you</h2>`+table(hot,[['Offers',r=>r.offers],['Best match',r=>r.best||'–'],['Rating',rate]]):'');
 }
-async function companyPage(key){
-  key=decodeURIComponent(key||'');
+async function companyPage(key,qs){
+  key=decodeURIComponent(key||'');const askedRole=new URLSearchParams(qs||'').get('role')||'';
   await ensureCollected(null);
   const offers=(colData?visibleOffers():[]).filter(x=>sameCo(x.org,key));
   const apps=state.apps.filter(a=>sameCo(a.org,key)),saved=state.saved.filter(j=>sameCo(j.company,key));
   const name=(apps[0]&&apps[0].org)||(offers[0]&&offers[0].org)||(saved[0]&&saved[0].company)||((state.companyNotes||{})[key]||{}).name||key.replace(/-/g,' ');
   const rating=(offers.find(x=>x.company&&x.company.rating)||{}).company||(saved.find(j=>j.rating)||{}).rating;
   const note=((state.companyNotes||{})[key]||{}).text||'';
+  const cleanRole=t=>String(t||'').replace(/\s*[\(\[]?(h\/f|f\/h|m\/w\/d|m\/f)[\)\]]?/ig,'').replace(/\s+[-–|].*$/,'').trim();
+  const defRole=cleanRole(askedRole||(apps[0]&&apps[0].role)||(offers[0]&&offers[0].title)||(state.searches[0]&&state.searches[0].search)||'');
   const q=encodeURIComponent(name);
   $('#view').innerHTML=crumbs([['Companies','#/companies']],name)+`<h1>${esc(name)}</h1>
     <p class="sub">${offers.length} open offer${offers.length===1?'':'s'} for you · ${apps.length} application${apps.length===1?'':'s'}${rating?` · ★ ${rating.rating.toFixed(1)} from ${rating.count} reviews (${esc(rating.source)})`:''}</p>
@@ -1769,8 +1818,12 @@ async function companyPage(key){
       <div class="panel"><h2>Your applications</h2>${apps.length?apps.map(a=>`<div class="rn" data-edit="${esc(a.id)}" style="cursor:pointer"><b>${esc(a.role||'Application')}</b><span>${STAGE_LABEL[a.stage]}, ${RES_LABEL[a.result]} · ${esc(rel(a.date))}</span></div>`).join(''):'<p class="hint" style="margin:0">None yet.</p>'}
         ${saved.length?`<h2 style="margin-top:14px">Saved jobs</h2>${saved.map(j=>`<div class="rn"><b>${esc(j.title)}</b><span>${esc(j.location||'')}</span></div>`).join('')}`:''}</div>
     </div>
+    <div class="panel"><h2>Interview stories</h2><p class="hint">What people who interviewed at ${esc(name)} for a similar role went through: how they applied, the rounds, the questions, and whether they got the offer.</p>
+      <div class="row" style="margin-bottom:12px"><input type="text" id="stRole" value="${esc(defRole)}" placeholder="Role, e.g. Machine Learning Engineer" style="max-width:360px" aria-label="Role"><button class="btn sm" id="stGo">Show</button></div>
+      <div id="stBox"></div></div>
     <div class="panel"><h2>Open offers for you</h2>${offers.length?'<div class="offers compact">'+offers.sort((a,b)=>(b.m?b.m.rank:0)-(a.m?a.m.rank:0)).map(x=>{const u=safeUrl(x.url);
       return `<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}</h3><div class="meta">${expTag(x.xp||expOf(x))} ${esc(x.location||'')} · ${esc(x.source)}${x.posted?' · '+esc(rel(x.posted)):''}</div>${scoreWhy(x.m)}</div></article>`;}).join('')+'</div>':'<p class="hint" style="margin:0">No collected offers from this company right now.</p>'}</div>`;
+  const showStories=()=>loadStories(name,cleanRole($('#stRole').value));$('#stGo').addEventListener('click',showStories);$('#stRole').addEventListener('keydown',e=>{if(e.key==='Enter')showStories();});showStories();
   $('#coNote').addEventListener('input',e=>{state.companyNotes=state.companyNotes||{};state.companyNotes[key]={name,text:e.target.value,updatedAt:Date.now()};save();});
   const nb=$('#view').querySelector('[data-act="newco"]');nb.dataset.org=name;
 }
@@ -1851,7 +1904,7 @@ function route(){
   else if(t==='notes')notesPage();
   else if(t==='profile')profilePage();
   else if(t==='companies')companiesPage();
-  else if(t==='company')companyPage(seg[1]);
+  else if(t==='company')companyPage(seg[1],qs);
   else if(t==='explore'){const c=cById(seg[1]);if(c&&DOM[seg[2]])exploreDomain(c,seg[2]);else if(c)exploreCountry(c);else exploreHome();}
   else overview();
   window.scrollTo(0,0);
