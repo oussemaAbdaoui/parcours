@@ -13,7 +13,8 @@
 <meta name="theme-color" content="#191919" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
 <style>
 /* Visual language after Notion's workspace (awesome-design-md/notion): warm neutrals, flat pages,
    pastel property tags, one blue accent. Shape rule: controls 6px, cards and panels 10px, tags 4px. */
@@ -34,8 +35,8 @@
   --tag:#e3e2e0; --tag-ink:#32302c;
   --c-yours:#2a78d6; --c-gap:#eb6834; --b-strong:#104281; --b-fair:#2a78d6; --b-weak:#86b6ef;
   --accent:var(--job); --tint:var(--job-t);
-  --display:'Inter','Twemoji Country Flags',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
-  --body:'Inter','Twemoji Country Flags',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --display:'Satoshi','Twemoji Country Flags',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'Satoshi','Twemoji Country Flags',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:ui-monospace,SFMono-Regular,'Cascadia Mono',Consolas,monospace;
   --r:6px; --rc:10px;
   --shadow:none;
@@ -453,6 +454,79 @@ dialog::backdrop{background:rgba(15,15,15,.45)}
 [hidden]{display:none!important}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 
+
+/* ---------- relooking: navy sidebar, page covers, tinted cards ---------- */
+:root{--navy:#0f1b33;--navy-2:#16244a;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 170' preserveAspectRatio='none'%3E%3Cpath d='M-20 150 C 260 150 380 30 640 70 S 1020 150 1240 20' fill='none' stroke='rgba%2815%2C27%2C51%2C0.13%29' stroke-width='3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-20 120 C 300 110 420 0 700 40 S 1060 120 1240 -10' fill='none' stroke='rgba%2815%2C27%2C51%2C0.13%29' stroke-width='1.5' stroke-dasharray='2 8' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --c-overview:#dcecfa;--c-opps:#d9f3e1;--c-explore:#ffe8d4;--c-apps:#e6e0f5;--c-companies:#fef3c7;--c-notes:#fde0ec;--c-profile:#ece9e4;
+  --i-overview:#1f5f8b;--i-opps:#2f6b48;--i-explore:#a2511a;--i-apps:#5b3f9a;--i-companies:#8a6414;--i-notes:#a0386b;--i-profile:#4d4a44;
+  --t1:#e8f2fc;--t2:#e6f5ea;--t3:#fff0e3;--t4:#efeaf9}
+:root[data-theme="dark"]{--navy:#0d1526;--navy-2:#18233d;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 170' preserveAspectRatio='none'%3E%3Cpath d='M-20 150 C 260 150 380 30 640 70 S 1020 150 1240 20' fill='none' stroke='rgba%28255%2C255%2C255%2C0.10%29' stroke-width='3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-20 120 C 300 110 420 0 700 40 S 1060 120 1240 -10' fill='none' stroke='rgba%28255%2C255%2C255%2C0.10%29' stroke-width='1.5' stroke-dasharray='2 8' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --c-overview:#1b2d40;--c-opps:#1a3226;--c-explore:#3a2718;--c-apps:#2a2342;--c-companies:#3a3016;--c-notes:#3d1f2e;--c-profile:#2a2926;
+  --i-overview:#8cc3f2;--i-opps:#86d1a2;--i-explore:#f2ad7c;--i-apps:#bba6f0;--i-companies:#ecc865;--i-notes:#f19cc4;--i-profile:#d1cec7;
+  --t1:#1a2735;--t2:#1a2b22;--t3:#2e2219;--t4:#241f36}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--navy:#0d1526;--navy-2:#18233d;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 170' preserveAspectRatio='none'%3E%3Cpath d='M-20 150 C 260 150 380 30 640 70 S 1020 150 1240 20' fill='none' stroke='rgba%28255%2C255%2C255%2C0.10%29' stroke-width='3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-20 120 C 300 110 420 0 700 40 S 1060 120 1240 -10' fill='none' stroke='rgba%28255%2C255%2C255%2C0.10%29' stroke-width='1.5' stroke-dasharray='2 8' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --c-overview:#1b2d40;--c-opps:#1a3226;--c-explore:#3a2718;--c-apps:#2a2342;--c-companies:#3a3016;--c-notes:#3d1f2e;--c-profile:#2a2926;
+  --i-overview:#8cc3f2;--i-opps:#86d1a2;--i-explore:#f2ad7c;--i-apps:#bba6f0;--i-companies:#ecc865;--i-notes:#f19cc4;--i-profile:#d1cec7;
+  --t1:#1a2735;--t2:#1a2b22;--t3:#2e2219;--t4:#241f36}}
+body{--pc:var(--c-overview);--pi:var(--i-overview)}
+body[data-page="opps"]{--pc:var(--c-opps);--pi:var(--i-opps)}
+body[data-page="explore"]{--pc:var(--c-explore);--pi:var(--i-explore)}
+body[data-page="apps"]{--pc:var(--c-apps);--pi:var(--i-apps)}
+body[data-page="companies"]{--pc:var(--c-companies);--pi:var(--i-companies)}
+body[data-page="notes"]{--pc:var(--c-notes);--pi:var(--i-notes)}
+body[data-page="profile"]{--pc:var(--c-profile);--pi:var(--i-profile)}
+h1{font-size:42px;font-weight:900;letter-spacing:-.035em;line-height:1.08}
+h2{font-weight:700}
+.btn.primary{background:var(--navy);color:#fff}
+.btn.primary:hover{background:var(--navy-2)}
+:root[data-theme="dark"] .btn.primary{background:#f0efed;color:#0f1b33}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{background:#f0efed;color:#0f1b33}}
+.oa .btn.primary{background:var(--blue-t);color:var(--blue-ink)}
+
+/* sidebar */
+.side{background:var(--navy);box-shadow:none;color:#fff;
+  --job:#6fd49b;--master:#6db8f2;--phd:#c39bf5}
+.brand{color:#fff}.brand .logo-mark{color:#fff}.brand:hover{background:rgba(255,255,255,.07)}
+.brand small{color:rgba(255,255,255,.55)}
+.navlab{color:rgba(255,255,255,.42)}
+.tabs a,:root[data-theme="dark"] .tabs a{color:rgba(255,255,255,.72)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tabs a{color:rgba(255,255,255,.72)}}
+.tabs a svg{color:rgba(255,255,255,.5)}
+.tabs a:hover{background:rgba(255,255,255,.07);color:#fff}
+.tabs a[aria-current="page"]{background:rgba(255,255,255,.12);color:#fff}
+.tabs a[aria-current="page"] svg{color:#fff}
+.side .syncl{color:rgba(255,255,255,.55)}
+.side :focus-visible{outline-color:#8cc3f2}
+
+/* page cover, Notion style: a tinted band with the route motif and a big page icon */
+.cover{height:150px;background:var(--motif) center / 100% 100% no-repeat,var(--pc);transition:background-color .25s}
+.cover-in{position:relative;max-width:1120px;height:100%;margin:0 auto;padding-inline:48px}
+.cover-ic{position:absolute;left:48px;bottom:-34px;display:grid;place-items:center;width:76px;height:76px;border-radius:18px;background:var(--surface);color:var(--pi);box-shadow:0 0 0 1px rgba(15,15,15,.06),0 8px 24px -6px rgba(15,27,51,.25)}
+.cover-ic svg.ic{width:42px;height:42px}
+.topbar{background:color-mix(in srgb,var(--pc) 88%,transparent)}
+.wrap{padding-top:60px}
+.crumbs{margin-bottom:10px}
+.sub{font-size:16px}
+
+/* stats: tinted tiles */
+.stats{gap:12px}
+.stat,.stat:first-child{border:0;border-radius:14px;padding:16px 18px 18px;background:var(--t1)}
+.stat:nth-child(2){background:var(--t2)}.stat:nth-child(3){background:var(--t3)}.stat:nth-child(4){background:var(--t4)}
+.stat span{color:var(--ink)}
+.stat b{font-size:40px;font-weight:900;letter-spacing:-.04em;margin-top:6px}
+.stat small{color:var(--muted)}
+
+/* category and tool cards */
+.card{border-radius:14px;padding:18px 20px}
+.card.dom{background:color-mix(in srgb,var(--accent) 13%,var(--surface))}
+.card.dom .big{font-size:18px;font-weight:700}
+.card .big{font-weight:700}
+.charts .panel{border-radius:14px}
+.empty{background:var(--pc);border-radius:14px}
+:root[data-theme="dark"] .empty{background:var(--surface-2)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .empty{background:var(--surface-2)}}
+.col{border-radius:14px}
+
 /* ---------- phones (last, so it wins over the desktop rules above) ---------- */
 .bottombar,.sheet,.tb-logo,.fbtn{display:none}
 @media(max-width:900px){
@@ -472,7 +546,15 @@ dialog::backdrop{background:rgba(15,15,15,.45)}
   .sheet a,.sheet button{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border:0;background:none;border-radius:8px;text-decoration:none;color:var(--ink-strong);font-size:15px;text-align:left}
   .sheet a:hover,.sheet button:hover{background:var(--soft)}
   .sheet .syncl{padding:8px 12px 4px;border-top:1px solid var(--line);margin-top:4px}
-  h1{font-size:26px}
+  .cover{height:84px}
+  .cover-in{padding-inline:16px}
+  .cover-ic{left:16px;bottom:-26px;width:56px;height:56px;border-radius:14px}
+  .cover-ic svg.ic{width:30px;height:30px}
+  .wrap{padding-top:44px}
+  h1{font-size:30px}
+  .stats{gap:10px}
+  .stat,.stat:first-child,.stat:nth-child(odd){padding:12px 14px 14px;border:0}
+  .stat b{font-size:30px}
   .sub{margin-bottom:20px;font-size:14.5px}
   .panel,.stats,.two,.charts{margin-bottom:32px}
   /* offer lists: search and sort always visible, the other filters behind "Filters" */
@@ -494,7 +576,7 @@ dialog::backdrop{background:rgba(15,15,15,.45)}
   .board{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:82%;scroll-snap-type:x mandatory;margin-inline:-16px;padding-inline:16px;scroll-padding-inline:16px}
   .col{scroll-snap-align:start}
   .filters .seg{margin-left:0!important}
-  .stats{grid-template-columns:1fr 1fr;gap:18px 0}
+  .stats{grid-template-columns:1fr 1fr;gap:10px}
   .stat{padding:0 12px 0 14px}
   .stat:nth-child(odd){padding-left:0;border-left:0}
   .stat b{font-size:26px}
@@ -532,6 +614,7 @@ dialog::backdrop{background:rgba(15,15,15,.45)}
 <div class="main">
 <header class="topbar"><a class="tb-logo" href="#/" aria-label="Parcours home"><svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true"><path d="M5 22 C5 13, 23 15, 23 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="5" cy="22" r="3.4" fill="var(--job)"/><circle cx="14" cy="14.2" r="2.6" fill="var(--master)"/><circle cx="23" cy="6" r="3.4" fill="var(--phd)"/></svg></a><div class="where"><span class="tb-app">Parcours</span><span class="tb-app">/</span><b id="topSec">Overview</b></div><span class="sp"></span>
   <button class="iconbtn" id="themeBtn" type="button" aria-label="Toggle light and dark theme" title="Toggle theme"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z"/></svg></button></header>
+<div class="cover" aria-hidden="true"><div class="cover-in"><span class="cover-ic" id="coverIc"></span></div></div>
 <div class="wrap">
   <div class="demo warn" id="notice" role="status" aria-live="polite" hidden></div>
   <div id="demoBar"></div>
@@ -742,7 +825,7 @@ const STATUS=['todo','exploring','applied','skip'];
 const STATUS_LABEL={todo:'To do',exploring:'Exploring',applied:'Applied',skip:'Skipped'};
 
 /* helpers */
-const ICONS={"overview": "<path d=\"M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z\"/>", "opps": "<path d=\"M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z\"/>", "explore": "<path d=\"M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z\"/>", "apps": "<path d=\"M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z\"/>", "notes": "<path d=\"M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z\"/>", "profile": "<path d=\"M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z\"/>", "theme": "<path d=\"M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z\"/>", "list": "<path d=\"M80,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H88A8,8,0,0,1,80,64Zm136,56H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,64H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM44,52A12,12,0,1,0,56,64,12,12,0,0,0,44,52Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,116Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,180Z\"/>", "board": "<path d=\"M104,32H64A16,16,0,0,0,48,48V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,104,32Zm0,176H64V48h40ZM192,32H152a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,192,32Zm0,176H152V48h40Z\"/>", "plus": "<path d=\"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z\"/>", "mail": "<path d=\"M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z\"/>", "route": "<path d=\"M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z\"/>", "file": "<path d=\"M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z\"/>", "download": "<path d=\"M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,124.69V32a8,8,0,0,0-16,0v92.69L93.66,98.34a8,8,0,0,0-11.32,11.32Z\"/>"};
+const ICONS={"companies": "<path d=\"M240,208H224V96a16,16,0,0,0-16-16H144V32a16,16,0,0,0-24.88-13.32L39.12,72A16,16,0,0,0,32,85.34V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,96V208H144V96ZM48,85.34,128,32V208H48ZM112,112v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm-32,0v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm0,56v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Zm32,0v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Z\"/>", "overview": "<path d=\"M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z\"/>", "opps": "<path d=\"M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z\"/>", "explore": "<path d=\"M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z\"/>", "apps": "<path d=\"M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z\"/>", "notes": "<path d=\"M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z\"/>", "profile": "<path d=\"M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z\"/>", "theme": "<path d=\"M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z\"/>", "list": "<path d=\"M80,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H88A8,8,0,0,1,80,64Zm136,56H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,64H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM44,52A12,12,0,1,0,56,64,12,12,0,0,0,44,52Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,116Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,180Z\"/>", "board": "<path d=\"M104,32H64A16,16,0,0,0,48,48V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,104,32Zm0,176H64V48h40ZM192,32H152a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,192,32Zm0,176H152V48h40Z\"/>", "plus": "<path d=\"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z\"/>", "mail": "<path d=\"M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z\"/>", "route": "<path d=\"M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z\"/>", "file": "<path d=\"M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z\"/>", "download": "<path d=\"M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,124.69V32a8,8,0,0,0-16,0v92.69L93.66,98.34a8,8,0,0,0-11.32,11.32Z\"/>"};
 const ICON=k=>ICONS[k]?`<svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">${ICONS[k]}</svg>`:'';
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -1961,6 +2044,7 @@ function route(){
   const h=location.hash.replace(/^#\/?/,'');const [path,qs]=h.split('?');const seg=path.split('/').filter(Boolean);
   const t=seg[0]||'overview';
   const tab=t==='company'?'companies':t;
+  document.body.dataset.page=tab;const cic=$('#coverIc');if(cic)cic.innerHTML=ICON(tab);
   document.querySelectorAll('.bottombar [data-t]').forEach(a=>{const on=a.dataset.t===tab||(a.dataset.t==='more'&&['companies','notes'].includes(tab));if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   const ms=$('#moreSheet');if(ms){ms.hidden=true;$('#moreBtn').setAttribute('aria-expanded','false');}
   document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.t===tab){a.setAttribute('aria-current','page');const ts=$('#topSec');if(ts)ts.textContent=a.textContent.trim();}else a.removeAttribute('aria-current');});
