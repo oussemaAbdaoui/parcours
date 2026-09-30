@@ -297,6 +297,14 @@ def main():
         except Exception as e:
             status[name] = {"ok": False, "count": 0, "error": str(e)[:160]}
         print(f"  {name:16} {'ok ' if status[name]['ok'] else 'ERR'} {status[name]['count']:4}  {status[name].get('error', '')}")
+    # Contacts published in offers for applicants (also for offers read on earlier runs).
+    from enrich import extract_contacts
+    for x in items:
+        if "contacts" not in x and x.get("desc"):
+            found = extract_contacts(x["desc"])
+            if found:
+                x["contacts"] = found
+    print(f"  offers naming a contact: {sum(1 for x in items if x.get('contacts'))}")
     # Full descriptions can reveal a dealbreaker the listing hid (fluent German, EU citizens only): drop those too,
     # along with stored offers that became dealbreakers after a profile change.
     scores = {}

@@ -64,6 +64,7 @@ def linkedin_details(items, limit=40):
     return done, ""
 
 
+ACADEMIC = {"Inria", "CNRS", "ABG", "jobs.ac.uk", "ELLIS", "Academic Positions", "ScholarshipDB", "jobRxiv", "Max Planck"}
 STEALTH_SOURCES = {"ABG", "Academic Positions", "ScholarshipDB", "StepStone", "Tanitjobs"}
 MAIN_SELECTORS = ['[itemprop="description"]', ".job-description", "#job-description", ".jobsearch-JobComponent-description",
                   ".description", "article", "main"]
@@ -109,7 +110,42 @@ def _salary(bs):
     return f"{lo or ''}{'-' + str(hi) if hi else ''} {bs.get('currency', '')} {unit.lower()}".strip()
 
 
+EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
+SKIP_EMAIL = re.compile(r"^(no-?reply|noreply|donotreply|privacy|dpo|gdpr|rgpd|webmaster|abuse|support|unsubscribe|newsletter)@|\.(png|jpg|gif|svg)$", re.I)
+CONTACT_WORD = re.compile(r"(contact(?: person)?|supervisors?|encadrant(?:e|s)?|directeur|directrice|co-?directeur|responsable|ansprechpartner(?:in)?|betreuer(?:in)?|hiring manager|recruiter|recruteur|recruteuse|advisor|principal investigator|PI)\b", re.I)
+NAME = re.compile(r"((?:Dr\.?|Prof\.?|Pr\.?|M\.|Mme|Mr\.?|Ms\.?)\s+)?([A-Z][a-zà-ÿ'-]+(?:[ -](?:[A-Z][a-zà-ÿ'-]+|[A-Z]{2,})){1,2})")
+
+
+def extract_contacts(text):
+    """Contacts published in an offer for applicants: emails, with the name and role written next to them."""
+    out, seen = [], set()
+    for m in EMAIL.finditer(text or ""):
+        email = m.group(0).strip(".")
+        if SKIP_EMAIL.search(email) or email.lower() in seen:
+            continue
+        seen.add(email.lower())
+        before = text[max(0, m.start() - 140):m.start()]
+        role_m = None
+        for role_m in CONTACT_WORD.finditer(before):
+            pass
+        names = [n for n in NAME.finditer(before[role_m.end():] if role_m else before[-60:])]
+        name = (names[-1].group(0).strip() if names else "")
+        if name and (len(name) > 40 or re.search(r"\b(The|Le|La|Les|For|Pour|Please|Merci|Candidature|Application)\b", name)):
+            name = ""
+        out.append({"email": email, "name": name, "role": role_m.group(1).lower() if role_m else ""})
+        if len(out) >= 3:
+            break
+    return out
+
+
 def _apply_page(x, page):
+    x["contactsChecked"] = True
+    try:
+        found = extract_contacts(_t(" ".join(page.css("body ::text").getall()))[:20000])
+        if found:
+            x["contacts"] = found
+    except Exception:
+        pass
     jp = _job_posting(page)
     if jp:
         text = _html_text(jp.get("description"))
@@ -144,8 +180,10 @@ def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, 
     """Opens offer pages whose stored description is short and fills desc, deadline, salary, type.
     Stops when the time budget (seconds) runs out; the rest is picked up on later runs."""
     t0 = time.time()
-    todo = [x for x in items if x.get("source") != "LinkedIn" and not x.get("detailed") and len(x.get("desc") or "") < 400
-            and x.get("url", "").startswith("http") and (only_sources is None or x.get("source") in only_sources)]
+    # Short descriptions, plus academic offers read once more for the contact they usually name at the bottom.
+    todo = [x for x in items if x.get("source") != "LinkedIn" and x.get("url", "").startswith("http")
+            and (only_sources is None or x.get("source") in only_sources)
+            and ((not x.get("detailed") and len(x.get("desc") or "") < 400) or (x.get("source") in ACADEMIC and not x.get("contactsChecked")))]
     plain = [x for x in todo if x.get("source") not in STEALTH_SOURCES][:limit]
     hard = [x for x in todo if x.get("source") in STEALTH_SOURCES][:stealth_limit] if stealth else []
     done = failed = 0

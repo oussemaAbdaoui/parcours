@@ -396,6 +396,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .story p{margin:6px 0 0;font-size:13.5px}
 .story .qs{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
 .story .qs li{margin:2px 0}
+.ctc{margin-top:4px}
+.mono{font-family:var(--mono);font-size:.92em}
 .colink{text-decoration:none}
 .linkbtn{border:0;background:none;padding:0;color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-size:inherit;cursor:pointer}
 .colink:hover{text-decoration:underline;text-underline-offset:3px}
@@ -1519,6 +1521,7 @@ function renderCollected(){
       const dl=x.deadline?`Apply by ${esc(x.deadline)}`:(x.posted?`Posted ${esc(rel(x.posted))}`:'');
       return `<article class="offer" style="--accent:var(${v.color});--tint:var(${v.tint})">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.foundAt>colPrev?' <span class="new">New</span>':''}${x.m&&x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
       <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${coLink(x.org)}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}</div>
+      ${(x.contacts||[]).length?`<div class="meta ctc">Contact: ${x.contacts.map(c=>`${c.name?esc(c.name)+(c.role?` (${esc(c.role)})`:'')+' · ':''}<span class="mono">${esc(c.email)}</span>`).join(' · ')}</div>`:''}
       ${scoreWhy(x.m)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
       <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm ghost" data-colog="${esc(x.id)}">Log</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Stories</a>`:''}<button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></article>`;}).join('')+'</div>'
@@ -1771,6 +1774,19 @@ function bindAsk(company,role){
   b.addEventListener('click',async()=>{b.disabled=true;b.textContent='Requested';try{await api('/api/insights',{method:'POST',body:JSON.stringify({company,role})});}catch(e){b.disabled=false;b.textContent='Try again';}});
 }
 
+function peopleHtml(name,offers,role){
+  const seen=new Set(),rows=[];
+  offers.forEach(x=>(x.contacts||[]).forEach(c=>{if(seen.has(c.email))return;seen.add(c.email);rows.push(Object.assign({offer:x.title},c));}));
+  const li=q=>'https://www.linkedin.com/search/results/people/?keywords='+encodeURIComponent(q);
+  const searches=[[`Recruiters at ${name}`,`recruiter ${name}`],[`Talent acquisition at ${name}`,`talent acquisition ${name}`],
+    ...(role?[[`${role} at ${name}`,`${role} ${name}`],[`Managers of ${role} teams`,`manager ${role.split(' ').slice(-2).join(' ')} ${name}`]]:[])];
+  return (rows.length?'<div class="stories" style="margin-bottom:12px">'+rows.map(c=>`<div class="story"><div class="sh"><b>${esc(c.name||'Contact for applicants')}</b>${c.role?`<span class="xp">${esc(c.role)}</span>`:''}</div>
+      <div class="meta"><span class="mono">${esc(c.email)}</span> <button class="linkbtn" data-copy="${esc(c.email)}">Copy</button> · for ${esc(c.offer)}</div></div>`).join('')+'</div>'
+      :'<p class="hint">None of its collected offers names a contact.</p>')
+    +`<div class="row">${searches.map(([l,q])=>`<a class="btn sm" href="${esc(li(q))}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join('')}</div>`;
+}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-copy]');if(!b)return;
+  navigator.clipboard.writeText(b.dataset.copy).then(()=>{b.textContent='Copied';},()=>{b.textContent='Select and copy';});});
 /* ---------- Companies ---------- */
 const coKey=name=>normOrg(name).replace(/\s+/g,'-');
 const coLink=name=>name?`<a class="colink" href="#/company/${encodeURIComponent(coKey(name))}">${esc(name)}</a>`:'';
@@ -1818,6 +1834,8 @@ async function companyPage(key,qs){
       <div class="panel"><h2>Your applications</h2>${apps.length?apps.map(a=>`<div class="rn" data-edit="${esc(a.id)}" style="cursor:pointer"><b>${esc(a.role||'Application')}</b><span>${STAGE_LABEL[a.stage]}, ${RES_LABEL[a.result]} · ${esc(rel(a.date))}</span></div>`).join(''):'<p class="hint" style="margin:0">None yet.</p>'}
         ${saved.length?`<h2 style="margin-top:14px">Saved jobs</h2>${saved.map(j=>`<div class="rn"><b>${esc(j.title)}</b><span>${esc(j.location||'')}</span></div>`).join('')}`:''}</div>
     </div>
+    <div class="panel"><h2>People to contact</h2><p class="hint">Contacts named in ${esc(name)}'s offers, and LinkedIn searches that open in your own account. A short, specific message that names the offer works best.</p>
+      ${peopleHtml(name,offers,defRole)}</div>
     <div class="panel"><h2>Interview stories</h2><p class="hint">What people who interviewed at ${esc(name)} for a similar role went through: how they applied, the rounds, the questions, and whether they got the offer.</p>
       <div class="row" style="margin-bottom:12px"><input type="text" id="stRole" value="${esc(defRole)}" placeholder="Role, e.g. Machine Learning Engineer" style="max-width:360px" aria-label="Role"><button class="btn sm" id="stGo">Show</button></div>
       <div id="stBox"></div></div>
