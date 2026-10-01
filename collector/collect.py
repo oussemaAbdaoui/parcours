@@ -316,6 +316,15 @@ def main():
     rich = sum(1 for x in items if len(x.get("desc") or "") >= 400)
     print(f"  full description: {rich}/{len(items)}, applicants: {sum(1 for x in items if x.get('applicants'))}, company rating: {sum(1 for x in items if x.get('company'))}")
 
+    if not home:  # master's programmes and scholarships, in their own store, refreshed once a day
+        try:
+            import masters
+            status["Master's"] = masters.run(store, state, dry=dry, force="--masters" in sys.argv)
+        except Exception as e:
+            status["Master's"] = {"ok": False, "count": 0, "error": str(e)[:160]}
+        st = status["Master's"]
+        print(f"  Master's         {'ok ' if st['ok'] else 'ERR'} {st['count']:4}  {st.get('error', '')}")
+
     if dry:
         for x in items[:15]:
             print(f"  [{x['kind']:5}] {x['source']:12} {x['title'][:60]:60} | {x['org'][:25]:25} | {len(x.get('desc') or ''):4} chars")
