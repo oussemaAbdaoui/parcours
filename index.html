@@ -1729,8 +1729,50 @@ function opps(seg){
   oppsHub();
 }
 
+/* search: every word must match (in any order), synonyms count, "-word" excludes; title hits rank highest */
+const SYN=[['ml','machine learning','apprentissage automatique'],['ai','ia','artificial intelligence','intelligence artificielle','ki'],['nlp','natural language processing','tal','traitement automatique des langues'],
+  ['llm','llms','large language model','genai','generative ai','ia generative'],['cv','computer vision','vision par ordinateur'],['ds','data science','data scientist'],['de','data engineer','data engineering'],
+  ['dev','developer','developpeur','entwickler'],['phd','doctorat','doctoral','doctorant','these','thesis'],['stage','internship','intern','stagiaire','pfe'],['remote','teletravail','full remote','homeoffice'],
+  ['backend','back end','back-end'],['fullstack','full stack','full-stack'],['junior','entry level','jeune diplome','debutant'],['engineer','ingenieur','engineering']];
+const qNorm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9+#.\- ]+/g,' ').replace(/\s+/g,' ').trim();
+function parseQuery(q){
+  const raw=qNorm(q);if(!raw)return null;
+  const words=raw.split(' ').filter(Boolean),inc=[],exc=[];
+  for(let i=0;i<words.length;i++){
+    let w=words[i];const neg=w.startsWith('-')&&w.length>1;if(neg)w=w.slice(1);
+    // two-word synonyms typed as words ("machine learning") stay one term
+    const two=words[i+1]?w+' '+words[i+1].replace(/^-/,''):'';
+    const group=SYN.find(g=>g.includes(two))||null;
+    if(group&&two){i++;(neg?exc:inc).push(group);continue;}
+    (neg?exc:inc).push(SYN.find(g=>g.includes(w))||[w]);
+  }
+  return {inc,exc};
+}
+const hasTerm=(text,t)=>(' '+text+' ').includes(' '+t+' ')||(t.length>=4&&text.includes(t));
+function textMatch(x,pq){
+  if(!pq)return 1;
+  const ti=' '+qNorm(x.title)+' ',org=' '+qNorm(x.org)+' '+qNorm(x.location)+' ',body=qNorm(x.desc).slice(0,4000);
+  let score=0;
+  for(const g of pq.inc){const t=g.some(v=>hasTerm(ti,v))?3:g.some(v=>hasTerm(org,v))?2:g.some(v=>hasTerm(body,v))?1:0;if(!t)return 0;score+=t;}
+  for(const g of pq.exc)if(g.some(v=>hasTerm(ti,v)||hasTerm(org,v)))return 0;
+  return score;
+}
+/* topics an offer belongs to, from the skills it names (score.js families) and its title */
+const TOPICS=[['ai','AI and machine learning',['ml','xai','cv','dlfw','mllib','mlops'],/\b(machine learning|ml|ai|ia|deep learning|computer vision|data scien)/],
+  ['llm','LLMs and NLP',['llm','nlp','ir','llmfw'],/\b(llm|nlp|language model|genai|generative|rag|search|retrieval)/],
+  ['data','Data',['data','db','nosql'],/\b(data|donnees|analytics|bi|etl)\b/],
+  ['soft','Software and backend',['backend','api','pyweb','jvmweb','jsweb','phpweb','front','devops','cloud'],/\b(software|logiciel|developer|developpeur|backend|full.?stack|devops|cloud)/],
+  ['res','Research and PhD',['research','opt'],/\b(phd|doctora|these|thesis|research|recherche|postdoc|scientist)/]];
+function topicsOf(x){
+  if(x._topics)return x._topics;
+  const t=qNorm(x.title),fams=SC?SC.skillsIn((x.title||'')+' . '+(x.desc||'').slice(0,3000)).map(k=>SC.FAMILY[k]):[];
+  const count=f=>fams.filter(v=>f.includes(v)).length;
+  x._topics=TOPICS.filter(([id,,f,re])=>re.test(t)||count(f)>=2||(id==='res'&&x.kind==='phd')).map(([id])=>id);
+  return x._topics;
+}
+
 /* collected by the scheduled collector */
-let colFiltersOpen=false,colLock=null,colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,exp:'',remote:false,hideBlock:true,hideApplied:true},colMax=30;
+let colFiltersOpen=false,colLock=null,colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,exp:'',remote:false,hideBlock:true,hideApplied:true,topic:''},colMax=30;
 // Already applied: a logged application at the same company whose role shares most words with the offer title.
 const roleWords=s=>normOrg(s).split(' ').filter(w=>w.length>2&&!['h/f','f/h','the','and','des','les','pour'].includes(w));
 function isApplied(x){
@@ -1753,18 +1795,19 @@ function renderCollected(){
   const inScope=x=>!colLock||((!colLock.k||x.kind===colLock.k)&&(!colLock.c||x.c===colLock.c));
   const all=colData.items.filter(x=>!hidden.has(x.id)&&inScope(x)).map(x=>Object.assign({},x,{m:matchOf(x),applied:isApplied(x),xp:expOf(x)}));
   scoreProf=null;
-  const q=normOrg(colF.q),cutoff=colF.days?Date.now()-colF.days*864e5:0;
+  const pq=parseQuery(colF.q),cutoff=colF.days?Date.now()-colF.days*864e5:0;
+  all.forEach(x=>{x.tm=textMatch(x,pq);});
   const isRemote=x=>/\b(remote|teletravail|télétravail|homeoffice|anywhere)\b/i.test(x.location+' '+x.title+' '+(x.desc||'').slice(0,600))||x.c==='gl';
   const l=all.filter(x=>(!colF.k||x.kind===colF.k)&&(!colF.c||x.c===colF.c)&&(!colF.onlyNew||x.foundAt>colPrev)&&(!x.m||x.m.score>=colF.min)
     &&(!colF.src||x.source===colF.src)&&expOk(x.xp,colF.exp)&&(!cutoff||Math.max(Date.parse(x.posted||'')||0,x.foundAt||0)>=cutoff)&&(!colF.remote||isRemote(x))
     &&(!colF.hideBlock||!x.m||!x.m.blockers.length)&&(!colF.hideApplied||!x.applied)
-    &&(!q||normOrg(x.title+' '+x.org+' '+(x.desc||'')).includes(q)));
+    &&(!colF.topic||topicsOf(x).includes(colF.topic))&&x.tm>0);
   const sources=[...new Set(all.map(x=>x.source))].sort();
-  const nActive=[colF.min,colF.src,colF.exp,colF.days,colF.onlyNew,colF.remote,!colLock&&colF.k,!colLock&&colF.c].filter(Boolean).length;
+  const nActive=[colF.min,colF.src,colF.exp,colF.days,colF.onlyNew,colF.remote,colF.topic,!colLock&&colF.k,!colLock&&colF.c].filter(Boolean).length;
   const nBlock=all.filter(x=>x.m&&x.m.blockers.length).length,nApplied=all.filter(x=>x.applied).length;
   const ms=x=>x.m?x.m.score:0;
   const mr=x=>x.m?x.m.rank:0;
-  if(colF.sort==='match')l.sort((a,b)=>mr(b)-mr(a)||(b.foundAt||0)-(a.foundAt||0));
+  if(colF.sort==='match')l.sort((a,b)=>(pq?(b.tm-a.tm)*6:0)+(mr(b)-mr(a))||(b.foundAt||0)-(a.foundAt||0));
   else if(colF.sort==='deadline')l.sort((a,b)=>(a.deadline||'9999').localeCompare(b.deadline||'9999')||ms(b)-ms(a));
   else l.sort((a,b)=>(b.foundAt||0)-(a.foundAt||0));
   const nNew=all.filter(x=>x.foundAt>colPrev).length,run=(colData.runs||[])[0];
@@ -1772,12 +1815,13 @@ function renderCollected(){
   const failed=run?Object.entries(run.sources||{}).filter(([,v])=>!v.ok).map(([k,v])=>`<span title="${esc(v.error||'')}">${esc(k)}</span>`).join(', '):'';
   b.innerHTML=(!hasCv()&&all.length?`<p class="nudge">Scores use default skills until you add your CV. <a href="#/profile">Add it in Profile</a>.</p>`:'')
     +(all.length||run?`<div class="toolbar${colFiltersOpen?' open':''}">
-      <input type="search" id="coQ" placeholder="Search title, company, details…" aria-label="Search collected offers" value="${esc(colF.q)}">
+      <input type="search" id="coQ" placeholder="Search: ml engineer paris -senior…" aria-label="Search collected offers. Every word must match; -word excludes" value="${esc(colF.q)}">
       <button type="button" class="btn sm fbtn" id="coF" aria-expanded="${colFiltersOpen}">Filters${nActive?` · ${nActive}`:''}</button>
       <select id="coS" aria-label="Sort"><option value="match">Best match first</option><option value="new">Newest first</option><option value="deadline">Deadline first</option></select>
       <select class="xf" id="coM" aria-label="Minimum match"><option value="0">Any match</option><option value="55">Match 55+</option><option value="65">Match 65+</option><option value="75">Match 75+</option></select>
       ${colLock&&colLock.k?'':`<select class="xf" id="coK" aria-label="Kind"><option value="">All kinds</option><option value="job">Jobs</option><option value="phd">PhD</option><option value="master">Master's</option></select>`}
       ${colLock&&colLock.c?'':`<select class="xf" id="coC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>`}
+      <select class="xf" id="coT" aria-label="Topic"><option value="">Any topic</option>${TOPICS.map(([id,l])=>`<option value="${id}">${l}</option>`).join('')}</select>
       <select class="xf" id="coSrc" aria-label="Source"><option value="">All sources</option>${sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
       <select class="xf" id="coE" aria-label="Experience asked">${EXP_FILTERS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
       <select class="xf" id="coD" aria-label="Posted within"><option value="0">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
@@ -1797,9 +1841,9 @@ function renderCollected(){
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
     :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 6 hours.'}</p>`);
   const k=$('#coS');if(k){if($('#coK'))$('#coK').value=colF.k;if($('#coC'))$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
-    $('#coSrc').value=colF.src;$('#coE').value=colF.exp;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
-    const read=()=>({k:$('#coK')?$('#coK').value:colF.k,c:$('#coC')?$('#coC').value:colF.c,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,exp:$('#coE').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked});
-    ['coK','coC','coN','coS','coM','coSrc','coE','coD','coR','coB','coA'].filter(id=>$('#'+id)).forEach(id=>$('#'+id).addEventListener('change',()=>{colF=read();colMax=30;renderCollected();}));
+    $('#coSrc').value=colF.src;$('#coT').value=colF.topic||'';$('#coE').value=colF.exp;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
+    const read=()=>({k:$('#coK')?$('#coK').value:colF.k,c:$('#coC')?$('#coC').value:colF.c,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,exp:$('#coE').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked,topic:$('#coT').value});
+    ['coK','coC','coN','coS','coM','coSrc','coT','coE','coD','coR','coB','coA'].filter(id=>$('#'+id)).forEach(id=>$('#'+id).addEventListener('change',()=>{colF=read();colMax=30;renderCollected();}));
     $('#coF').addEventListener('click',()=>{colFiltersOpen=!colFiltersOpen;$('#colBox .toolbar').classList.toggle('open',colFiltersOpen);$('#coF').setAttribute('aria-expanded',String(colFiltersOpen));});
     let tq=null;$('#coQ').addEventListener('input',()=>{clearTimeout(tq);tq=setTimeout(()=>{colF=read();colMax=30;renderCollected();const i=$('#coQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250);});}
   const m=$('#coMore');if(m)m.addEventListener('click',()=>{colMax+=30;renderCollected();});
@@ -1908,7 +1952,7 @@ const prof=()=>{const p=Object.assign(clone(PROFILE_DEFAULT),state.profile||{});
 const hasCv=()=>((state.profile&&state.profile.skills)||[]).length>0;
 // Saved searches count as target roles too.
 const scoringProfile=()=>Object.assign(prof(),{targets:state.searches.map(s=>s.search)});
-const PART_LABEL={skills:'Skills',role:'Role fit',seniority:'Level',education:'Education',languages:'Languages',place:'Place and visa',competition:'Competition',company:'Company reviews',timing:'Timing'};
+const PART_LABEL={field:'Field fit',skills:'Skills',role:'Role fit',seniority:'Level',education:'Education',languages:'Languages',place:'Place and visa',competition:'Competition',company:'Company reviews',timing:'Timing'};
 let scoreProf=null;
 function matchOf(x){
   if(!SC)return null;

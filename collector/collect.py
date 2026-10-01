@@ -133,6 +133,33 @@ def profile_terms(state):
     return words, exclude
 
 
+# Job titles to search for, by the skills in the profile (first match wins per line, strongest areas first).
+PROFILE_QUERIES = [
+    ({"llm", "rag", "agents", "llm evaluation", "langchain", "hugging face"}, "LLM engineer"),
+    ({"machine learning", "deep learning", "pytorch", "tensorflow", "scikit-learn"}, "machine learning engineer"),
+    ({"nlp", "information retrieval", "embeddings"}, "NLP engineer"),
+    ({"computer vision", "ocr", "vision-language", "cnn"}, "computer vision engineer"),
+    ({"data engineering", "spark", "sql"}, "data engineer"),
+    ({"backend", "rest api", "fastapi", "django", "spring", "node.js"}, "backend developer"),
+]
+LOCATIONS = {"fr": "Paris", "de": "Berlin", "ca": "Montreal", "ch": "Zurich", "tn": "Tunis", "gl": "Remote"}
+
+
+def profile_searches(state):
+    """Searches built from the profile when none are saved: the two strongest areas, in the preferred countries."""
+    p = state.get("profile") or {}
+    skills = set(p.get("skills") or [])
+    ranked = sorted(((len(skills & keys), i, q) for i, (keys, q) in enumerate(PROFILE_QUERIES) if skills & keys), key=lambda t: (-t[0], t[1]))
+    queries = [q for _, _, q in ranked[:2]]
+    if not queries:
+        return DEFAULT_SEARCHES
+    order = [c for c in (p.get("countries") or ["fr", "de", "tn", "gl"]) if c in LOCATIONS]
+    countries = order[:3] + (["tn"] if "tn" in order[3:] else [])  # home market stays in even when ranked lower
+    out = [{"search": q, "c": countries[0], "location": LOCATIONS[countries[0]], "type": ""} for q in queries]  # first country: both
+    out += [{"search": queries[i % len(queries)], "c": c, "location": LOCATIONS[c], "type": ""} for i, c in enumerate(countries[1:])]
+    return out[:5]
+
+
 def excluded(item, exclude):
     text = f" {item.get('title', '')} {item.get('org', '')} ".lower()
     return any(re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", text) for w in exclude)
@@ -254,7 +281,7 @@ def main():
         load_env(env)
     store = None if dry else Store()
     state = (store.get_json(STATE_KEY) if store else None) or {}
-    searches = [s for s in state.get("searches", []) if s.get("search")] or DEFAULT_SEARCHES
+    searches = [s for s in state.get("searches", []) if s.get("search")] or profile_searches(state)
     pwords, exclude = profile_terms(state)
     if home:
         keywords = list(dict.fromkeys([s["search"] for s in searches if s.get("c") == "tn"] + HOME_KEYWORDS))[:4]

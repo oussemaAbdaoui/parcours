@@ -1,17 +1,20 @@
 /* Parcours match score and CV parser. Browser: window.ParcoursScore. Node: module.exports (tests).
 
-   Score, 0-100, from nine signals (weights sum to 100):
-     skills 28       your skills vs the offer; required skills weigh more than nice-to-haves, title mentions most,
-                     and a related skill in the same family (PyTorch for TensorFlow) earns half credit
-     role 10         offer title vs the roles and fields in your CV and saved searches
+   Score, 0-100, from ten signals (weights sum to 100):
+     field 18        is the job in your field at all (title first; the body rescues titles that name no field)
+     skills 26       your skills vs the offer; required skills weigh more than nice-to-haves, title mentions most,
+                     a related skill in the same family (PyTorch for TensorFlow) earns half credit, and generic
+                     skills (research, git, agile...) count a third
+     role 8          offer title vs the roles and fields in your CV and saved searches
      seniority 12    level asked (internship, junior, senior, years) vs your experience
-     education 6     degree asked (PhD, master's, engineer, bachelor) vs yours
-     languages 10    languages required vs your levels
-     place 10        country order, remote, visa sponsorship or work-permit restrictions
-     competition 8   applicant count (LinkedIn), otherwise freshness
-     company 8       company rating, weighted by review count
-     timing 8        freshness and deadline
-   Missing data scores neutral and lowers the confidence figure. Dealbreakers cap the score at 40. */
+     education 5     degree asked (PhD, master's, engineer, bachelor) vs yours
+     languages 9     languages required vs your levels
+     place 9         country order, remote, visa sponsorship or work-permit restrictions
+     competition 5   applicant count (LinkedIn), otherwise freshness
+     company 4       company rating, weighted by review count
+     timing 4        freshness and deadline
+   Missing data scores neutral and lowers the confidence figure. Dealbreakers (including a title clearly outside
+   your field) cap the score at 40; a title that names none of your fields caps it at 50. */
 (function (root) {
   'use strict';
 
@@ -55,7 +58,9 @@
     'spark': ['data', ['spark', 'pyspark', 'databricks', 'hadoop']], 'data engineering': ['data', ['data engineering', 'etl', 'elt', 'airflow', 'dbt', 'data pipelines?', 'kafka']],
     'mlops': ['mlops', ['mlops', 'mlflow', 'kubeflow', 'model deployment', 'model serving', 'model monitoring', 'weights ?& ?biases', 'wandb', 'dvc']],
     // optimization, research
-    'optimization': ['opt', ['optimi[sz]ation', 'operations research', 'recherche operationnelle', 'or-tools', 'linear programming', 'milp', 'gurobi', 'cplex']],
+    // "optimisation de X" alone means improving anything (antennas, stoves), so only mathematical optimization counts.
+    'optimization': ['opt', ['(?:mathematical|combinatorial|convex|stochastic|numerical|discrete|multi.objective|bayesian) optimi[sz]ation', 'optimi[sz]ation (?:algorithms?|solvers?|methods?|models?|problems?)',
+      'optimi[sz]ation (?:mathematique|combinatoire|convexe|stochastique)', 'operations research', 'recherche operationnelle', 'or-tools', 'linear programming', 'integer programming', 'milp', 'gurobi', 'cplex', 'metaheuristics?']],
     'constraint programming': ['opt', ['constraint programming', 'cp-sat', 'sat solvers?', 'smt', 'z3', 'minizinc', 'programmation par contraintes']],
     'monte carlo': ['opt', ['monte.carlo', 'simulation']],
     'research': ['research', ['research', 'recherche', 'forschung', 'publications?', 'papers?', 'peer.reviewed', 'acm', 'ieee', 'conference']],
@@ -303,7 +308,55 @@
 
   // Families where knowing one member says little about another (Python does not make you a Java developer).
   const NO_PARTIAL = new Set(['lang', 'research', 'method', 'tools', 'mobile', 'sec', 'embedded']);
-  const WEIGHTS = { skills: 28, role: 10, seniority: 12, education: 6, languages: 10, place: 10, competition: 8, company: 8, timing: 8 };
+  // Skills almost every offer mentions: they say little about fit, so they count a third.
+  const GENERIC_SKILLS = new Set(['research', 'monitoring', 'git', 'agile', 'testing', 'linux', 'security', 'statistics', 'docker', 'sql']);
+  const WEIGHTS = { field: 18, skills: 26, role: 8, seniority: 12, education: 5, languages: 9, place: 9, competition: 5, company: 4, timing: 4 };
+
+  /* Field fit: does the job belong to your field at all? Fields come from the skill families in your profile.
+     The title decides first (it names the job); the body only rescues titles that name no field, such as a PhD
+     topic that applies machine learning to another domain. */
+  const FIELDS = {
+    ai: { fams: ['ml', 'llm', 'nlp', 'xai', 'ir', 'cv', 'dlfw', 'llmfw', 'mllib', 'mlops'],
+      title: /\b(machine learning|ml|ai|ia|a\.i\.|artificial intelligence|intelligence artificielle|kunstliche intelligenz|ki|deep learning|apprentissage|neural|nlp|llms?|genai|generative|computer vision|vision par ordinateur|data scien\w*|mlops|research (?:engineer|scientist)|applied scientist|prompt|rag|agents?|perception|reinforcement|model (?:optimi[sz]ation|training|evaluation)|inference|quantization|embeddings?)\b/ },
+    data: { fams: ['data', 'db', 'nosql'],
+      title: /\b(data|donnees|daten|analytics|bi|business intelligence|big data|etl|statisti\w*|quant\w*|analyst|analyste)\b/ },
+    software: { fams: ['backend', 'api', 'pyweb', 'jvmweb', 'jsweb', 'phpweb', 'front', 'devops', 'cloud', 'lang', 'mobile'],
+      title: /\b(software|logiciel|softwareentwickl\w*|developer|developpeur|entwickler|programmer|programmeur|backend|back.end|full.?stack|frontend|front.end|devops|sre|cloud|platform|plateforme|web|api|python|java|typescript|node|informati\w*|systems? engineer|ingenieur (?:etudes et )?developpement)\b/ },
+    research: { fams: ['research', 'opt', 'xai'],
+      title: /\b(phd|ph\.d|doctora\w*|doktorand\w*|these|thesis|research|recherche|forschung|postdoc|scientist|chercheur)\b/ },
+  };
+  const OFF_FIELD = /\b(account (?:executive|manager)|ae|sales|vente\w*|vendeu\w*|verkauf\w*|vertrieb\w*|commercia\w*|business development|business developer|bdr|sdr|marketing|growth|customer success|support agent|recrui\w*|recrut\w*|talent acquisition|engagement manager|services manager|human resources|ressources humaines|\bhr\b|\brh\b|accountant|comptab\w*|finance manager|lawyer|juriste|avocat|nurse|infirmi\w*|medecin|physician|pharmacist|teacher|enseignant|instituteur|chauffeur|driver|electricien|electrician|mecanicien|mechanic|technicien de maintenance|plombier|soudeur|cuisinier|chef de rang|serveur|receptionist|assistant(?:e)? (?:de direction|administrati\w*)|office manager|community manager|graphic designer|graphiste|copywriter|translator|traducteur|management consultant|strategist|partnerships?|logisti\w*|supply chain|procurement|achat\w*|architecte? d.interieur|immobilier|real estate|insurance|assurance)\b/;
+  function myFields(p) {
+    const fams = new Set((p.skills || []).map((k) => FAMILY[k]));
+    const out = Object.entries(FIELDS).filter(([, f]) => f.fams.filter((x) => fams.has(x)).length >= 1).map(([k]) => k);
+    return out.length ? out : Object.keys(FIELDS);
+  }
+  function fieldFit(offer, p, title, body) {
+    const fields = myFields(p);
+    const hitTitle = fields.filter((f) => FIELDS[f].title.test(title));
+    const mine = new Set(p.skills || []);
+    const titleSkills = skillsIn(offer.title).filter((k) => !GENERIC_SKILLS.has(k));
+    const myTitleSkills = titleSkills.filter((k) => mine.has(k) || fields.some((f) => FIELDS[f].fams.includes(FAMILY[k])));
+    const off = OFF_FIELD.test(title);
+    // Research titles alone (a PhD in fluid mechanics) do not make the job yours: they need a topic from your other fields.
+    const coreHit = hitTitle.filter((f) => f !== 'research');
+    if ((coreHit.length || myTitleSkills.length) && !off) {
+      return { v: 1, known: true, off: false, note: `In your field: ${[...coreHit, ...myTitleSkills].slice(0, 3).join(', ')}` };
+    }
+    // "Commercial IT", "Sales Engineer - SaaS": the job itself is sales or HR even if the product is software.
+    if (off && coreHit.includes('ai')) return { v: 0.4, known: true, off: false, note: `Mostly ${title.match(OFF_FIELD)[0]}, around AI` };
+    const coreFams = new Set(fields.filter((f) => f !== 'research').flatMap((f) => FIELDS[f].fams));
+    const bodySkills = skillsIn(body).filter((k) => !GENERIC_SKILLS.has(k) && coreFams.has(FAMILY[k]));
+    const dense = bodySkills.length >= 3;
+    if (off) return { v: 0, known: true, off: true, note: `Outside your field (${title.match(OFF_FIELD)[0]})` };
+    if (hitTitle.includes('research') || offer.kind === 'phd') {
+      return dense ? { v: 0.6, known: true, off: false, note: `Research applying your skills: ${bodySkills.slice(0, 3).join(', ')}` }
+        : { v: 0.1, known: true, off: bodySkills.length === 0, note: 'Research topic outside your field' };
+    }
+    if (dense) return { v: 0.55, known: true, off: false, note: `Title names no field; the offer asks ${bodySkills.slice(0, 3).join(', ')}` };
+    // No field in the title and none of your skills in the text: a different job (video editor, bookkeeper).
+    return { v: bodySkills.length ? 0.3 : 0.1, known: true, off: !bodySkills.length && body.length > 200, note: 'Title outside your field' };
+  }
   const ROLE_GENERIC = new Set(['engineer', 'ingenieur', 'developer', 'developpeur', 'h/f', 'f/h', 'm/w/d', 'intern', 'stage', 'senior', 'junior', 'and', 'et', 'de', 'en', 'in', 'of', 'the', 'for', 'a', 'position', 'poste']);
 
   function score(offer, profile, now = Date.now()) {
@@ -311,6 +364,9 @@
     const tRaw = (offer.title || '') + ' . ' + (offer.desc || '') + ' . ' + (offer.type || '');
     const body = norm(tRaw), title = norm(offer.title);
     const parts = {};
+
+    // 0. Field: is this job in your field at all?
+    parts.field = fieldFit(offer, p, title, body);
 
     // 1. Skills: weighted coverage with required, nice-to-have and related-skill credit
     const mine = new Set(p.skills || []), extra = (p.extra || []).map(norm);
@@ -325,7 +381,7 @@
       let total = 0, got = 0;
       const have = [], related = [], missing = [];
       for (const k of wanted) {
-        const w = inTitle.has(k) ? 2.5 : inReq.has(k) ? 1.6 : inNice.has(k) ? 0.5 : 1;
+        const w = (inTitle.has(k) ? 2.5 : inReq.has(k) ? 1.6 : inNice.has(k) ? 0.5 : 1) * (GENERIC_SKILLS.has(k) ? 0.35 : 1);
         total += w;
         if (mine.has(k)) { got += w; have.push(k); }
         else if (myFamilies.has(FAMILY[k]) && !NO_PARTIAL.has(FAMILY[k])) { got += w * 0.5; related.push(k); }
@@ -346,7 +402,7 @@
     // 2. Role fit: offer title vs your roles, fields and searches
     const roleWords = new Set();
     [...(p.roles || []), ...(p.targets || [])].forEach((r) => norm(r).split(/[^a-z0-9+#]+/).forEach((w) => { if (w.length > 1 && !ROLE_GENERIC.has(w)) roleWords.add(w); }));
-    const titleSkills = [...inTitle];
+    const titleSkills = [...inTitle].filter((k) => !GENERIC_SKILLS.has(k));
     if (!roleWords.size && !mine.size) parts.role = { v: 0.5, known: false, note: 'No roles in profile' };
     else {
       const tw = title.split(/[^a-z0-9+#]+/).filter((w) => w.length > 1 && !ROLE_GENERIC.has(w));
@@ -423,6 +479,7 @@
     let total = 0, knownW = 0;
     for (const [k, w] of Object.entries(WEIGHTS)) { total += w * parts[k].v; if (parts[k].known) knownW += w; }
     const blockers = [];
+    if (parts.field.off) blockers.push('Outside your field');
     if (parts.languages.known && parts.languages.v < 0.5) blockers.push('Required language missing');
     if (visaNote === ', work permit restriction') blockers.push('Work permit restriction');
     if (parts.timing.v === 0) blockers.push('Deadline passed');
@@ -436,6 +493,7 @@
     if (lv.lvl === 0 && offer.kind !== 'phd' && !canIntern) blockers.push('Internship needs student status');
     if ((p.exclude || []).some((w) => w && termIn(w, norm(offer.title + ' ' + (offer.org || ''))))) blockers.push('Matches your exclusions');
     if (blockers.length) total = Math.min(total, 40);
+    else if (parts.field.v < 0.3) total = Math.min(total, 50); // a job outside your field never ranks with real matches
     const urgent = left != null && left >= 0 && left <= 7;
     const conf = knownW / 100;
     return { score: Math.round(total), confidence: conf, rank: total - (1 - conf) * 12, parts, urgent, blockers };
