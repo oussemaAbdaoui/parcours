@@ -1681,7 +1681,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 /* master's programmes and scholarships (Germany, France, Italy, Erasmus Mundus), collected once a day */
 let msData=null,msF={t:'',c:'',lang:'',q:'',sort:'fit',closed:false},msMax=40;
 const MS_C={de:['🇩🇪','Germany'],fr:['🇫🇷','France'],it:['🇮🇹','Italy'],eu:['🇪🇺','Several countries (Erasmus Mundus)']};
-async function loadMasters(){if(!msData)msData=await api('/api/masters');return msData;}
+async function loadMasters(){if(!msData)msData=await api('/api/opps?set=masters');return msData;}
 const msDays=x=>x.deadline?Math.round((tms(x.deadline)-tms(today()))/864e5):null;
 const MS_AI=/artificial intelligence|machine learning|ai|data|comput|informati|software|robot|cyber/i,MS_ON=/digital|engineering|technolog|mathemat|stem/i,MS_OFF=/architecture|music|arts?|medic|drug|pharma|clinical|health|nursing|theolog|law|journalis|film|dance|agricult/i;
 const msFit=x=>(x.terms||[]).length*2+(MS_AI.test(x.title)?6:MS_AI.test(x.desc)?3:0)+(MS_ON.test(`${x.title} ${x.desc}`)?1:0)-(MS_OFF.test(x.title)?8:0)+(x.scholarship?2:0)+(x.type==='scholarship'&&/tunis/i.test(x.eligible||'')?2:0)+(msDays(x)!==null&&msDays(x)>=0&&msDays(x)<=90?1:0);

@@ -8,6 +8,7 @@ module.exports = async (req, res) => {
   const u = upstash();
   if (!u) return res.status(501).json({ error: 'Storage is not configured. Add Upstash Redis in Vercel.' });
   res.setHeader('Cache-Control', 'no-store');
+  if ((req.query || {}).set === 'masters') return masters(u, res);
   try {
     const [flat, metaRaw] = await Promise.all([redis(u, ['HGETALL', 'parcours:opps:items']), redis(u, ['GET', 'parcours:opps:meta'])]);
     const arr = (flat && flat.result) || [];
@@ -35,3 +36,18 @@ module.exports = async (req, res) => {
     res.status(502).json({ error: 'Storage is unavailable right now.' });
   }
 };
+
+// Master's programmes and scholarships (Germany, France, Italy, Erasmus Mundus) saved by the collector in
+// parcours:masters:items. Served from this function (?set=masters) to stay within the Hobby plan's 12 functions.
+async function masters(u, res) {
+  try {
+    const [flat, metaRaw] = await Promise.all([redis(u, ['HGETALL', 'parcours:masters:items']), redis(u, ['GET', 'parcours:masters:meta'])]);
+    const arr = (flat && flat.result) || [];
+    const items = [];
+    for (let i = 1; i < arr.length; i += 2) { try { items.push(JSON.parse(arr[i])); } catch (e) { /* skip a bad record */ } }
+    const meta = metaRaw && metaRaw.result ? JSON.parse(metaRaw.result) : {};
+    res.status(200).json({ updatedAt: meta.at || 0, sources: meta.sources || {}, fields: meta.fields || [], items });
+  } catch (e) {
+    res.status(502).json({ error: 'Storage is unavailable right now.' });
+  }
+}
