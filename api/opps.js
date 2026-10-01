@@ -9,6 +9,15 @@ module.exports = async (req, res) => {
   if (!u) return res.status(501).json({ error: 'Storage is not configured. Add Upstash Redis in Vercel.' });
   res.setHeader('Cache-Control', 'no-store');
   if ((req.query || {}).set === 'masters') return masters(u, res);
+  if ((req.query || {}).set === 'companies') {
+    // Daily company refresh (collector/companies.py): ratings, open offers, last refresh, keyed by normalised name.
+    try {
+      const r = await redis(u, ['GET', 'parcours:companies:meta']);
+      return res.status(200).json(r && r.result ? JSON.parse(r.result) : { at: 0, companies: {} });
+    } catch (e) {
+      return res.status(502).json({ error: 'Storage is unavailable right now.' });
+    }
+  }
   try {
     const [flat, metaRaw] = await Promise.all([redis(u, ['HGETALL', 'parcours:opps:items']), redis(u, ['GET', 'parcours:opps:meta'])]);
     const arr = (flat && flat.result) || [];

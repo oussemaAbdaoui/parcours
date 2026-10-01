@@ -635,6 +635,10 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
   .stat,.stat:first-child,.stat:nth-child(odd){padding:16px;border-radius:20px;border:0}
   #weekBox .stats{grid-template-columns:1fr}
   #weekBox .stat:first-child{grid-row:auto}
+  #coBox{--cw:50px}
+  #coBox .offer{gap:4px 8px}
+  #coBox .offer h3{font-size:14px}
+  #coBox .thead{font-size:11px;gap:8px}
   #weekBox .stat:first-child{padding:22px}
   #weekBox .stat:first-child b{font-size:64px}
   .stat b{font-size:34px}
@@ -701,7 +705,6 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
     <a href="#/" data-t="overview"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg>Overview</a>
     <div class="navlab">Search</div>
     <a href="#/opps" data-t="opps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z"/></svg>Opportunities</a>
-    <a href="#/explore" data-t="explore"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>Explore</a>
     <div class="navlab">Track</div>
     <a href="#/apps" data-t="apps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z"/></svg>Applications</a>
     <a href="#/companies" data-t="companies"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M240,208H224V96a16,16,0,0,0-16-16H144V32a16,16,0,0,0-24.88-13.32L39.12,72A16,16,0,0,0,32,85.34V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,96V208H144V96ZM48,85.34,128,32V208H48ZM112,112v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm-32,0v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm0,56v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Zm32,0v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Z"/></svg>Companies</a>
@@ -726,12 +729,11 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
   <a href="#/" data-t="overview"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg><span>Home</span></a>
   <a href="#/opps" data-t="opps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z"/></svg><span>Offers</span></a>
   <a href="#/apps" data-t="apps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z"/></svg><span>Board</span></a>
-  <a href="#/explore" data-t="explore"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg><span>Explore</span></a>
+  <a href="#/companies" data-t="companies"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M240,208H224V96a16,16,0,0,0-16-16H144V32a16,16,0,0,0-24.88-13.32L39.12,72A16,16,0,0,0,32,85.34V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,96V208H144V96ZM48,85.34,128,32V208H48ZM112,112v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm-32,0v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm0,56v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Zm32,0v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Z"/></svg><span>Companies</span></a>
   <a href="#/profile" data-t="profile"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></svg><span>Profile</span></a>
   <button type="button" id="moreBtn" data-t="more" aria-expanded="false" aria-controls="moreSheet"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z"/></svg><span>More</span></button>
 </nav>
 <div class="sheet" id="moreSheet" hidden>
-  <a href="#/companies"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M240,208H224V96a16,16,0,0,0-16-16H144V32a16,16,0,0,0-24.88-13.32L39.12,72A16,16,0,0,0,32,85.34V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,96V208H144V96ZM48,85.34,128,32V208H48ZM112,112v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm-32,0v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm0,56v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Zm32,0v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Z"/></svg>Companies</a>
   <a href="#/notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>Notes</a>
   <button type="button" id="themeBtn2"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z"/></svg>Switch light and dark</button>
   <span class="syncl" id="sync2"></span>
@@ -1350,44 +1352,13 @@ function exportCsv(){
   downloads.save({filename:'parcours-applications.csv',data:rows.map(r=>r.map(q).join(',')).join('\n')}).catch(()=>{});
 }
 
-/* ---------- Explore ---------- */
-function progC(c,d){const ds=d?[d]:Object.keys(DOM);let n=0,st=0,ap=0;ds.forEach(x=>(c.p[x]||[]).forEach((_,i)=>{n++;const s=stat(pk(c.id,x,i));if(s!=='todo')st++;if(s==='applied')ap++;}));return{n,st,ap};}
-const metaP=p=>`${p.st}/${p.n} platforms started`+(p.ap?`, ${p.ap} applied`:'');
-function exploreHome(){
-  $('#view').innerHTML=`<h1>Explore</h1><p class="sub">Choose a country to see your options there.</p>
-  <div class="grid">${COUNTRIES.map(c=>{const p=progC(c);const na=state.apps.filter(a=>a.c===c.id).length;
-    return `<a class="card" href="#/explore/${c.id}"><span class="flag" aria-hidden="true">${c.flag}</span><span class="big">${esc(c.name)}</span><span class="meta">${metaP(p)}${na?` · ${na} logged application${na===1?'':'s'}`:''}</span><span class="meter"><i style="width:${p.n?Math.round(p.st/p.n*100):0}%"></i></span></a>`;}).join('')}</div>`;
-}
-function exploreCountry(c){
-  $('#view').innerHTML=`<div class="crumbs"><a href="#/explore">Explore</a><span>/</span><b>${esc(c.name)}</b></div>
-  <h1>${c.flag} ${esc(c.name)}</h1><p class="sub">What do you want to do here?</p>
-  <div class="angle"><div class="e"><strong>My edge</strong>${esc(c.edge)}</div><div class="g"><strong>Watch out</strong>${esc(c.gap)}</div></div>
-  <div class="grid">${Object.entries(DOM).map(([d,v])=>{const p=progC(c,d);const na=state.apps.filter(a=>a.c===c.id&&a.d===d).length;
-    return `<a class="card dom" style="--accent:var(${v.color})" href="#/explore/${c.id}/${d}"><span class="big">${v.label}</span><p>${v.blurb}</p><span class="meta">${metaP(p)}${na?` · ${na} logged`:''}</span><span class="meter"><i style="width:${p.n?Math.round(p.st/p.n*100):0}%"></i></span></a>`;}).join('')}</div>`;
-}
-function exploreDomain(c,d){
-  const v=DOM[d],list=c.p[d]||[],nk=`${c.id}:${d}`;
-  $('#view').innerHTML=`<div class="crumbs"><a href="#/explore">Explore</a><span>/</span><a href="#/explore/${c.id}">${esc(c.name)}</a><span>/</span><b>${v.label}</b></div>
-  <div style="--accent:var(${v.color});--tint:var(${v.tint})">
-  <h1>${c.flag} ${esc(c.name)}, ${v.label}</h1>
-  <p class="sub">Tap a status to update it. Dots show priority for you. Logging an application marks its platform as applied.</p>
-  <p class="tip">${esc(c.notes[d]||'')}</p>
-  <div class="plist">${list.map((pl,i)=>{const k=pk(c.id,d,i),s=stat(k);
-    return `<div class="plat ${s==='skip'?'skipped':''}"><h3><a href="${esc(pl[1])}" target="_blank" rel="noopener noreferrer">${esc(pl[0])}</a><span class="kind">${esc(pl[2])}</span><span class="prio" title="Priority ${pl[3]} of 3">${[1,2,3].map(n=>`<i class="${n<=pl[3]?'on':''}"></i>`).join('')}</span></h3><p>${esc(pl[4])}</p>
-    <a class="log" href="#/apps?new=1&c=${c.id}&d=${d}&p=${encodeURIComponent(pl[0])}">Log an application here</a>
-    <button type="button" class="status" data-k="${k}" data-s="${s}" aria-label="Status of ${esc(pl[0])}: ${STATUS_LABEL[s]}. Select to change.">${STATUS_LABEL[s]}</button></div>`;}).join('')}</div>
-  <div class="notes" style="margin-top:24px"><label for="rnote" style="font-weight:600;font-size:14px;display:block;margin-bottom:6px">Notes on this route</label><textarea id="rnote" placeholder="Deadlines, contacts, questions, next step…"></textarea></div></div>`;
-  const ta=$('#rnote');ta.value=state.notes[nk]||'';
-  ta.addEventListener('input',()=>{state.notes[nk]=ta.value;save();});
-}
-
 /* ---------- Notes ---------- */
 function notesPage(){
   const rn=Object.entries(state.notes).filter(([k,v])=>v&&v.trim());
-  $('#view').innerHTML=`<h1>Notes</h1><p class="sub">Free notes for your thinking, plus everything you wrote on individual routes.</p>
+  $('#view').innerHTML=`<h1>Notes</h1><p class="sub">Free notes for your thinking, plus the notes you wrote on routes earlier.</p>
   <div class="row" style="margin-bottom:16px"><button class="btn primary" id="newNote">New note</button></div>
   <div id="notesList"></div>
-  ${rn.length?`<h2 style="margin:26px 0 10px">Route notes</h2>${rn.map(([k,v])=>{const [ci,di]=k.split(':');const c=cById(ci);if(!c||!DOM[di])return '';return `<a class="rn" href="#/explore/${ci}/${di}"><b>${c.flag} ${esc(c.name)}, ${DOM[di].label}</b><span>${esc(v)}</span></a>`;}).join('')}`:''}`;
+  ${rn.length?`<h2 style="margin:26px 0 10px">Route notes</h2>${rn.map(([k,v])=>{const [ci,di]=k.split(':');const c=cById(ci);if(!c||!DOM[di])return '';return `<div class="rn"><b>${c.flag} ${esc(c.name)}, ${DOM[di].label}</b><span>${esc(v)}</span></div>`;}).join('')}`:''}`;
   renderNotes();
   $('#newNote').addEventListener('click',()=>{state.journal.unshift({id:uid(),title:'',body:'',c:'',t:Date.now()});save();renderNotes();const f=$('#notesList input[type=text]');if(f)f.focus();});
 }
@@ -2087,11 +2058,15 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
   navigator.clipboard.writeText(b.dataset.copy).then(()=>{b.textContent='Copied';},()=>{b.textContent='Select and copy';});});
 /* ---------- Companies ---------- */
 const coKey=name=>normOrg(name).replace(/\s+/g,'-');
+const coNorm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(sas|sa|sarl|gmbh|ag|inc|ltd|llc|group|groupe|france|deutschland|tunisie|tunisia)\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim();
+let coData=null;
+async function loadCompanyData(){if(!coData&&caps.online){try{coData=await api('/api/opps?set=companies');}catch(e){coData={at:0,companies:{}};}}return coData||{at:0,companies:{}};}
+const coRating=name=>{const c=coData&&coData.companies&&coData.companies[coNorm(name)];return c&&c.rating?c.rating:null;};
 const coLink=name=>name?`<a class="colink" href="#/company/${encodeURIComponent(coKey(name))}">${esc(name)}</a>`:'';
 const sameCo=(name,key)=>!!name&&coKey(name)===key;
 async function companiesPage(){
   $('#view').innerHTML=`<h1>Companies</h1><p class="sub">Every company you applied to, saved or took notes on, plus the ones hiring most for you right now.</p><div id="coBox"><p class="hint">Loading…</p></div>`;
-  await ensureCollected(null);
+  await Promise.all([ensureCollected(null),loadCompanyData()]);
   const box=$('#coBox');if(!box)return;
   const map=new Map(),add=(name,f)=>{if(!name)return;const k=coKey(name);if(!k)return;const r=map.get(k)||{name,apps:0,saved:0,offers:0,rating:null,note:!!(state.companyNotes||{})[k]};f(r);map.set(k,r);};
   state.apps.forEach(a=>add(a.org,r=>r.apps++));
@@ -2100,21 +2075,23 @@ async function companiesPage(){
   const offers=colData?visibleOffers():[];
   offers.forEach(x=>{if(!x.org)return;const k=coKey(x.org);const r=map.get(k);if(r){r.offers++;if(x.company&&x.company.rating)r.rating=x.company;}});
   const hiring=new Map();offers.forEach(x=>{if(!x.org)return;const k=coKey(x.org);if(map.has(k))return;const r=hiring.get(k)||{name:x.org,offers:0,best:0,rating:null};r.offers++;r.best=Math.max(r.best,x.m?x.m.score:0);if(x.company&&x.company.rating)r.rating=x.company;hiring.set(k,r);});
+  map.forEach(r=>{if(!r.rating)r.rating=coRating(r.name);});hiring.forEach(r=>{if(!r.rating)r.rating=coRating(r.name);});
   const mine=[...map.values()].sort((a,b)=>b.apps-a.apps||b.saved-a.saved||b.offers-a.offers);
   const hot=[...hiring.values()].filter(r=>r.offers>=2||r.best>=75).sort((a,b)=>b.offers-a.offers||b.best-a.best).slice(0,20);
-  const table=(rows,cols)=>`<div class="offers"><div class="thead" style="grid-template-columns:minmax(0,1fr) repeat(${cols.length},90px)"><span>Company</span>${cols.map(c=>`<span>${c[0]}</span>`).join('')}</div>
-    ${rows.map(r=>`<div class="offer" style="grid-template-columns:minmax(0,1fr) repeat(${cols.length},90px);align-items:center"><h3>${coLink(r.name)}${r.note?' <span class="xp">notes</span>':''}</h3>${cols.map(c=>`<span class="hv" style="text-align:left">${c[1](r)}</span>`).join('')}</div>`).join('')}</div>`;
+  const table=(rows,cols)=>`<div class="offers"><div class="thead" style="grid-template-columns:minmax(0,1fr) repeat(${cols.length},var(--cw,90px))"><span>Company</span>${cols.map(c=>`<span>${c[0]}</span>`).join('')}</div>
+    ${rows.map(r=>`<div class="offer" style="grid-template-columns:minmax(0,1fr) repeat(${cols.length},var(--cw,90px));align-items:center"><h3>${coLink(r.name)}${r.note?' <span class="xp">notes</span>':''}</h3>${cols.map(c=>`<span class="hv" style="text-align:left">${c[1](r)}</span>`).join('')}</div>`).join('')}</div>`;
   const rate=r=>r.rating?`★ ${r.rating.rating.toFixed(1)}`:'–';
   box.innerHTML=(mine.length?`<h2 class="sec">Yours</h2>`+table(mine,[['Applied',r=>r.apps||'–'],['Saved',r=>r.saved||'–'],['Open offers',r=>r.offers||'–'],['Rating',rate]]):'<p class="hint">No companies yet. They appear when you log an application, save a job or write notes.</p>')
-    +(hot.length?`<h2 class="sec market">Hiring most for you</h2>`+table(hot,[['Offers',r=>r.offers],['Best match',r=>r.best||'–'],['Rating',rate]]):'');
+    +(hot.length?`<h2 class="sec market">Hiring most for you</h2>`+table(hot,[['Offers',r=>r.offers],['Best match',r=>r.best||'–'],['Rating',rate]]):'')
+    +(coData&&coData.at?`<p class="hint" style="margin-top:14px">Ratings and interview stories refresh daily. Last refresh ${esc(new Date(coData.at).toLocaleString('en',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))}.</p>`:'');
 }
 async function companyPage(key,qs){
   key=decodeURIComponent(key||'');const askedRole=new URLSearchParams(qs||'').get('role')||'';
-  await ensureCollected(null);
+  await Promise.all([ensureCollected(null),loadCompanyData()]);
   const offers=(colData?visibleOffers():[]).filter(x=>sameCo(x.org,key));
   const apps=state.apps.filter(a=>sameCo(a.org,key)),saved=state.saved.filter(j=>sameCo(j.company,key));
   const name=(apps[0]&&apps[0].org)||(offers[0]&&offers[0].org)||(saved[0]&&saved[0].company)||((state.companyNotes||{})[key]||{}).name||key.replace(/-/g,' ');
-  const rating=(offers.find(x=>x.company&&x.company.rating)||{}).company||(saved.find(j=>j.rating)||{}).rating;
+  const rating=(offers.find(x=>x.company&&x.company.rating)||{}).company||(saved.find(j=>j.rating)||{}).rating||coRating(name);
   const note=((state.companyNotes||{})[key]||{}).text||'';
   const cleanRole=t=>String(t||'').replace(/\s*[\(\[]?(h\/f|f\/h|m\/w\/d|m\/f)[\)\]]?/ig,'').replace(/\s+[-–|].*$/,'').trim();
   const defRole=cleanRole(askedRole||(apps[0]&&apps[0].role)||(offers[0]&&offers[0].title)||(state.searches[0]&&state.searches[0].search)||'');
@@ -2214,7 +2191,7 @@ function route(){
   const t=seg[0]||'overview';
   const tab=t==='company'?'companies':t;
   document.body.dataset.page=tab;
-  document.querySelectorAll('.bottombar [data-t]').forEach(a=>{const on=a.dataset.t===tab||(a.dataset.t==='more'&&['companies','notes'].includes(tab));if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  document.querySelectorAll('.bottombar [data-t]').forEach(a=>{const on=a.dataset.t===tab||(a.dataset.t==='more'&&tab==='notes');if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   const ms=$('#moreSheet');if(ms){ms.hidden=true;$('#moreBtn').setAttribute('aria-expanded','false');}
   document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.t===tab){a.setAttribute('aria-current','page');const ts=$('#topSec');if(ts)ts.textContent=a.textContent.trim();}else a.removeAttribute('aria-current');});
   $('#demoBar').innerHTML=demo?`<div class="demo"><span>Previewing sample data. Nothing here is saved.</span><button class="btn sm" data-act="exitdemo">Exit preview</button></div>`:'';
@@ -2224,7 +2201,7 @@ function route(){
   else if(t==='profile')profilePage();
   else if(t==='companies')companiesPage();
   else if(t==='company')companyPage(seg[1],qs);
-  else if(t==='explore'){const c=cById(seg[1]);if(c&&DOM[seg[2]])exploreDomain(c,seg[2]);else if(c)exploreCountry(c);else exploreHome();}
+  else if(t==='explore'){location.replace('#/');return;}
   else overview();
   window.scrollTo(0,0);
 }
