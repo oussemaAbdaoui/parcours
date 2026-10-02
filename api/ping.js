@@ -18,7 +18,8 @@ module.exports = (req, res) => {
       linkedin: true,
       glassdoor: true
     },
-    sync: !!upstash(),
+    sync: !!upstash() || !!process.env.DATABASE_URL,
+    store: process.env.DATABASE_URL ? "neon" : upstash() ? "redis" : "device",
     ai: aiOn(req),
     gmail: !!(e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET && upstash())
   });

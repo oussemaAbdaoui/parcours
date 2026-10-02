@@ -948,7 +948,7 @@ const emptyState=()=>({apps:[],status:{},notes:{},journal:[],saved:[],searches:[
 const LKEY='parcours-v1', PWKEY='parcours-pw';
 let state=emptyState(), real=null, demo=false, sample=null, downloads=null;
 let caps={sources:{},sync:false,ai:false,gmail:false,online:false};
-let timer=null, saving=false, dirty=false;
+let timer=null, saving=false, dirty=false, pulled=false;
 try{const s=localStorage.getItem(LKEY);if(s)state=Object.assign(emptyState(),JSON.parse(s));}catch(e){}
 const stat=k=>state.status[k]||'todo';
 const hasData=s=>s.apps.length||s.journal.length||Object.keys(s.status).length||Object.keys(s.notes).length;
@@ -964,6 +964,26 @@ async function api(path,opts={}){
   if(!r.ok)throw {code:'http_'+r.status,message:(j&&j.error)||('Request failed ('+r.status+')')};
   return j;
 }
+/* Sync with Neon, item by item. `synced` is the copy last confirmed by the server; a save sends only what
+   differs from it (changed items, deleted items, changed settings), and the newest edit of each item wins on the
+   server, so edits to different items on two devices never overwrite each other. */
+const SYNC_LISTS=['apps','saved','journal','searches','feeds'],SYNC_SET=['profile','status','notes','companyNotes','seen','seenAt','mailSeen','oppsHidden','oppsSeenAt'],SKEY='parcours-synced';
+const SEP='\u0001';
+let synced=(()=>{try{return JSON.parse(localStorage.getItem(SKEY)||'null');}catch(e){return null;}})();
+function persistSynced(){try{localStorage.setItem(SKEY,JSON.stringify(synced));}catch(e){}}
+function snapshotOf(s){const items={},settings={};SYNC_LISTS.forEach(c=>(s[c]||[]).forEach(x=>{if(x&&x.id)items[c+SEP+x.id]=JSON.stringify(x);}));SYNC_SET.forEach(k=>{settings[k]=JSON.stringify(s[k]===undefined?null:s[k]);});return {items,settings};}
+function diffSince(base){
+  const now=Date.now(),cur=snapshotOf(state),items=[],settings=[];
+  for(const [k,v] of Object.entries(cur.items))if(base.items[k]!==v){const [c,id]=k.split(SEP);items.push({c,id,data:JSON.parse(v),ts:now});}
+  for(const k of Object.keys(base.items))if(!(k in cur.items)){const [c,id]=k.split(SEP);items.push({c,id,data:null,ts:now});}
+  for(const [k,v] of Object.entries(cur.settings))if(base.settings[k]!==v)settings.push({k,data:JSON.parse(v),ts:now});
+  return {items,settings,cur};
+}
+function applyPending(s,d){
+  for(const it of d.items){const l=s[it.c]||(s[it.c]=[]);const i=l.findIndex(x=>x&&x.id===it.id);
+    if(it.data==null){if(i>=0)l.splice(i,1);}else if(i>=0)l[i]=it.data;else if(it.c==='saved'||it.c==='journal')l.unshift(it.data);else l.push(it.data);}
+  for(const x of d.settings)s[x.k]=x.data;
+}
 function save(){
   if(demo)return;
   state.updatedAt=Date.now();persistLocal();
@@ -972,23 +992,33 @@ function save(){
 }
 async function flush(){
   if(saving){timer=setTimeout(flush,300);return;}
-  if(!dirty||!caps.sync)return;
+  if(!dirty||!caps.sync||!pulled)return; // never push before the server copy is known
   saving=true;dirty=false;
-  try{await api('/api/state',{method:'PUT',body:JSON.stringify({state:clone(state)})});setSync('saved');}catch(e){setSync('error');}
+  const d=diffSince(synced||{items:{},settings:{}});
+  if(!d.items.length&&!d.settings.length){saving=false;setSync('saved');return;}
+  try{await api('/api/state',{method:'PUT',body:JSON.stringify({changes:{items:d.items,settings:d.settings}})});synced=d.cur;persistSynced();setSync('saved');}
+  catch(e){setSync('error');}
   saving=false;if(dirty)flush();
 }
 async function pull(){
   try{
     const r=await api('/api/state');
-    if(r&&r.state){
-      const remote=r.state;
-      if((remote.updatedAt||0)>(state.updatedAt||0)&&!demo){state=Object.assign(emptyState(),remote);persistLocal();setSync('saved');route();}
-      else if((state.updatedAt||0)>(remote.updatedAt||0)){dirty=true;flush();}
-      else setSync('saved');
-    }else if(hasData(state)){dirty=true;flush();}
-    else setSync('saved');
+    pulled=true;
+    if(demo)return;
+    if(!r||!r.state){if(hasData(state)){dirty=true;flush();}else setSync('saved');return;}
+    const remote=Object.assign(emptyState(),r.state),remoteSnap=snapshotOf(remote);
+    // Edits made here and not yet confirmed survive the download. With no confirmed copy yet (first sync on
+    // this device), local data that is newer than the server's counts as such an edit.
+    const pend=synced?diffSince(synced):((state.updatedAt||0)>(remote.updatedAt||0)?diffSince(remoteSnap):null);
+    const before=JSON.stringify(snapshotOf(state));
+    if(pend)applyPending(remote,pend);
+    state=remote;synced=remoteSnap;persistSynced();persistLocal();
+    if(JSON.stringify(snapshotOf(state))!==before)route();
+    if(pend&&(pend.items.length||pend.settings.length)){dirty=true;flush();}else setSync('saved');
   }catch(e){setSync('error');}
 }
+// Changes made on another device show up when you come back to this one.
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&caps.sync&&pulled&&!dirty&&!saving)pull();});
 function parseJsonLoose(t){
   const tryP=x=>{try{return {v:JSON.parse(x)};}catch(e){return null;}};
   let r=tryP(t.trim());if(r)return r.v;
