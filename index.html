@@ -1952,7 +1952,7 @@ const prof=()=>{const p=Object.assign(clone(PROFILE_DEFAULT),state.profile||{});
 const hasCv=()=>((state.profile&&state.profile.skills)||[]).length>0;
 // Saved searches count as target roles too.
 const scoringProfile=()=>Object.assign(prof(),{targets:state.searches.map(s=>s.search)});
-const PART_LABEL={field:'Field fit',skills:'Skills',role:'Role fit',seniority:'Level',education:'Education',languages:'Languages',place:'Place and visa',competition:'Competition',company:'Company reviews',timing:'Timing'};
+const PART_LABEL={field:'Field fit',skills:'Skills',role:'Role fit',seniority:'Experience',education:'Education',languages:'Languages',place:'Place and visa',competition:'Competition',company:'Company reviews',timing:'Timing'};
 let scoreProf=null;
 function matchOf(x){
   if(!SC)return null;

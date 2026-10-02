@@ -5,14 +5,15 @@
      skills 26       your skills vs the offer; required skills weigh more than nice-to-haves, title mentions most,
                      a related skill in the same family (PyTorch for TensorFlow) earns half credit, and generic
                      skills (research, git, agile...) count a third
-     role 8          offer title vs the roles and fields in your CV and saved searches
-     seniority 12    level asked (internship, junior, senior, years) vs your experience
+     role 6          offer title vs the roles and fields in your CV and saved searches
+     seniority 18    experience: the years the offer asks vs yours, exactly when stated (2.5+ years short is a
+                     dealbreaker), otherwise the level in the title (internship, junior, senior)
      education 5     degree asked (PhD, master's, engineer, bachelor) vs yours
-     languages 9     languages required vs your levels
-     place 9         country order, remote, visa sponsorship or work-permit restrictions
+     languages 8     languages required vs your levels
+     place 8         country order, remote, visa sponsorship or work-permit restrictions
      competition 5   applicant count (LinkedIn), otherwise freshness
-     company 4       company rating, weighted by review count
-     timing 4        freshness and deadline
+     company 3       company rating, weighted by review count
+     timing 3        freshness and deadline
    Missing data scores neutral and lowers the confidence figure. Dealbreakers (including a title clearly outside
    your field) cap the score at 40; a title that names none of your fields caps it at 50. */
 (function (root) {
@@ -310,7 +311,7 @@
   const NO_PARTIAL = new Set(['lang', 'research', 'method', 'tools', 'mobile', 'sec', 'embedded']);
   // Skills almost every offer mentions: they say little about fit, so they count a third.
   const GENERIC_SKILLS = new Set(['research', 'monitoring', 'git', 'agile', 'testing', 'linux', 'security', 'statistics', 'docker', 'sql']);
-  const WEIGHTS = { field: 18, skills: 26, role: 8, seniority: 12, education: 5, languages: 9, place: 9, competition: 5, company: 4, timing: 4 };
+  const WEIGHTS = { field: 18, skills: 26, role: 6, seniority: 18, education: 5, languages: 8, place: 8, competition: 5, company: 3, timing: 3 };
 
   /* Field fit: does the job belong to your field at all? Fields come from the skill families in your profile.
      The title decides first (it names the job); the body only rescues titles that name no field, such as a PhD
@@ -415,8 +416,19 @@
     // 3. Seniority
     const lv = offerLevel(body, offer.title || "");
     let tooSenior = false;
-    if (offer.kind === 'phd' || offer.kind === 'master') parts.seniority = { v: (p.years ?? 0) <= 4 ? 1 : 0.7, known: true, note: offer.kind === 'phd' ? 'PhD position' : "Master's programme" };
-    else if (lv.lvl === null) parts.seniority = { v: 0.5, known: false, note: 'Level not stated' };
+    const asked = offerYears(body), mineY = p.years ?? 0;
+    if (offer.kind === 'phd' || offer.kind === 'master') parts.seniority = { v: mineY <= 4 ? 1 : 0.7, known: true, note: offer.kind === 'phd' ? 'PhD position' : "Master's programme" };
+    else if (asked && lv.lvl !== 0) {
+      // Years stated in the offer: compare them exactly with yours (the strongest signal of what the job expects).
+      if (asked.label === 'Entry level') parts.seniority = { v: mineY <= 3 ? 1 : 0.8, known: true, note: `Entry level, you have ${mineY} yrs` };
+      else {
+        const gap = asked.min - mineY;
+        tooSenior = gap >= 2.5 || (lv.lvl != null && lv.lvl - profileLevel(mineY) >= 1.5);
+        const v = gap <= 0 ? (asked.max != null && mineY > asked.max + 3 ? 0.7 : 1) : gap <= 1 ? 0.75 : gap <= 2 ? 0.4 : 0.02;
+        parts.seniority = { v, known: true, note: `Asks ${asked.label} of experience, you have ${mineY} yrs${gap > 0 ? ` (${Math.round(gap * 10) / 10} short)` : ''}` };
+      }
+    }
+    else if (lv.lvl === null) parts.seniority = { v: 0.5, known: false, note: 'Experience not stated' };
     else {
       const gap = lv.lvl - profileLevel(p.years);
       tooSenior = gap >= 1.5;
