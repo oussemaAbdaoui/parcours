@@ -263,7 +263,7 @@ def company_ratings(items, store, limit=30):
         else:
             todo.append(k)
     looked, err = 0, ""
-    if todo:
+    if todo and limit:
         from scrapling.fetchers import StealthySession
         try:
             with StealthySession(headless=True, solve_cloudflare=True, timeout=60000) as session:

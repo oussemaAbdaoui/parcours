@@ -588,7 +588,34 @@ def tanitjobs(keywords):
     return out
 
 
+def tunisietravail(keywords, pages=8):
+    """TunisieTravail, Tunisian job announcements ("X recrute Y"). Mostly non-IT, so it reads the newest pages
+    and lets the relevance and field filters keep the IT and engineering ones. Run from the PC collector."""
+    out, seen = [], set()
+    for n in range(1, pages + 1):
+        page = _get("https://www.tunisietravail.net/" + (f"page/{n}/" if n > 1 else ""))
+        for art in page.css("article"):
+            a = art.css("a.h1titleall")
+            if not a:
+                continue
+            href, title = a[0].attrib.get("href", ""), _t(a[0].attrib.get("title") or a[0].get_all_text())
+            if not href or href in seen:
+                continue
+            seen.add(href)
+            org, _, role = title.partition(" recrute ")
+            role = re.sub(r"^(des|un|une|le|la|les)\s+", "", role).strip() or title
+            pid = re.search(r"-(\d+)/?$", href)
+            out.append({
+                "id": "tunisietravail:" + (pid.group(1) if pid else href), "title": role[:1].upper() + role[1:], "org": org.strip() if role != title else "",
+                "location": "Tunisie" if not re.search(r"\b(france|canada|allemagne|qatar|arabie|emirats|dubai|europe)\b", title, re.I) else title.split("–")[-1].strip(),
+                "c": "tn", "kind": "job", "source": "TunisieTravail", "url": href,
+                "posted": "", "deadline": "", "type": "", "desc": _t(" ".join(art.css(".PostContent ::text, p::text").getall()))[:600],
+            })
+        time.sleep(1)
+    return out
+
+
 # Browser-based (StealthyFetcher). Only run where a browser is installed (STEALTH=1 in the workflow).
 STEALTH_SCRAPERS = {"ABG": abg, "Academic Positions": academic_positions, "ScholarshipDB": scholarshipdb, "StepStone": stepstone}
 # Need a home IP (blocked from datacenters). Run by the PC collector: collect.py --home.
-HOME_SCRAPERS = {"Tanitjobs": tanitjobs}
+HOME_SCRAPERS = {"Tanitjobs": tanitjobs, "TunisieTravail": tunisietravail}

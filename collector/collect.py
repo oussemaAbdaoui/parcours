@@ -316,7 +316,14 @@ def main():
     from enrich import company_ratings, details, linkedin_details
     steps = [("Offer details", lambda: details(items, stealth=os.environ.get("STEALTH") == "1" or home))]
     if not home:
-        steps += [("LinkedIn details", lambda: linkedin_details(items)), ("Company reviews", lambda: company_ratings(items, store))]
+        steps += [("LinkedIn details", lambda: linkedin_details(items))]
+    # Indeed blocks company pages from datacenter IPs: company reviews are looked up from the PC, for every
+    # stored offer (cloud and home), into the shared cache the cloud runs then read.
+    if home and store:
+        everything = load_all(store)
+        steps += [("Company reviews", lambda: company_ratings(everything, store))]
+    elif not home:
+        steps += [("Company reviews", lambda: company_ratings(items, store, limit=0))]
     for name, fn in steps:
         try:
             n, err = fn()
