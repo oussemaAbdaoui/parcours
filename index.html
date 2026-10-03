@@ -636,6 +636,8 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
   #weekBox .stats{grid-template-columns:1fr}
   #weekBox .stat:first-child{grid-row:auto}
   #coBox{--cw:50px}
+  #coBox .offers.hp{--hpc:3;--hpw:66px}
+  #coBox .offers.hp .hpx{display:none}
   #coBox .offer{gap:4px 8px}
   #coBox .offer h3{font-size:14px}
   #coBox .thead{font-size:11px;gap:8px}
@@ -2158,9 +2160,90 @@ async function loadCompanyData(){if(!coData&&caps.online){try{coData=await api('
 const coRating=name=>{const c=coData&&coData.companies&&coData.companies[coNorm(name)];return c&&c.rating?c.rating:null;};
 const coLink=name=>name?`<a class="colink" href="#/company/${encodeURIComponent(coKey(name))}">${esc(name)}</a>`:'';
 const sameCo=(name,key)=>!!name&&coKey(name)===key;
+/* hiring log (collector/history.py): when companies recruit */
+let histData=null,histAt=0,coRefreshAt=0;
+async function loadHistory(){
+  if(!caps.online)return {companies:[]};
+  if(!histData||Date.now()-histAt>10*60e3){try{histData=await api('/api/opps?set=history');histAt=Date.now();}catch(e){if(!histData)histData={companies:[]};}}
+  return histData;
+}
+const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const monthLabel=ym=>`${MONTH_NAMES[+ym.slice(5,7)-1].slice(0,3)} ${ym.slice(0,4)}`;
+const dayIdx=d=>(new Date(d+'T12:00:00Z').getUTCDay()+6)%7;
+const daysBetween=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
+// Recruitment pattern from a list of [day, kind]: months, weekdays, posting rhythm and the next likely wave.
+function hireStats(entries){
+  const days=entries.map(e=>e[0]).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'')).sort();
+  if(!days.length)return null;
+  const byMonth={},byDow=[0,0,0,0,0,0,0],byKind={};
+  // Months count every offer; weekdays, rhythm and trends only use real dates (posted, or first seen live by a
+  // collector run), not offers seeded from before the log existed.
+  const timed=entries.filter(e=>e[2]!=='b'&&/^\d{4}-\d{2}-\d{2}$/.test(e[0]||'')),tdays=timed.map(e=>e[0]).sort();
+  entries.forEach(([d,k])=>{if(!d)return;byMonth[d.slice(0,7)]=(byMonth[d.slice(0,7)]||0)+1;byKind[k||'job']=(byKind[k||'job']||0)+1;});
+  timed.forEach(([d])=>{byDow[dayIdx(d)]++;});
+  const uniq=[...new Set(tdays)],gaps=uniq.slice(1).map((d,i)=>daysBetween(uniq[i],d)).filter(g=>g>0).sort((a,b)=>a-b);
+  const median=gaps.length?gaps[Math.floor(gaps.length/2)]:null;
+  const mean=gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:0,sd=gaps.length?Math.sqrt(gaps.reduce((a,g)=>a+(g-mean)**2,0)/gaps.length):0;
+  const regular=gaps.length>=2&&median>=3&&mean>0&&sd/mean<0.8;
+  const last=days.at(-1),todayIso=today();
+  const next=regular?new Date(Date.parse(uniq.at(-1))+median*864e5).toISOString().slice(0,10):null;
+  const in30=tdays.filter(d=>daysBetween(d,todayIso)<=30).length,prev30=tdays.filter(d=>{const g=daysBetween(d,todayIso);return g>30&&g<=60;}).length;
+  const topDow=byDow.indexOf(Math.max(...byDow)),avgDow=tdays.length/7;
+  return {n:days.length,first:days[0],last,byMonth,byDow,byKind,median,regular,next,in30,prev30,postingDays:uniq.length,
+    topDow:byDow[topDow]>=3&&byDow[topDow]>=avgDow*1.3?topDow:null,timedN:tdays.length,peakMonths:Object.entries(byMonth).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([m])=>m)};
+}
+const nextLabel=st=>{if(!st||!st.next)return '–';const d=daysBetween(today(),st.next);return d<=0?'Due now':d===1?'Tomorrow':`In ${d} days`;};
+function hbarsChart(rows,max,tip){ // rows [[label, value, extra]]
+  return `<div class="hbars">${rows.map(([l,v,x])=>`<div class="hrow" tabindex="0" data-tip="${esc(tip(l,v,x))}"><span class="hl">${esc(l)}</span><span class="ht"><b class="yours" style="width:${max?Math.max(v?3:0,Math.round(v/max*100)):0}%"></b></span><span class="hv">${v}</span></div>`).join('')}</div>`;
+}
+function hiringPeriodsHtml(h){
+  const all=[];(h.companies||[]).forEach(([,,e])=>e.forEach(x=>all.push(x)));
+  const st=hireStats(all);if(!st)return '';
+  const months=Object.keys(st.byMonth).sort().slice(-12),mMax=Math.max(...months.map(m=>st.byMonth[m]));
+  const kindsIn=m=>{const j=all.filter(([d,k])=>d&&d.startsWith(m)&&k!=='phd').length;return `${j} jobs, ${st.byMonth[m]-j} PhD`;};
+  const dMax=Math.max(...st.byDow),sumD=st.byDow.reduce((a,b)=>a+b,0);
+  const spanDays=daysBetween(st.first,today());
+  const cos=(h.companies||[]).map(([key,name,e])=>({key,name,st:hireStats(e)})).filter(c=>c.st&&c.st.n>=3).sort((a,b)=>b.st.n-a.st.n||(b.st.last>a.st.last?1:-1)).slice(0,15);
+  const busiest=months.reduce((a,m)=>st.byMonth[m]>st.byMonth[a]?m:a,months[0]);
+  return `<h2 class="sec market">Hiring periods</h2>
+    <p class="hint">${st.n} offers from ${(h.companies||[]).length} companies over the last ${spanDays} days. Months before the log started (October 2026) only count offers that were still listed then, so they are under-counted; the picture sharpens with every collector run.${months.length>=3?` Busiest month so far: ${esc(monthLabel(busiest))}.`:''}</p>
+    <div class="charts">
+      <div class="panel"><h2>Offers per month</h2><p class="hint">When the offers were posted, across every source.</p>
+        ${hbarsChart(months.map(m=>[monthLabel(m),st.byMonth[m],m]),mMax,(l,v,m)=>`${l}: ${v} offers (${kindsIn(m)})`)}
+        ${chartTable(['Month','Offers','Jobs','PhD'],months.map(m=>{const j=all.filter(([d,k])=>d&&d.startsWith(m)&&k!=='phd').length;return [monthLabel(m),st.byMonth[m],j,st.byMonth[m]-j];}))}</div>
+      <div class="panel"><h2>Offers by weekday</h2><p class="hint">${st.topDow!=null?`Most offers appear on ${DAY_NAMES[st.topDow]}s: check the boards that day.`:'No single day stands out yet.'} From ${st.timedN} offers with a real date.</p>
+        ${hbarsChart(DAY_NAMES.map((d,i)=>[d,st.byDow[i]]),dMax,(l,v)=>`${l}: ${v} offers (${sumD?Math.round(v/sumD*100):0}%)`)}
+        ${chartTable(['Weekday','Offers','Share'],DAY_NAMES.map((d,i)=>[d,st.byDow[i],(sumD?Math.round(st.byDow[i]/sumD*100):0)+'%']))}</div>
+    </div>
+    ${cos.length?`<h2 class="sec">Companies that recruit most often</h2>
+    <div class="offers hp"><div class="thead" style="grid-template-columns:minmax(0,1fr) repeat(var(--hpc,5),var(--hpw,104px))"><span>Company</span><span>Offers</span><span>Last 30 days</span><span class="hpx">Posts every</span><span class="hpx">Last offer</span><span>Next likely</span></div>
+    ${cos.map(c=>`<div class="offer" style="grid-template-columns:minmax(0,1fr) repeat(var(--hpc,5),var(--hpw,104px));align-items:center"><h3>${coLink(c.name)}${c.st.topDow!=null?` <span class="xp">${DAY_NAMES[c.st.topDow].slice(0,3)}</span>`:''}</h3>
+      <span class="hv" style="text-align:left">${c.st.n}</span><span class="hv" style="text-align:left">${c.st.in30}${c.st.in30>c.st.prev30?' ↑':c.st.in30<c.st.prev30?' ↓':''}</span>
+      <span class="hv hpx" style="text-align:left">${c.st.median?`~${c.st.median} d`:'–'}</span><span class="hv hpx" style="text-align:left">${esc(rel(c.st.last))}</span><span class="hv" style="text-align:left">${esc(nextLabel(c.st))}</span></div>`).join('')}</div>
+    <p class="hint" style="margin-top:10px">"Posts every" is the usual gap between days with a new offer; "Next likely" appears only when that rhythm is regular. ↑ ↓ compare the last 30 days with the 30 before.</p>`:''}`;
+}
+function hiringPatternHtml(name,h){
+  const c=(h.companies||[]).find(([key])=>key===coNorm(name));
+  const st=c?hireStats(c[2]):null;
+  if(!st)return `<p class="hint" style="margin:0">No offers from ${esc(name)} in the hiring log yet. It fills with every collector run.</p>`;
+  const months=Object.keys(st.byMonth).sort().slice(-12),mMax=Math.max(...months.map(m=>st.byMonth[m]));
+  const facts=[`<b>${st.n}</b> offer${st.n===1?'':'s'} over the last ${Math.max(1,daysBetween(st.first,today()))} days`,`last ${esc(rel(st.last))}`,
+    st.median?`a new offer every <b>~${st.median} days</b>`:'',st.topDow!=null?`usually on <b>${DAY_NAMES[st.topDow]}s</b>`:'',
+    st.peakMonths.length&&months.length>=3?`busiest in ${st.peakMonths.map(monthLabel).join(' and ')}`:'',st.next?`next wave likely <b>${esc(nextLabel(st).toLowerCase())}</b>`:''].filter(Boolean);
+  return `<p style="margin:0 0 12px">${facts.join(' · ')}.</p>${hbarsChart(months.map(m=>[monthLabel(m),st.byMonth[m]]),mMax,(l,v)=>`${l}: ${v} offers from ${name}`)}`;
+}
+// The Companies pages refresh themselves: every 10 minutes while open, and when you come back to the tab.
+function refreshCompanies(maxAge){
+  if(document.visibilityState!=='visible'||!/^#\/compan/.test(location.hash)||Date.now()-coRefreshAt<maxAge)return;
+  colData=null;coData=null;histData=null;route();
+}
+setInterval(()=>refreshCompanies(10*60e3),60e3);
+document.addEventListener('visibilitychange',()=>refreshCompanies(5*60e3));
+
 async function companiesPage(){
-  $('#view').innerHTML=`<h1>Companies</h1><p class="sub">Every company you applied to, saved or took notes on, plus the ones hiring most for you right now.</p><div id="coBox"><p class="hint">Loading…</p></div>`;
-  await Promise.all([ensureCollected(null),loadCompanyData()]);
+  $('#view').innerHTML=`<h1>Companies</h1><p class="sub">Every company you applied to, saved or took notes on, plus the ones hiring most for you right now. Updates itself.</p><div id="coBox"><p class="hint">Loading…</p></div>`;
+  const [, , hist]=await Promise.all([ensureCollected(null),loadCompanyData(),loadHistory()]);coRefreshAt=Date.now();
   const box=$('#coBox');if(!box)return;
   const map=new Map(),add=(name,f)=>{if(!name)return;const k=coKey(name);if(!k)return;const r=map.get(k)||{name,apps:0,saved:0,offers:0,rating:null,note:!!(state.companyNotes||{})[k]};f(r);map.set(k,r);};
   state.apps.forEach(a=>add(a.org,r=>r.apps++));
@@ -2177,11 +2260,12 @@ async function companiesPage(){
   const rate=r=>r.rating?`★ ${r.rating.rating.toFixed(1)}`:'–';
   box.innerHTML=(mine.length?`<h2 class="sec">Yours</h2>`+table(mine,[['Applied',r=>r.apps||'–'],['Saved',r=>r.saved||'–'],['Open offers',r=>r.offers||'–'],['Rating',rate]]):'<p class="hint">No companies yet. They appear when you log an application, save a job or write notes.</p>')
     +(hot.length?`<h2 class="sec market">Hiring most for you</h2>`+table(hot,[['Offers',r=>r.offers],['Best match',r=>r.best||'–'],['Rating',rate]]):'')
-    +(coData&&coData.at?`<p class="hint" style="margin-top:14px">Ratings and interview stories refresh daily. Last refresh ${esc(new Date(coData.at).toLocaleString('en',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))}.</p>`:'');
+    +hiringPeriodsHtml(hist||{companies:[]})
+    +`<p class="hint" style="margin-top:14px">List updated ${esc(new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}))}, refreshes every 10 minutes while open.${coData&&coData.at?` Ratings and interview stories last refreshed ${esc(new Date(coData.at).toLocaleString('en',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))}.`:''}</p>`;
 }
 async function companyPage(key,qs){
   key=decodeURIComponent(key||'');const askedRole=new URLSearchParams(qs||'').get('role')||'';
-  await Promise.all([ensureCollected(null),loadCompanyData()]);
+  const [, , hist]=await Promise.all([ensureCollected(null),loadCompanyData(),loadHistory()]);coRefreshAt=Date.now();
   const offers=(colData?visibleOffers():[]).filter(x=>sameCo(x.org,key));
   const apps=state.apps.filter(a=>sameCo(a.org,key)),saved=state.saved.filter(j=>sameCo(j.company,key));
   const name=(apps[0]&&apps[0].org)||(offers[0]&&offers[0].org)||(saved[0]&&saved[0].company)||((state.companyNotes||{})[key]||{}).name||key.replace(/-/g,' ');
@@ -2203,6 +2287,7 @@ async function companyPage(key,qs){
       <div class="panel"><h2>Your applications</h2>${apps.length?apps.map(a=>`<div class="rn" data-edit="${esc(a.id)}" style="cursor:pointer"><b>${esc(a.role||'Application')}</b><span>${STAGE_LABEL[a.stage]}, ${RES_LABEL[a.result]} · ${esc(rel(a.date))}</span></div>`).join(''):'<p class="hint" style="margin:0">None yet.</p>'}
         ${saved.length?`<h2 style="margin-top:14px">Saved jobs</h2>${saved.map(j=>`<div class="rn"><b>${esc(j.title)}</b><span>${esc(j.location||'')}</span></div>`).join('')}`:''}</div>
     </div>
+    <div class="panel"><h2>Hiring pattern</h2><p class="hint">When ${esc(name)} posts offers, from every offer the collectors have seen.</p>${hiringPatternHtml(name,hist||{companies:[]})}</div>
     <div class="panel"><h2>People to contact</h2><p class="hint">Contacts named in ${esc(name)}'s offers, and LinkedIn searches that open in your own account. A short, specific message that names the offer works best.</p>
       ${peopleHtml(name,offers,defRole)}</div>
     <div class="panel"><h2>Interview stories</h2><p class="hint">What people who interviewed at ${esc(name)} for a similar role went through: how they applied, the rounds, the questions, and whether they got the offer.</p>

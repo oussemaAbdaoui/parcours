@@ -9,6 +9,20 @@ module.exports = async (req, res) => {
   if (!u) return res.status(501).json({ error: 'Storage is not configured. Add Upstash Redis in Vercel.' });
   res.setHeader('Cache-Control', 'no-store');
   if ((req.query || {}).set === 'masters') return masters(u, res);
+  if ((req.query || {}).set === 'history') {
+    // Hiring log (collector/history.py): per company, the date and kind of every offer seen. Sent compact:
+    // [[key, name, [[day, kind], ...]], ...]
+    try {
+      const flat = (await redis(u, ['HGETALL', 'parcours:companies:history'])).result || [];
+      const out = [];
+      for (let i = 0; i < flat.length; i += 2) {
+        try { const r = JSON.parse(flat[i + 1]); out.push([flat[i], r.name, Object.values(r.seen || {}).map((v) => v.split('|'))]); } catch (e) { /* skip */ }
+      }
+      return res.status(200).json({ companies: out });
+    } catch (e) {
+      return res.status(502).json({ error: 'Storage is unavailable right now.' });
+    }
+  }
   if ((req.query || {}).set === 'companies') {
     // Daily company refresh (collector/companies.py): ratings, open offers, last refresh, keyed by normalised name.
     try {

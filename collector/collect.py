@@ -294,6 +294,7 @@ def main():
         found = run_scrapers(keywords + pwords, status, HOME_SCRAPERS)
     else:
         found = run_jobspy(searches, status) + run_scrapers(keywords + pwords, status)
+    seen_now = list(found)  # every offer seen this run, dealbreakers included, for the hiring log
     before = len(found)
     found = [x for x in found if not excluded(x, exclude)]
     for name, st in status.items():
@@ -364,6 +365,18 @@ def main():
             print(f"  [{x['kind']:5}] {x['source']:12} {x['title'][:60]:60} | {x['org'][:25]:25} | {len(x.get('desc') or ''):4} chars")
         return
     save_items(store, items, removed + removed_excl)
+    try:  # hiring log: when each company recruits (seeded from all stored offers on first use)
+        import history
+        for x in seen_now:
+            x.setdefault("foundAt", now)
+        n = history.record(store, seen_now)
+        if store.cmd("HGET", "parcours:companies:history:meta", "seeded") is None:  # once: offers stored before the log
+            n += history.record(store, load_all(store), backfill=True)
+            store.cmd("HSET", "parcours:companies:history:meta", "seeded", str(now))
+        status["Hiring log"] = {"ok": True, "count": n}
+    except Exception as e:
+        status["Hiring log"] = {"ok": False, "count": 0, "error": str(e)[:160]}
+    print("  hiring log:", status["Hiring log"])
     try:
         from notify import notify
         status["Notifications"] = {"ok": True, "count": 0, "error": notify(store, items, scores, now, state, origin)}
