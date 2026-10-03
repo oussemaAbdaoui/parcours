@@ -10,11 +10,12 @@ process.stdin.on('data', (d) => (raw += d)).on('end', () => {
   const hasProfile = profile && Object.keys(profile).length;
   const p = Object.assign({ countries: ['fr', 'de', 'ca', 'ch', 'gl', 'tn'], visa: { fr: true, de: true, ca: true, ch: true } }, profile || {}, { targets: targets || [] });
   const blocked = {}, exp = {}, scores = {};
+  const ctx = { idf: hasProfile ? S.buildIdf(items, p.cv) : null }; // CV similarity, as in the app
   for (const x of items) {
     const e = S.offerYears((x.title || '') + ' . ' + (x.desc || ''));
     if (e) exp[x.id] = e;
     if (!hasProfile) continue;
-    const m = S.score(x, p);
+    const m = S.score(x, p, Date.now(), ctx);
     scores[x.id] = m.score;
     if (m.blockers.length) blocked[x.id] = m.blockers;
   }

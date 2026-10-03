@@ -360,7 +360,117 @@
   }
   const ROLE_GENERIC = new Set(['engineer', 'ingenieur', 'developer', 'developpeur', 'h/f', 'f/h', 'm/w/d', 'intern', 'stage', 'senior', 'junior', 'and', 'et', 'de', 'en', 'in', 'of', 'the', 'for', 'a', 'position', 'poste']);
 
-  function score(offer, profile, now = Date.now()) {
+  /* ---------- ideas adapted from Resume-Matcher (srbhr/Resume-Matcher), without an LLM ----------
+     1. Offer keywords: the terms that make an offer specific (graph neural networks, telecom, fintech), found
+        statistically: frequent in the offer, rare across all collected offers (TF-IDF). Their share in your CV is
+        Resume-Matcher's keyword match, which there comes from an LLM.
+     2. Skill evidence: a skill used in a job or project counts more than a skill only listed, and the CV lines
+        that best support an offer are shown (Resume-Matcher scores resume bullets for relevance).
+     3. CV ATS check: sections, contact details, measurable results and length (its section completeness). */
+  const KW_STOP = new Set(('a an the and or of to in on for with at by from as is are be will you your we our us they their this that these those it its into over per via ' +
+    'le la les un une des du de d l et ou en au aux pour par sur avec dans vous nous notre nos votre vos est sont sera ce cette ces qui que dont ' +
+    'der die das ein eine und oder mit fur von zu im in auf bei wir sie ihr ihre unser unsere ist sind als auch ' +
+    'experience experiences team teams work working job jobs role position poste candidate candidat profil profile company entreprise offre offer ' +
+    'years year ans annees jahre strong good excellent great new solid ability skills skill knowledge competences connaissances required requis ' +
+    'responsibilities missions mission tasks taches looking recherchons join rejoindre opportunity apply benefits salary salaire contract contrat cdi cdd ' +
+    'h f m w d h/f f/h m/w/d plus etc including include such like within across based well using use used make help ' +
+    'university universite universitat institut institute school ecole laboratory laboratoire lab phd doctorant doctoral doctorat these thesis postdoc post ' +
+    'analysis analyse system systems systeme study etude development developpement engineer ingenieur research recherche project projet ' +
+    'paris lyon rennes grenoble saclay sophia antipolis nancy lille bordeaux toulouse marseille nantes strasbourg montpellier nice orsay versailles palaiseau ' +
+    'berlin munich munchen hamburg frankfurt stuttgart darmstadt zurich geneva geneve lausanne bern basel montreal toronto quebec vancouver ottawa ' +
+    'tunis sfax sousse ariana monastir bizerte nabeul london cambridge oxford amsterdam brussels madrid barcelona milan rome remote hybrid ' +
+    'inria cnrs cea inserm ird inrae mines telecom sorbonne france germany deutschland canada switzerland suisse tunisia tunisie europe').split(' '));
+  const termsOf = (text, skip) => {
+    const tf = new Map();
+    // Two-word terms only within a phrase: punctuation (". , ; : ( ) | /") ends one.
+    for (const phrase of String(text || '').toLowerCase().split(/[.,;:!?()[\]|/\n•]+/).map(norm)) {
+      let prev = null;
+      for (const w of phrase.split(/[^a-z0-9+#]+/)) {
+        const ok = w.length >= 3 && !KW_STOP.has(w) && !/^\d+$/.test(w) && !(skip && skip.has(w));
+        if (!ok) { prev = null; continue; }
+        tf.set(w, (tf.get(w) || 0) + 1);
+        if (prev) tf.set(prev + ' ' + w, (tf.get(prev + ' ' + w) || 0) + 1.5); // only words that were next to each other
+        prev = w;
+      }
+    }
+    return tf;
+  };
+  const nameWords = (o) => new Set(norm((o.org || '') + ' ' + (o.location || '')).split(/[^a-z0-9]+/).filter((w) => w.length >= 3));
+  const offerText = (o) => (o.title || '') + ' . ' + (o.title || '') + ' . ' + (o.desc || ''); // the title counts twice
+  // TF-IDF vector (L2-normalised) over the collection's document frequencies.
+  function tfidf(tf, idf) {
+    const v = new Map();
+    let n2 = 0;
+    for (const [t, f] of tf) {
+      const d = idf.df.get(t) || 0;
+      if (d / idf.n > 0.3) continue; // in a third of all offers: boilerplate
+      const w = (1 + Math.log(f)) * Math.log((idf.n + 1) / (d + 1));
+      v.set(t, w);
+      n2 += w * w;
+    }
+    const n = Math.sqrt(n2) || 1;
+    for (const [t, w] of v) v.set(t, w / n);
+    return v;
+  }
+  const cosine = (a, b) => { let s = 0; const [x, y] = a.size < b.size ? [a, b] : [b, a]; for (const [t, w] of x) { const u = y.get(t); if (u) s += w * u; } return s; };
+  /* Document frequency over the collected offers, built once per collection (app) or batch (collector).
+     With a CV it also stores the CV vector and a reference similarity (the 90th percentile over all offers), so a
+     single offer's similarity reads as "how close to your best matches". */
+  function buildIdf(offers, cv) {
+    const df = new Map(), list = offers || [];
+    for (const o of list) for (const t of termsOf(offerText(o), nameWords(o)).keys()) df.set(t, (df.get(t) || 0) + 1);
+    const idf = { n: list.length, df, cvVec: null, ref: null };
+    if (cv && list.length >= 20) {
+      idf.cvVec = tfidf(termsOf(cv), idf);
+      const sims = list.map((o) => cosine(idf.cvVec, tfidf(termsOf(offerText(o), nameWords(o)), idf))).sort((a, b) => a - b);
+      idf.ref = Math.max(0.01, sims[Math.floor(sims.length * 0.9)]);
+      idf.sims = [0.1, 0.5, 0.9, 0.99].map((q) => +sims[Math.floor(sims.length * q)].toFixed(3));
+    }
+    return idf;
+  }
+  // The offer's most specific terms and whether your CV has them (shown in "Why"; the score uses the cosine).
+  function offerKeywords(offer, idf, k = 10) {
+    if (!idf || idf.n < 20) return [];
+    const v = tfidf(termsOf(offerText(offer), nameWords(offer)), idf);
+    const out = [...v].sort((a, b) => b[1] - a[1]), picked = [];
+    for (const [t, w] of out) { if (picked.length >= k) break; if (!picked.some(([u]) => u.includes(t) || t.includes(u))) picked.push([t, w]); }
+    return picked;
+  }
+  // "LIPN, Sorbonne University  May – Sept 2026  Engineer, Intern": a year and a dash without an action verb.
+  const ACTION = /\b(built|build|designed|design|developed|develop|implemented|led|created|trained|deployed|improved|achieved|reduced|increased|automated|analy[sz]ed|wrote|published|conçu|concu|developpe|realise|mis en place|optimi[sz]ed)\b/i;
+  const isHeaderLine = (b) => /\b(19|20)\d{2}\b/.test(b) && /[-–]/.test(b) && !ACTION.test(b);
+  // Per-CV index, computed once per CV text: full text, skills backed by experience or projects, and bullet lines.
+  let cvMemo = { key: null, val: null };
+  function cvIndex(cv) {
+    const raw = String(cv || '');
+    if (cvMemo.key === raw) return cvMemo.val;
+    const secs = sections(raw);
+    const work = [secs.experience, secs.projects, secs.publications].filter(Boolean).join(' \n ');
+    const bullets = (work || raw).split(/\s*(?:[•▪●◦·]|\n|\s-\s|(?<=[.;])\s+(?=[A-Z]))\s*/).map((b) => b.trim()).filter((b) => b.length >= 40 && b.length <= 400 && !rangesIn(b, Date.now()).length && !isHeaderLine(b)); // dated lines are job headers, not achievements
+    const val = { text: ' ' + norm(raw) + ' ', evidenced: new Set(skillsIn(work)), bullets, hasSections: !!work };
+    cvMemo = { key: raw, val };
+    return val;
+  }
+  // ATS readiness of the CV itself (Profile page).
+  function atsCheck(cv) {
+    const raw = String(cv || ''), t = norm(raw), secs = sections(raw), words = (t.match(/[a-z]{2,}/g) || []).length;
+    const checks = [
+      { ok: !!secs.experience, label: 'Experience section', tip: 'Add a heading "Experience" (or "Expérience professionnelle") so ATS software can find your jobs and internships.' },
+      { ok: !!secs.education, label: 'Education section', tip: 'Add a heading "Education" with your degree, school and dates.' },
+      { ok: !!secs.skills, label: 'Skills section', tip: 'List your tools and languages under a "Skills" heading: ATS software reads that section first.' },
+      { ok: !!(secs.summary || secs.projects), label: 'Summary or projects', tip: 'A 2-3 line summary naming the role you want helps both ATS keyword matching and recruiters.' },
+      { ok: /\S+@\S+\.\S+/.test(raw), label: 'Email address', tip: 'Put your email in the header as plain text.' },
+      { ok: /\+?\d[\d\s().-]{7,}/.test(raw), label: 'Phone number', tip: 'Add a phone number with country code (+216 …).' },
+      { ok: /linkedin\.com|github\.com/.test(t), label: 'LinkedIn or GitHub', tip: 'Add your LinkedIn or GitHub URL; many recruiters check them first.' },
+      { ok: (raw.match(/\d+\s?(?:%|x\b|k\b|ms\b|users|utilisateurs|million|accuracy|precision|f1)/gi) || []).length >= 2, label: 'Measurable results', tip: 'Quantify at least two achievements (accuracy +7%, 3x faster, 10k users).' },
+      { ok: words >= 250 && words <= 1100, label: `Length (${words} words)`, tip: words < 250 ? 'The CV looks short for ATS matching; describe projects and tools in more detail.' : 'The CV is long; one page (two with publications) reads better and parses more reliably.' },
+      { ok: skillsIn(raw).length >= 8, label: `Recognised skills (${skillsIn(raw).length})`, tip: 'Name your tools explicitly (PyTorch, Docker, PostgreSQL…) rather than only describing them.' },
+      { ok: rangesIn(raw, Date.now()).length >= 1, label: 'Dated experience', tip: 'Give each job and internship a date range (Jun 2025 - Sep 2025) so your experience can be counted.' },
+    ];
+    return { score: Math.round(100 * checks.filter((c) => c.ok).length / checks.length), checks };
+  }
+
+  function score(offer, profile, now = Date.now(), ctx = {}) {
     const p = profile || {};
     const tRaw = (offer.title || '') + ' . ' + (offer.desc || '') + ' . ' + (offer.type || '');
     const body = norm(tRaw), title = norm(offer.title);
@@ -381,10 +491,12 @@
     else {
       let total = 0, got = 0;
       const have = [], related = [], missing = [];
+      // Skills used in a job or project count fully; skills only listed count 80% (when the CV has those sections).
+      const cvx = p.cv ? cvIndex(p.cv) : null, backed = (k) => !cvx || !cvx.hasSections || cvx.evidenced.has(k);
       for (const k of wanted) {
         const w = (inTitle.has(k) ? 2.5 : inReq.has(k) ? 1.6 : inNice.has(k) ? 0.5 : 1) * (GENERIC_SKILLS.has(k) ? 0.35 : 1);
         total += w;
-        if (mine.has(k)) { got += w; have.push(k); }
+        if (mine.has(k)) { got += w * (backed(k) ? 1 : 0.8); have.push(k); }
         else if (myFamilies.has(FAMILY[k]) && !NO_PARTIAL.has(FAMILY[k])) { got += w * 0.5; related.push(k); }
         else missing.push({ k, w });
       }
@@ -393,10 +505,24 @@
       // Evidence shrinkage: a couple of matched words is weak evidence, so few-skill offers are pulled toward neutral.
       const K = 3, cover = (got + 0.4 * K) / (total + K);
       missing.sort((a, b) => b.w - a.w);
+      // Whole-text similarity between your CV and the offer (TF-IDF cosine, relative to your best matches): a fifth
+      // of the skills signal when the collection is large enough to weigh terms.
+      let kwNote = '', kwHave = [], kwMissing = [], v = clamp(0.05 + 0.95 * cover);
+      if (cvx && ctx.idf && ctx.idf.cvVec) {
+        const sim = cosine(ctx.idf.cvVec, tfidf(termsOf(offerText(offer), nameWords(offer)), ctx.idf));
+        const rel = clamp(sim / ctx.idf.ref);
+        v = clamp(0.8 * v + 0.2 * rel);
+        for (const [t] of offerKeywords(offer, ctx.idf)) (cvx.text.includes(' ' + t + ' ') ? kwHave : kwMissing).push(t);
+        kwNote = ` · CV similarity ${Math.round(rel * 100)}% of your best matches`;
+      }
+      // CV lines that best support this offer: most matched skills and keywords.
+      const evidence = cvx ? cvx.bullets.map((b) => { const nb = ' ' + norm(b) + ' '; const hits = skillsIn(b).filter((k) => have.includes(k)).length + kwHave.filter((t) => nb.includes(' ' + t + ' ')).length; return [b, hits]; })
+        .filter(([, h]) => h >= 2).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([b]) => b.length > 160 ? b.slice(0, 157) + '…' : b) : [];
       parts.skills = {
-        v: clamp(0.05 + 0.95 * cover), known: total >= 3,
-        note: `${have.length + extraHits.length} of ${wanted.length + extraHits.length} matched: ${[...have, ...extraHits].slice(0, 6).join(', ') || 'none'}${related.length ? ` · related: ${related.slice(0, 3).join(', ')}` : ''}`,
+        v, known: total >= 3,
+        note: `${have.length + extraHits.length} of ${wanted.length + extraHits.length} matched: ${[...have, ...extraHits].slice(0, 6).join(', ') || 'none'}${related.length ? ` · related: ${related.slice(0, 3).join(', ')}` : ''}${kwNote}`,
         missing: missing.slice(0, 5).map((m) => m.k + (inReq.has(m.k) || inTitle.has(m.k) ? ' (required)' : '')),
+        keywords: { have: kwHave.slice(0, 6), missing: kwMissing.slice(0, 6) }, evidence,
       };
     }
 
@@ -437,7 +563,9 @@
     }
 
     // 4. Education
-    const need = offer.kind === 'phd' ? 3 : offerDegree(body, offer.title), mineD = (p.degree && p.degree.level) || 0;
+    // A postdoc needs a PhD even when the collector filed it with PhD offers.
+    const isPostdoc = /\b(post.?doc\w*|postdoctoral|post-doctoral|research fellow)\b/.test(title);
+    const need = isPostdoc ? 4 : offer.kind === 'phd' ? 3 : offerDegree(body, offer.title), mineD = (p.degree && p.degree.level) || 0;
     if (!need) parts.education = { v: 0.5, known: false, note: 'No degree stated' };
     else if (!mineD) parts.education = { v: 0.5, known: false, note: `Asks ${DEGREE_NAME[need]}, add your degree in Profile` };
     else parts.education = { v: mineD >= need ? 1 : need === 4 ? 0.05 : mineD === need - 1 ? 0.45 : 0.1, known: true, note: `Asks ${DEGREE_NAME[need]}, you have ${DEGREE_NAME[mineD]}` };
@@ -512,6 +640,6 @@
   }
 
   const profileFromCv = (text) => parseCv(text); // kept for older callers
-  const api = { score, parseCv, profileFromCv, skillsIn, offerLevel, offerYears, WEIGHTS, SKILL_NAMES: Object.keys(SKILLS), FAMILY, DEGREE_NAME, norm };
+  const api = { score, parseCv, profileFromCv, skillsIn, offerLevel, offerYears, buildIdf, offerKeywords, atsCheck, WEIGHTS, SKILL_NAMES: Object.keys(SKILLS), FAMILY, DEGREE_NAME, norm };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ParcoursScore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

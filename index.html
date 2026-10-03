@@ -1801,6 +1801,17 @@ function topicsOf(x){
   return x._topics;
 }
 
+/* CV ATS check (adapted from Resume-Matcher's section completeness): what applicant tracking systems look for */
+function renderAts(){
+  const box=$('#pfAts'),ta=$('#pfCv');if(!box||!ta||!SC||!SC.atsCheck)return;
+  if(ta.value.trim().length<200){box.innerHTML='';return;}
+  const r=SC.atsCheck(ta.value),bad=r.checks.filter(c=>!c.ok);
+  box.innerHTML=`<h3 style="margin:18px 0 6px;font-size:15px">ATS check: ${r.score}/100</h3>
+    <p class="hint" style="margin:0 0 8px">How well applicant tracking software can read this CV.${bad.length?'':' Everything they look for is there.'}</p>
+    <div class="row" style="gap:6px">${r.checks.map(c=>`<span class="${c.ok?'chip':'urgent'}" style="${c.ok?'--accent:var(--job)':''}" title="${esc(c.ok?'Found':c.tip)}">${c.ok?'✓':'✗'} ${esc(c.label)}</span>`).join('')}</div>
+    ${bad.length?`<ul class="hint" style="margin:10px 0 0;padding-left:18px">${bad.map(c=>`<li>${esc(c.tip)}</li>`).join('')}</ul>`:''}`;
+}
+
 /* collected by the scheduled collector */
 let colFiltersOpen=false,colLock=null,colData=null,colPrev=null,colF={k:'',c:'',onlyNew:false,sort:'match',min:0,q:'',src:'',days:0,exp:'',remote:false,hideBlock:true,hideApplied:true,topic:''},colMax=30;
 // Already applied: a logged application at the same company whose role shares most words with the offer title.
@@ -1984,16 +1995,23 @@ const hasCv=()=>((state.profile&&state.profile.skills)||[]).length>0;
 const scoringProfile=()=>Object.assign(prof(),{targets:state.searches.map(s=>s.search)});
 const PART_LABEL={field:'Field fit',skills:'Skills',role:'Role fit',seniority:'Experience',education:'Education',languages:'Languages',place:'Place and visa',competition:'Competition',company:'Company reviews',timing:'Timing'};
 let scoreProf=null;
+let idfMemo={key:'',val:null};
+function scoreCtx(){
+  if(!SC||!SC.buildIdf||!colData)return {};
+  const cv=(state.profile&&state.profile.cv)||'',key=colData.items.length+':'+(colData.updatedAt||0)+':'+cv.length;
+  if(idfMemo.key!==key)idfMemo={key,val:SC.buildIdf(colData.items,cv)};
+  return {idf:idfMemo.val};
+}
 function matchOf(x){
   if(!SC)return null;
-  return SC.score({title:x.title,desc:x.desc||'',org:x.org||x.company||'',c:x.c,kind:x.kind||'job',posted:x.posted,deadline:x.deadline,type:x.type,applicants:x.applicants,applicantsCapped:x.applicantsCapped,company:x.company&&typeof x.company==='object'?x.company:null,foundAt:x.foundAt},scoreProf||scoringProfile());
+  return SC.score({title:x.title,desc:x.desc||'',org:x.org||x.company||'',c:x.c,kind:x.kind||'job',posted:x.posted,deadline:x.deadline,type:x.type,applicants:x.applicants,applicantsCapped:x.applicantsCapped,company:x.company&&typeof x.company==='object'?x.company:null,foundAt:x.foundAt},scoreProf||scoringProfile(),Date.now(),scoreCtx());
 }
 const band=s=>s>=75?'hi':s>=55?'mid':'lo';
 function scoreBadge(m){if(!m)return '';const n=Object.values(m.parts).filter(p=>p.known).length;return `<span class="score s-${band(m.score)}${m.confidence<0.6?' weak':''}" title="Match ${m.score}/100, based on ${n} of ${Object.keys(m.parts).length} signals${m.confidence<0.6?'. Little real data: treat as a rough guess':''}">${m.score}</span>`;}
 function scoreWhy(m){
   if(!m)return '';
   return `<details class="why"><summary>Why ${m.score}${m.blockers.length?` · ${esc(m.blockers.join(', '))}`:''}${m.urgent?' · apply soon':''}</summary><div class="bars">${Object.entries(m.parts).map(([k,p])=>
-    `<div class="bar ${p.known?'':'unk'}"><span>${PART_LABEL[k]} <small>${SC.WEIGHTS[k]}</small></span><i><b style="width:${Math.round(p.v*100)}%"></b></i><em>${esc(p.note)}${p.missing&&p.missing.length?` · missing: ${esc(p.missing.join(', '))}`:''}</em></div>`).join('')}
+    `<div class="bar ${p.known?'':'unk'}"><span>${PART_LABEL[k]} <small>${SC.WEIGHTS[k]}</small></span><i><b style="width:${Math.round(p.v*100)}%"></b></i><em>${esc(p.note)}${p.missing&&p.missing.length?` · missing: ${esc(p.missing.join(', '))}`:''}${p.keywords&&(p.keywords.have.length||p.keywords.missing.length)?`<br>Offer keywords you have: ${esc(p.keywords.have.join(', ')||'none')} · not in your CV: ${esc(p.keywords.missing.slice(0,5).join(', ')||'none')}`:''}${p.evidence&&p.evidence.length?`<br>Your strongest evidence: ${p.evidence.map(e=>`“${esc(e)}”`).join(' ')}`:''}</em></div>`).join('')}
     <p class="hint" style="margin:6px 0 0">Based on ${Math.round(m.confidence*100)}% real data. Faded rows had nothing to go on and count as neutral.</p></div></details>`;
 }
 let pdfLib=null;
@@ -2024,7 +2042,8 @@ function profilePage(){
     <textarea id="pfCv" aria-label="Your CV text" rows="8" placeholder="Paste your CV here…">${esc(p.cv)}</textarea>
     <div class="row" style="margin-top:10px"><label class="btn" for="pfFile" style="cursor:pointer">Upload PDF or text</label><input type="file" id="pfFile" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden>
     <button class="btn primary" id="pfRead">Read everything from CV</button></div>
-    <div id="pfMsg" class="found" aria-live="polite"></div></div>
+    <div id="pfMsg" class="found" aria-live="polite"></div>
+    <div id="pfAts"></div></div>
   <div class="panel"><h2>Skills</h2><p class="hint">${p.skills.length} selected. Offers asking for a skill in the same family as yours get half credit.</p>
     <div class="fams">${Object.entries(groups).map(([f,l])=>`<div class="fam"><span class="lab">${esc(FAMILY_LABEL[f]||f)}</span><div class="skills">${l.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="${p.skills.includes(n)}">${esc(n)}</button>`).join('')}</div></div>`).join('')}</div>
     <label class="lab" for="pfExtra" style="margin-top:16px">Other terms from your CV <span class="hint" style="font-weight:400">(matched word for word in offers, comma separated)</span></label>
@@ -2058,6 +2077,7 @@ function profilePage(){
       +`${r.years!=null?`${r.years} years of experience (internships count half)`:'no dated experience found, set your years below'}, `
       +`${r.degree.level?esc(r.degree.name)+(r.degree.year?` (${r.degree.year})`:''):'no degree found'}, languages: ${Object.entries(r.languages).map(([k,v])=>k.toUpperCase()+' '+v).join(', ')||'none found'}. Check the values below.`;};
   $('#pfRead').addEventListener('click',readCv);
+  renderAts();$('#pfCv').addEventListener('input',()=>{clearTimeout(window._atsT);window._atsT=setTimeout(renderAts,600);});
   $('#pfCv').addEventListener('change',()=>setProfile({cv:$('#pfCv').value}));
   $('#pfFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;msg.textContent='Reading '+f.name+'…';
     try{$('#pfCv').value=(await fileText(f)).replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();readCv();}catch(x){msg.textContent=x.message||'Could not read that file.';}e.target.value='';});
