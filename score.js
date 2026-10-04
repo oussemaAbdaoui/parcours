@@ -298,9 +298,40 @@
     for (const s of sentences) { if (nice.test(s)) niceText += ' ' + s; else if (req.test(s)) reqText += ' ' + s; }
     return { reqText, niceText };
   }
+  // Titles that need a doctorate already held: postdocs, professors, lecturers, faculty.
+  const NEEDS_PHD_TITLE = /\b(post.?doc\w*|postdoctoral|post-doctoral|research fellow|professor\w*|professeur\w*|professur|lecturer|maitre de conferences|faculty|tenure.track|chaire|chair (?:in|of)|junior group leader)\b/;
+  /* A doctorate in the requirements: 4 = required, 3.5 = preferred or "PhD or equivalent experience", 0 = not asked.
+     Each mention is read in its own sentence: the PhD as the job itself (PhD student position, obtain a doctoral
+     degree) does not count, an alternative (master's or PhD) or "desirable" makes it a preference. */
+  function phdRequirement(t) {
+    const re = /\b(ph\.?\s?d\.?|doctorate|doctoral degree|doctorat|docteur|promotion|promoviert\w*|dr\. rer\. nat\.?)\b/g;
+    let level = 0, m;
+    while ((m = re.exec(t))) {
+      const word = m[1];
+      const s0 = Math.max(t.lastIndexOf('.', m.index), t.lastIndexOf(';', m.index), t.lastIndexOf('•', m.index), m.index - 160);
+      let s1 = t.slice(m.index).search(/[.;•]/); s1 = s1 < 0 ? t.length : m.index + s1;
+      const sent = t.slice(s0 + 1, Math.min(s1, m.index + 160)), around = t.slice(Math.max(0, m.index - 40), m.index + 60);
+      if (/^(promotion)$/.test(word) && !/abgeschlossen|completed|promotion in|promotion im/.test(around)) continue; // French "promotion 2026", marketing
+      // The PhD is what the job offers, not what it asks: words attached to the mention ("PhD student", "PhD
+      // position", "obtain a doctoral degree"), not anywhere in the sentence.
+      const before = t.slice(Math.max(0, m.index - 32), m.index), after = t.slice(m.index + word.length, m.index + word.length + 28);
+      if (/^\s*(?:\/\s*)?(students?|positions?|candidates?|candidature|programm?e?s?|studentships?|scholarships?|fellowships?|projects?|projets?|researchers?|research positions?|level|offers?|opportunit\w*|vacanc\w*|stelle\w*|&\s*post.?docs?|and post.?docs?|et post.?docs?|thesis in|en (?:informatique|ia) au sein)/.test(after)) continue;
+      if (/\b(obtain|obtaining|pursue|pursuing|prepare|preparer|working towards|leading to|towards|complete|start|do|funded|fully funded|offers?|offering|ecole doctorale|doctoral school|candidat\w* au|inscription en|contrat de)\s+(?:a|an|the|your|un|une|le|la|son|votre)?\s*$/.test(before)) continue;
+      // An alternative degree ("master's or PhD", "MSc/PhD") means a master's is enough: this mention asks nothing more.
+      const alt = /\b(or|ou|oder)\s+(?:an?\s+)?(master\S*|msc|m\.sc|meng|engineer\S*|ingenieur\S*|bachelor\S*|bsc|diplom\S*)|(master\S*|msc|m\.sc|meng|ingenieur\S*|engineer\S*|bachelor\S*|diplom\S*)(?:\s+(?:degree|diplome|abschluss|in\s+\w+))?\s*(?:\/|or|ou|oder|,)\s*(?:an?\s+)?(?:ph\.?\s?d|doctora)/.test(sent);
+      if (alt) continue;
+      // Preferred, or replaceable by experience: a lower score, not a dealbreaker.
+      const soft = /\b(or|ou|oder)\s+(?:an?\s+)?(equivalent|relevant|comparable|similar)|\b(desirable|desired|preferred|preferably|a plus|is a plus|an advantage|nice to have|bonus|ideally|souhaite\w*|apprecie\w*|serait un plus|von vorteil|wunschenswert|idealerweise)\b/.test(sent);
+      const hard = /\b(ph\.?\s?d\.?|doctorate|doctoral degree|doctorat|promotion)\s+(in|en|im|degree|diplom\w*)\b|\b(hold|holds|holding|have|has|completed|finished|earned|obtained|titulaire|abgeschlossene|required|requis|mandatory|obligatoire|must|need|you bring|your profile|votre profil|qualifications?|minimum|ihr profil)\b/.test(sent);
+      if (soft) level = Math.max(level, 3.5);
+      else if (hard) return 4;
+    }
+    return level;
+  }
   function offerDegree(t, title) {
-    if (/\b(post.?doc\w*|research fellow|postdoctoral|post-doctoral)\b/.test(norm(title || ''))) return 4;
-    if (/\b(ph\.?d|doctorate|doctorat)\b[^.]{0,30}\b(required|requis|mandatory|obligatoire|holder|titulaire)|\b(completed|hold|holding) a ph\.?d/.test(t)) return 4;
+    if (NEEDS_PHD_TITLE.test(norm(title || ''))) return 4;
+    const phd = phdRequirement(t);
+    if (phd) return phd;
     if (/\b(master.?s?|msc|m\.sc|bac\s*\+\s*5|engineering degree|diplome d.ingenieur|ecole d.ingenieurs?)\b/.test(t)) return 3;
     if (/\b(bachelor.?s?|licence|bac\s*\+\s*3|bsc)\b/.test(t)) return 2;
     return 0;
@@ -563,12 +594,14 @@
     }
 
     // 4. Education
-    // A postdoc needs a PhD even when the collector filed it with PhD offers.
-    const isPostdoc = /\b(post.?doc\w*|postdoctoral|post-doctoral|research fellow)\b/.test(title);
-    const need = isPostdoc ? 4 : offer.kind === 'phd' ? 3 : offerDegree(body, offer.title), mineD = (p.degree && p.degree.level) || 0;
+    // Postdocs, professorships and lecturer posts need a PhD even when the collector filed them with PhD offers;
+    // PhD positions themselves ask for a master's (their texts say "PhD in ..." about the job, not the candidate).
+    const need = NEEDS_PHD_TITLE.test(title) ? 4 : offer.kind === 'phd' ? 3 : offerDegree(body, offer.title), mineD = (p.degree && p.degree.level) || 0;
+    const needName = need === 3.5 ? 'a PhD (or equivalent experience)' : DEGREE_NAME[need];
     if (!need) parts.education = { v: 0.5, known: false, note: 'No degree stated' };
-    else if (!mineD) parts.education = { v: 0.5, known: false, note: `Asks ${DEGREE_NAME[need]}, add your degree in Profile` };
-    else parts.education = { v: mineD >= need ? 1 : need === 4 ? 0.05 : mineD === need - 1 ? 0.45 : 0.1, known: true, note: `Asks ${DEGREE_NAME[need]}, you have ${DEGREE_NAME[mineD]}` };
+    else if (!mineD) parts.education = { v: 0.5, known: false, note: `Asks ${needName}, add your degree in Profile` };
+    else if (need === 3.5) parts.education = { v: mineD >= 4 ? 1 : mineD === 3 ? 0.4 : 0.15, known: true, note: `Prefers ${needName}, you have ${DEGREE_NAME[mineD]}` };
+    else parts.education = { v: mineD >= need ? 1 : need === 4 ? 0.05 : mineD === need - 1 ? 0.45 : 0.1, known: true, note: `${need === 4 ? 'Requires' : 'Asks'} ${needName}, you have ${DEGREE_NAME[mineD]}` };
 
     // 5. Languages
     const needL = offerLanguages(body), langs = p.languages || {};
@@ -631,6 +664,8 @@
     const graduated = !!gy && (d.getFullYear() > gy || (d.getFullYear() === gy && d.getMonth() >= 8));
     const canIntern = p.internships === 'yes' || (p.internships !== 'no' && !graduated);
     if (lv.lvl === 0 && offer.kind !== 'phd' && !canIntern) blockers.push('Internship needs student status');
+    // Jobs reserved for current students (student assistant, Werkstudent, "currently enrolled"), same rule.
+    else if (offer.kind !== 'phd' && !canIntern && /\b(currently enrolled|must be (?:a |an )?(?:current |enrolled )?students?|enrolled (?:in|at) (?:a |an )?(?:university|bachelor|master)|student assistant|working student|werkstudent\w*|studentische (?:hilfskraft|mitarbeiter)|job etudiant|etudiant\w* en (?:cours|derniere annee)|en cours de (?:formation|cursus)|immatrikuliert)\b/.test(body)) blockers.push('Reserved for current students');
     if ((p.exclude || []).some((w) => w && termIn(w, norm(offer.title + ' ' + (offer.org || ''))))) blockers.push('Matches your exclusions');
     if (blockers.length) total = Math.min(total, 40);
     else if (parts.field.v < 0.3) total = Math.min(total, 50); // a job outside your field never ranks with real matches

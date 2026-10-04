@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Parcours</title>
-<link rel="icon" type="image/svg+xml" href="/icon.svg">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <!-- Vercel Web Analytics (visitors, cookieless) and Speed Insights (real-user loading speed): the plain-HTML setup of @vercel/analytics and @vercel/speed-insights -->
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments);};</script>
@@ -499,11 +500,11 @@ body{background:var(--canvas);font-size:15px;font-weight:500}
 /* icon rail */
 .shell{grid-template-columns:104px minmax(0,1fr)}
 .side{background:transparent;box-shadow:none;padding:22px 0;align-items:center;gap:6px}
-.brand{width:52px;height:52px;padding:0;margin:0 0 18px;justify-content:center;border-radius:16px;background:var(--ink-strong);color:#fff}
-:root[data-theme="dark"] .brand{background:var(--blue)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand{background:var(--blue)}}
-.brand:hover{background:var(--blue)}
-.brand .logo-mark{color:#fff;width:28px;height:28px}
+.brand{width:52px;height:52px;padding:0;margin:0 0 18px;justify-content:center;border-radius:14px;background:transparent;box-shadow:0 4px 14px -6px rgba(13,27,62,.35)}
+:root[data-theme="dark"] .brand{background:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand{background:transparent}}
+.brand:hover{background:transparent;transform:translateY(-1px)}
+.brand .logo-mark{width:52px;height:52px;border-radius:14px;display:block}
 .brand span{display:none}
 .navlab{display:none}
 .tabs{gap:4px;align-items:center}
@@ -705,7 +706,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
 <a class="skip" href="#view">Skip to content</a>
 <div class="shell">
 <aside class="side">
-  <a class="brand" href="#/" aria-label="Parcours home"><svg class="logo-mark" width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><path d="M5 22 C5 13, 23 15, 23 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="5" cy="22" r="3.4" fill="var(--job)"/><circle cx="14" cy="14.2" r="2.6" fill="var(--master)"/><circle cx="23" cy="6" r="3.4" fill="var(--phd)"/></svg><span>Parcours<small>Jobs, master's and PhD</small></span></a>
+  <a class="brand" href="#/" aria-label="Parcours home"><img class="logo-mark" src="/logo-96.png" width="52" height="52" alt=""><span>Parcours<small>Jobs, master's and PhD</small></span></a>
   <nav class="tabs" id="tabs" aria-label="Sections">
     <div class="navlab">General</div>
     <a href="#/" data-t="overview"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg>Overview</a>
@@ -721,7 +722,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
   <div class="side-foot"><span class="syncl" id="sync"></span></div>
 </aside>
 <div class="main">
-<header class="topbar"><a class="tb-logo" href="#/" aria-label="Parcours home"><svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true"><path d="M5 22 C5 13, 23 15, 23 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="5" cy="22" r="3.4" fill="var(--job)"/><circle cx="14" cy="14.2" r="2.6" fill="var(--master)"/><circle cx="23" cy="6" r="3.4" fill="var(--phd)"/></svg></a><div class="where"><span class="tb-app">Parcours</span><span class="tb-app">/</span><b id="topSec">Overview</b></div><span class="sp"></span>
+<header class="topbar"><a class="tb-logo" href="#/" aria-label="Parcours home"><img src="/logo-96.png" width="30" height="30" alt="" style="display:block;border-radius:8px"></a><div class="where"><span class="tb-app">Parcours</span><span class="tb-app">/</span><b id="topSec">Overview</b></div><span class="sp"></span>
   <button class="iconbtn" id="themeBtn" type="button" aria-label="Toggle light and dark theme" title="Toggle theme"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z"/></svg></button></header>
 <div class="wrap">
   <div class="demo warn" id="notice" role="status" aria-live="polite" hidden></div>

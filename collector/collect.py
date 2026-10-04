@@ -9,6 +9,7 @@ Searches come from the app's saved searches (Opportunities page); defaults are u
 import json
 import os
 import re
+import unicodedata
 import sys
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -60,6 +61,13 @@ class Store:
     def get_json(self, key):
         v = self.cmd("GET", key)
         return json.loads(v) if v else None
+
+
+# Text that says an offer no longer takes applications (matched on accent-stripped lowercase text).
+CLOSED = re.compile(r"(no longer accepting applications|no longer available|this job has expired|job (?:posting )?has expired|position has been filled"
+                    r"|applications? (?:are |is )?(?:now )?closed|closing date has passed|offre (?:n.est plus disponible|expiree|pourvue|cloturee)"
+                    r"|candidatures? (?:sont )?(?:closes?|cloturees?)|annonce (?:expiree|n.est plus)|stelle (?:ist )?(?:nicht mehr|bereits) (?:verfugbar|besetzt)"
+                    r"|bewerbungsfrist (?:ist )?abgelaufen)")
 
 
 def relevant(item, words):
@@ -344,6 +352,10 @@ def main():
     # along with stored offers that became dealbreakers after a profile change.
     scores = {}
     late = dealbreakers(items, state, scores)
+    # Offers whose page says they are closed (no longer accepting applications, offre expirée...) go too.
+    for x in items:
+        if x["id"] not in late and CLOSED.search(unicodedata.normalize("NFD", f"{x.get('title', '')} {x.get('desc', '')}".lower()).encode("ascii", "ignore").decode()):
+            late[x["id"]] = ["Closed"]
     report_blocked(late, "dealbreakers among stored offers")
     if late:
         removed += [x["id"] for x in items if x["id"] in late]
