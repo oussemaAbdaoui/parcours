@@ -267,9 +267,12 @@
   function levelFromTitle(title) {
     const t = norm(title);
     if (/\b(stage|stagiaire|intern(ship)?|pfe|praktikum|werkstudent|alternance|alternant|apprenti)\b/.test(t)) return { lvl: 0, label: 'internship' };
-    if (/\b(principal|staff|head of|director|directeur|chef de|leiter|vp|leader|professor|professeur|lecturer|maitre de conferences|faculty|tenure)\b/.test(t) || /\blead\b/.test(t)) return { lvl: 4, label: 'lead' };
-    if (/\b(senior|sr\.?|confirme|experimente|expert)\b/.test(t)) return { lvl: 3, label: 'senior' };
+    // "New Grad to Principal level" is open to juniors: junior words win when both are present.
     if (/\b(junior|jr\.?|graduate|debutant|entry.level|jeune diplome|new grad)\b/.test(t)) return { lvl: 1, label: 'junior' };
+    if (/\b(principal|staff|head of|director|directeur|chef de|leiter|vp|leader|professor|professeur|lecturer|maitre de conferences|faculty|tenure)\b/.test(t) || /\blead\b/.test(t)) return { lvl: 4, label: 'lead' };
+    // Architects, managers and level III+ (Software Engineer III) are hired with experience even when no years are stated.
+    if (/\b(senior|sr\.?|confirme|experimente|expert|architect|architecte|manager|iii|iv)\b/.test(t)) return { lvl: 3, label: 'senior' };
+    if (/\b(ii|mid.level|intermediate)\b/.test(t)) return { lvl: 2, label: 'mid' };
     return null;
   }
   const profileLevel = (years) => (years == null ? 1 : years < 1 ? 1 : years < 3 ? 1.5 : years < 5 ? 2 : years < 8 ? 3 : 4);
@@ -342,7 +345,8 @@
   const NO_PARTIAL = new Set(['lang', 'research', 'method', 'tools', 'mobile', 'sec', 'embedded']);
   // Skills almost every offer mentions: they say little about fit, so they count a third.
   const GENERIC_SKILLS = new Set(['research', 'monitoring', 'git', 'agile', 'testing', 'linux', 'security', 'statistics', 'docker', 'sql']);
-  const WEIGHTS = { field: 18, skills: 26, role: 6, seniority: 18, education: 5, languages: 8, place: 8, competition: 5, company: 3, timing: 3 };
+  // Field and languages mostly act as gates (dealbreakers, the 50 cap), so they weigh little; skills separate offers.
+  const WEIGHTS = { field: 8, skills: 34, role: 10, seniority: 18, education: 5, languages: 4, place: 10, competition: 5, company: 3, timing: 3 };
 
   /* Field fit: does the job belong to your field at all? Fields come from the skill families in your profile.
      The title decides first (it names the job); the body only rescues titles that name no field, such as a PhD
@@ -501,6 +505,30 @@
     return { score: Math.round(100 * checks.filter((c) => c.ok).length / checks.length), checks };
   }
 
+  /* Where an offer really is. "Remote / Global" (gl) offers include on-site posts abroad (academic boards file
+     everything there) and remote jobs open to one region only ("Remote, US", "LATAM"), so the location text decides:
+     one of your countries named -> that country; worldwide wording or no place -> gl; any other place -> abroad (xx). */
+  const PLACE_WORDS = [
+    ['fr', /\b(france|paris|lyon|marseille|toulouse|lille|bordeaux|nantes|rennes|grenoble|nice|strasbourg|montpellier|sophia antipolis|saclay|orsay|versailles|ile.de.france)\b/],
+    ['de', /\b(germany|deutschland|berlin|munich|munchen|hamburg|frankfurt|cologne|koln|stuttgart|darmstadt|leipzig|dresden|heidelberg|karlsruhe|aachen|tubingen|bonn)\b/],
+    ['ca', /\b(canada|montreal|toronto|quebec|vancouver|ottawa|calgary|edmonton|waterloo)\b/],
+    ['ch', /\b(switzerland|schweiz|suisse|zurich|geneva|geneve|lausanne|basel|bern|lugano)\b/],
+    ['tn', /\b(tunisia|tunisie|tunis|sfax|sousse|ariana|monastir|nabeul|bizerte)\b/],
+  ];
+  const WORLDWIDE = /\b(anywhere|worldwide|global|international|emea|europe|africa|mena)\b/;
+  const ABROAD_SOURCES = { 'jobs.ac.uk': 'United Kingdom' }; // its location field holds only the town
+  function offerCountry(offer, p) {
+    const loc = norm(offer.location), mine = p.countries || [];
+    const named = PLACE_WORDS.filter(([, re]) => re.test(loc)).map(([c]) => c);
+    const yours = named.filter((c) => mine.includes(c)).sort((a, b) => mine.indexOf(a) - mine.indexOf(b));
+    if (yours.length) return { c: yours[0] };
+    if (offer.c !== 'gl') return { c: offer.c };
+    if (named.length) return { c: named[0] };
+    if (ABROAD_SOURCES[offer.source]) return { c: 'xx', where: ABROAD_SOURCES[offer.source] };
+    if (WORLDWIDE.test(loc) || !loc.replace(/\b(remote|full|fully|teletravail|hybrid|home office|homeoffice)\b/g, '').replace(/[^a-z]+/g, '')) return { c: 'gl' };
+    return { c: 'xx', where: String(offer.location).trim() };
+  }
+
   function score(offer, profile, now = Date.now(), ctx = {}) {
     const p = profile || {};
     const tRaw = (offer.title || '') + ' . ' + (offer.desc || '') + ' . ' + (offer.type || '');
@@ -546,6 +574,8 @@
         for (const [t] of offerKeywords(offer, ctx.idf)) (cvx.text.includes(' ' + t + ' ') ? kwHave : kwMissing).push(t);
         kwNote = ` · CV similarity ${Math.round(rel * 100)}% of your best matches`;
       }
+      // Coverage rarely leaves 0.4-0.9 (shrinkage pulls it toward 0.4), so spread that band over 0-1.
+      v = clamp((v - 0.4) / 0.5);
       // CV lines that best support this offer: most matched skills and keywords.
       const evidence = cvx ? cvx.bullets.map((b) => { const nb = ' ' + norm(b) + ' '; const hits = skillsIn(b).filter((k) => have.includes(k)).length + kwHave.filter((t) => nb.includes(' ' + t + ' ')).length; return [b, hits]; })
         .filter(([, h]) => h >= 2).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([b]) => b.length > 160 ? b.slice(0, 157) + '…' : b) : [];
@@ -614,18 +644,19 @@
     }
 
     // 6. Place and visa
-    const order = p.countries || [], rank = order.indexOf(offer.c);
-    let place = rank < 0 ? (offer.c === 'gl' ? 0.6 : 0.4) : 1 - rank * (0.5 / Math.max(1, order.length - 1));
+    const order = p.countries || [], at = offerCountry(offer, p), rank = order.indexOf(at.c);
+    const abroad = at.c === 'xx' && order.length > 0;
+    let place = abroad ? (offer.kind === 'phd' ? 0.3 : 0.1) : rank < 0 ? (at.c === 'gl' ? 0.6 : 0.4) : 1 - rank * (0.5 / Math.max(1, order.length - 1));
     const remote = /\b(remote|teletravail|full remote|homeoffice|home office|anywhere|100% remote)\b/.test(body);
-    if (remote && p.remote !== 'no') place = Math.min(1, place + 0.15);
+    if (remote && p.remote !== 'no' && !abroad) place = Math.min(1, place + 0.15);
     if (!remote && p.remote === 'yes') place -= 0.2;
-    const needVisa = p.visa && p.visa[offer.c];
+    const needVisa = p.visa && p.visa[at.c];
     let visaNote = '';
     if (needVisa) {
       if (/\b(visa (sponsor\w*|support|assistance)|sponsorship|relocation|we sponsor|aide a la relocalisation|visum)\b/.test(body)) { place = Math.min(1, place + 0.2); visaNote = ', visa or relocation offered'; }
       else if (/\b(eu citizens?|eu passport|right to work|work permit required|must be authori[sz]ed|nationalite (francaise|europeenne)|citoyen europeen|security clearance|habilitation)\b/.test(body)) { place -= 0.45; visaNote = ', work permit restriction'; }
     }
-    parts.place = { v: clamp(place), known: true, note: (rank >= 0 ? `Country #${rank + 1} for you` : 'Country not in your list') + (remote ? ', remote possible' : '') + visaNote };
+    parts.place = { v: clamp(place), known: true, note: (abroad ? `${at.where}: not in your countries` : rank >= 0 ? `Country #${rank + 1} for you` : 'Country not in your list') + (remote ? ', remote possible' : '') + visaNote };
 
     // 7. Competition
     const age = daysSince(offer.posted, now) ?? (offer.foundAt ? Math.floor((now - offer.foundAt) / 864e5) : null);
@@ -652,12 +683,15 @@
     let total = 0, knownW = 0;
     for (const [k, w] of Object.entries(WEIGHTS)) { total += w * parts[k].v; if (parts[k].known) knownW += w; }
     const blockers = [];
-    if (parts.field.off) blockers.push('Outside your field');
+    if (parts.field.off || parts.field.v <= 0.1) blockers.push('Outside your field');
     if (parts.languages.known && parts.languages.v < 0.5) blockers.push('Required language missing');
     if (visaNote === ', work permit restriction') blockers.push('Work permit restriction');
     if (parts.timing.v === 0) blockers.push('Deadline passed');
     if (parts.education.known && parts.education.v <= 0.1) blockers.push('Degree too low');
     if (tooSenior) blockers.push('Too senior for your experience');
+    if (typeof offer.applicants === 'number' && offer.applicants > 150) blockers.push('Over 150 applicants');
+    // Jobs abroad (or remote for another region only) are out; PhDs abroad stay, ranked lower, since many are funded with a visa.
+    if (abroad && offer.kind !== 'phd') blockers.push('Outside your countries');
     // Internships and work-study need student status: closed once you have graduated (September of your
     // graduation year), unless your profile says you can still take them.
     const d = new Date(now), gy = p.degree && p.degree.year;

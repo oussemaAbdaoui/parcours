@@ -1468,7 +1468,7 @@ function deepLinks(q){
 function jobCard(j){
   jobReg[j.id]=j;const u=safeUrl(j.url),sv=state.saved.some(x=>x.id===j.id);
   const badges=(j.sources||[j.source]).filter(Boolean).map(id=>`<span class="src">${esc((SRC[id]||{}).label||id)}</span>`).join('');
-  const m=matchOf({title:j.title,desc:j.desc,company:j.company,c:j.c,kind:'job',posted:j.posted,type:j.type});
+  const m=matchOf({title:j.title,desc:j.desc,company:j.company,c:j.c,location:j.location,source:j.source,kind:'job',posted:j.posted,type:j.type});
   return `<article class="offer">${scoreBadge(m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a>`:esc(j.title)}${j.isNew?' <span class="new">New</span>':''}</h3>
   <div class="meta">${expTag(expOf(j))} <b>${esc(j.company)}</b> · ${esc(j.location)}${j.type?' · '+esc(j.type):''}${j.posted?' · '+esc(j.posted):''} ${badges}</div>${scoreWhy(m)}</div>
   <div class="oa"><button class="btn sm" data-jsave="${esc(j.id)}" ${sv?'disabled':''}>${sv?'Saved':'Save'}</button><button class="btn sm" data-jlog="${esc(j.id)}">Log</button></div></article>`;
@@ -1946,7 +1946,7 @@ async function runSaved(){
 function renderSaved(){
   const b=$('#savedBox');if(!b)return;
   b.innerHTML=state.saved.length?'<div class="offers">'+state.saved.map(j=>{jobReg[j.id]=j;const u=safeUrl(j.url);
-    const m=matchOf({title:j.title,desc:j.desc,company:j.rating||j.company,c:j.c,kind:j.kind||'job',posted:j.posted,deadline:j.deadline,type:j.type,applicants:j.applicants});
+    const m=matchOf({title:j.title,desc:j.desc,company:j.rating||j.company,c:j.c,location:j.location,source:j.source,kind:j.kind||'job',posted:j.posted,deadline:j.deadline,type:j.type,applicants:j.applicants});
     return `<article class="offer">${scoreBadge(m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a>`:esc(j.title)}</h3><div class="meta">${expTag(expOf(j))} <b>${esc(j.company)}</b> · ${esc(j.location)}${j.deadline?' · Apply by '+esc(j.deadline):''}</div>${scoreWhy(m)}</div>
     <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-jlog="${esc(j.id)}">Log</button><button class="btn sm ghost" data-jdel="${esc(j.id)}">Remove</button></div></article>`;}).join('')+'</div>'
     :'<p class="hint" style="margin:0">Jobs you save from search results appear here.</p>';
@@ -2011,7 +2011,7 @@ function scoreCtx(){
 }
 function matchOf(x){
   if(!SC)return null;
-  return SC.score({title:x.title,desc:x.desc||'',org:x.org||x.company||'',c:x.c,kind:x.kind||'job',posted:x.posted,deadline:x.deadline,type:x.type,applicants:x.applicants,applicantsCapped:x.applicantsCapped,company:x.company&&typeof x.company==='object'?x.company:null,foundAt:x.foundAt},scoreProf||scoringProfile(),Date.now(),scoreCtx());
+  return SC.score({title:x.title,desc:x.desc||'',org:x.org||x.company||'',c:x.c,location:x.location||'',source:x.source||'',kind:x.kind||'job',posted:x.posted,deadline:x.deadline,type:x.type,applicants:x.applicants,applicantsCapped:x.applicantsCapped,company:x.company&&typeof x.company==='object'?x.company:null,foundAt:x.foundAt},scoreProf||scoringProfile(),Date.now(),scoreCtx());
 }
 const band=s=>s>=75?'hi':s>=55?'mid':'lo';
 function scoreBadge(m){if(!m)return '';const n=Object.values(m.parts).filter(p=>p.known).length;return `<span class="score s-${band(m.score)}${m.confidence<0.6?' weak':''}" title="Match ${m.score}/100, based on ${n} of ${Object.keys(m.parts).length} signals${m.confidence<0.6?'. Little real data: treat as a rough guess':''}">${m.score}</span>`;}

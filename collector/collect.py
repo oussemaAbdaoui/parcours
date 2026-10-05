@@ -173,18 +173,30 @@ def excluded(item, exclude):
     return any(re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", text) for w in exclude)
 
 
+def _dup_keys(x):
+    """Keys that identify one posting across sites: title and org, and a long title alone, since aggregators
+    (jobRxiv's "Jobfront Academia") repost PhDs under their own name. Short titles ("Software Engineer") need the org."""
+    plain = lambda s: re.sub(r"[^a-z0-9]+", " ", unicodedata.normalize("NFD", (s or "").lower()).encode("ascii", "ignore").decode()).strip()
+    title = plain(x.get("title"))
+    keys = [(title, plain(x.get("org")))]
+    if len(title.split()) >= 6:
+        keys.append((title, ""))
+    return keys
+
+
 def merge(mine, others, found, now, origin):
     """mine: stored items from this collector; others: items from the other collector (only for de-duplication)."""
     by_id = {x["id"]: x for x in mine}
-    same = {(x["title"].lower(), x.get("org", "").lower()): x["id"] for x in mine + others}
+    same = {k: x["id"] for x in mine + others for k in _dup_keys(x)}
     new = 0
     for x in found:
         if not x.get("url", "").startswith("http") or not x.get("title"):
             continue
-        key = (x["title"].lower(), x.get("org", "").lower())
-        if x["id"] not in by_id and key in same:  # same posting from another search, site or collector
+        keys = _dup_keys(x)
+        if x["id"] not in by_id and any(k in same for k in keys):  # same posting from another search, site or collector
             continue
-        same[key] = x["id"]
+        for k in keys:
+            same[k] = x["id"]
         if x["id"] in by_id:
             old = by_id[x["id"]]
             for k, v in x.items():  # refresh listing fields, keep foundAt and fetched details

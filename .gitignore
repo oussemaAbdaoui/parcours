@@ -12,3 +12,4 @@ __pycache__/
 skills-lock.json
 probe-out/
 .playwright-cli/
+graphify-out/
