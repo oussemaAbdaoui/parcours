@@ -6,3 +6,7 @@ __pycache__
 skills-lock.json
 .env*
 logo.png
+docs
+graphify-out
+probe-out
+.playwright-cli

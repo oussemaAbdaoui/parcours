@@ -346,6 +346,7 @@
   // Skills almost every offer mentions: they say little about fit, so they count a third.
   const GENERIC_SKILLS = new Set(['research', 'monitoring', 'git', 'agile', 'testing', 'linux', 'security', 'statistics', 'docker', 'sql']);
   // Field and languages mostly act as gates (dealbreakers, the 50 cap), so they weigh little; skills separate offers.
+  const SCALE = 0.72; // see the display scale in score()
   const WEIGHTS = { field: 8, skills: 34, role: 10, seniority: 18, education: 5, languages: 4, place: 10, competition: 5, company: 3, timing: 3 };
 
   /* Field fit: does the job belong to your field at all? Fields come from the skill families in your profile.
@@ -682,6 +683,9 @@
 
     let total = 0, knownW = 0;
     for (const [k, w] of Object.entries(WEIGHTS)) { total += w * parts[k].v; if (parts[k].known) knownW += w; }
+    // Display scale: the stretched skills signal pulls raw sums low; lift them so 75+ still reads as a strong match
+    // and 55 as the middle (same order, the bands the app, notifications and digest use).
+    total = 100 - (100 - total) * SCALE;
     const blockers = [];
     if (parts.field.off || parts.field.v <= 0.1) blockers.push('Outside your field');
     if (parts.languages.known && parts.languages.v < 0.5) blockers.push('Required language missing');
@@ -705,7 +709,7 @@
     else if (parts.field.v < 0.3) total = Math.min(total, 50); // a job outside your field never ranks with real matches
     const urgent = left != null && left >= 0 && left <= 7;
     const conf = knownW / 100;
-    return { score: Math.round(total), confidence: conf, rank: total - (1 - conf) * 12, parts, urgent, blockers };
+    return { score: Math.round(total), confidence: conf, rank: total - (1 - conf) * 12 * SCALE, parts, urgent, blockers };
   }
 
   const profileFromCv = (text) => parseCv(text); // kept for older callers
