@@ -91,7 +91,9 @@ def matches_search(job, search):
     or a known topic, or its description contains the whole search phrase."""
     title, desc = f" {job['title'].lower()} ", job.get("desc", "").lower()
     words = [w for w in re.split(r"[^\w+#/]+", search.lower()) if len(w) > 1 and w not in GENERIC]
-    return any(w in title for w in words) or any(t in title for t in TOPICS) or search.lower() in desc
+    # Short words ("IA", "AI") count only as whole words, or "ia" would match "media" and "social".
+    hit = lambda w: (_word_re((w,)).search(title) is not None) if len(w) <= 3 else w in title
+    return any(hit(w) for w in words) or any(t in title for t in TOPICS) or search.lower() in desc
 
 
 def run_jobspy(searches, status):
@@ -151,21 +153,33 @@ PROFILE_QUERIES = [
     ({"backend", "rest api", "fastapi", "django", "spring", "node.js"}, "backend developer"),
 ]
 LOCATIONS = {"fr": "Paris", "de": "Berlin", "ca": "Montreal", "ch": "Zurich", "tn": "Tunis", "gl": "Remote"}
+# French titles find offers the English ones miss in French-speaking markets.
+FRENCH_QUERIES = {"fr": ["ingénieur IA", "développeur IA"], "tn": ["ingénieur IA", "développeur IA"], "ch": ["ingénieur IA"]}
+AI_SKILLS = {"machine learning", "deep learning", "llm", "rag", "agents", "pytorch", "tensorflow", "nlp", "computer vision"}
 
 
 def profile_searches(state):
-    """Searches built from the profile when none are saved: the two strongest areas, in the preferred countries."""
+    """Searches built from the profile when none are saved: the two strongest areas, "AI engineer" and your roles,
+    in each of your countries (four per country; Tunisia, on LinkedIn only, gets them all). Remote / Global is left
+    to the remote boards: JobSpy's global Indeed is the US site, whose offers the location rule drops."""
     p = state.get("profile") or {}
     skills = set(p.get("skills") or [])
     ranked = sorted(((len(skills & keys), i, q) for i, (keys, q) in enumerate(PROFILE_QUERIES) if skills & keys), key=lambda t: (-t[0], t[1]))
     queries = [q for _, _, q in ranked[:2]]
     if not queries:
         return DEFAULT_SEARCHES
-    order = [c for c in (p.get("countries") or ["fr", "de", "tn", "gl"]) if c in LOCATIONS]
-    countries = order[:3] + (["tn"] if "tn" in order[3:] else [])  # home market stays in even when ranked lower
-    out = [{"search": q, "c": countries[0], "location": LOCATIONS[countries[0]], "type": ""} for q in queries]  # first country: both
-    out += [{"search": queries[i % len(queries)], "c": c, "location": LOCATIONS[c], "type": ""} for i, c in enumerate(countries[1:])]
-    return out[:5]
+    if skills & AI_SKILLS:
+        queries.append("AI engineer")
+    for r in p.get("roles") or []:  # "backend developer intern" searches as "backend developer"
+        r = re.sub(r"\b(intern|internship|stage|stagiaire)\b", "", r, flags=re.I).strip()
+        if len(r.split()) >= 2:
+            queries.append(r)
+    queries = list({q.lower(): q for q in reversed(queries)}.values())[::-1]  # dedupe, first spelling and order kept
+    out = []
+    for c in [c for c in (p.get("countries") or ["fr", "de", "tn"]) if c in LOCATIONS and c != "gl"]:
+        mine = queries + FRENCH_QUERIES.get(c, []) if c == "tn" else queries[:3] + (FRENCH_QUERIES.get(c) or queries[3:])[:1]
+        out += [{"search": q, "c": c, "location": LOCATIONS[c], "type": ""} for q in mine]
+    return out or DEFAULT_SEARCHES
 
 
 def excluded(item, exclude):
