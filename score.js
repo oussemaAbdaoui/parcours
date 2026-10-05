@@ -580,7 +580,7 @@
       const evidence = cvx ? cvx.bullets.map((b) => { const nb = ' ' + norm(b) + ' '; const hits = skillsIn(b).filter((k) => have.includes(k)).length + kwHave.filter((t) => nb.includes(' ' + t + ' ')).length; return [b, hits]; })
         .filter(([, h]) => h >= 2).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([b]) => b.length > 160 ? b.slice(0, 157) + '…' : b) : [];
       parts.skills = {
-        v, known: total >= 3,
+        v, known: total >= 3, have: [...have, ...extraHits],
         note: `${have.length + extraHits.length} of ${wanted.length + extraHits.length} matched: ${[...have, ...extraHits].slice(0, 6).join(', ') || 'none'}${related.length ? ` · related: ${related.slice(0, 3).join(', ')}` : ''}${kwNote}`,
         missing: missing.slice(0, 5).map((m) => m.k + (inReq.has(m.k) || inTitle.has(m.k) ? ' (required)' : '')),
         keywords: { have: kwHave.slice(0, 6), missing: kwMissing.slice(0, 6) }, evidence,

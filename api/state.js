@@ -9,7 +9,7 @@ const { db } = require('./_db');
 // After each write the assembled state is mirrored to Redis (parcours:state), which the collectors read for
 // the profile and searches. On first use the old Redis copy is imported into Neon.
 const KEY = 'parcours:state';
-const LISTS = ['apps', 'saved', 'journal', 'searches', 'feeds'];
+const LISTS = ['apps', 'saved', 'journal', 'searches', 'feeds', 'queue'];
 const NEWEST_FIRST = new Set(['saved', 'journal']); // the app adds these at the top, the others at the end
 const SETTINGS = ['profile', 'status', 'notes', 'companyNotes', 'seen', 'seenAt', 'mailSeen', 'oppsHidden', 'oppsSeenAt'];
 
