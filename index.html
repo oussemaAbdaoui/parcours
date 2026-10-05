@@ -1415,7 +1415,7 @@ function renderNotes(){
 
 /* ---------- Apply queue: offers you picked, each with a letter ready to paste ---------- */
 const LETTER_DEFAULT={
-job:`Dear {company} hiring team,
+job:`Dear {company} team,
 
 I am applying for the {title} position{place}. I recently completed my {degree}{field}, and my work covers {skills}.
 
@@ -1434,7 +1434,26 @@ I am writing to apply for the doctoral position "{title}" at {company}. I recent
 The topic matches the research I want to pursue, and I would be glad to discuss it with you.
 
 Kind regards,
+{name}`,
+jobFr:`Madame, Monsieur,
+
+Je vous adresse ma candidature pour le poste de {title}{place} chez {company}. Je viens d'obtenir mon {degree}, et mon travail porte sur {skills}.
+
+Je souhaite mettre ces compétences au service de {company} et contribuer à vos projets.
+
+Je reste à votre disposition pour un entretien.
+
+Cordialement,
+{name}`,
+phdFr:`Madame, Monsieur,
+
+Je souhaite candidater à la thèse « {title} » proposée par {company}. Je viens d'obtenir mon {degree}, avec une pratique concrète de {skills}.
+
+Ce sujet correspond à la recherche que je souhaite mener, et ce serait un plaisir d'en discuter avec vous.
+
+Cordialement,
 {name}`};
+const LETTER_KEYS=[['job','Jobs, English'],['jobFr','Jobs, French'],['phd','PhD positions, English'],['phdFr','PhD positions, French']];
 const qList=()=>state.queue||(state.queue=[]);
 const inQueue=id=>qList().some(q=>q.id===id);
 function queueAdd(x){
@@ -1443,19 +1462,74 @@ function queueAdd(x){
     desc:(x.desc||'').slice(0,4000),posted:x.posted||'',deadline:x.deadline||'',applicants:x.applicants,status:'todo',letter:'',addedAt:Date.now()});
   save();
 }
-// Your name: set in the queue's templates, else the CV's first line when it looks like a name.
-function cvName(){const p=prof();if(p.name)return p.name;const l=String(p.cv||'').split('\n').map(s=>s.trim()).find(Boolean)||'';return l.length<=40&&!/[@\d|]/.test(l)?l:'';}
+// Your name: set in the queue's templates, else the capitalised words that open your CV (a PDF paste is one long line).
+function cvName(){
+  const p=prof();if(p.name)return p.name;
+  const m=String(p.cv||'').trim().match(/^((?:[A-ZÀ-Ý][\p{L}'’-]+\s+){1,3}[A-ZÀ-Ý][\p{L}'’-]+)/u);
+  return m&&!/curriculum|resume|vitae/i.test(m[1])?m[1].trim():'';
+}
+// French or English, from the offer's own words.
+function offerLang(q){
+  const t=((q.title||'')+' '+(q.desc||'').slice(0,1500)).toLowerCase();
+  const fr=(t.match(/\b(le|la|les|des|du|et|pour|avec|vous|nous|une|dans|sur|est)\b/g)||[]).length,en=(t.match(/\b(the|and|for|with|you|we|our|to|of|is|are)\b/g)||[]).length;
+  if(fr>=5||en>=5)return fr>en*1.2?'fr':'en';
+  return /(h\/f|f\/h|ingénieur|ingenieur|développeur|developpeur|doctorant|thèse|these)/.test(t)?'fr':'en';
+}
+// "(Junior) Backend Engineer (Python) (m/f/d)" -> "Backend Engineer (Python)"; "PhD Position F/M Topic: long subtitle" -> "Topic".
+function cleanTitle(t,kind,lang){
+  let s=String(t||'').replace(/\s*[(\[]?\b(?:[mfwhdx]\s*\/\s*[mfwhdx](?:\s*\/\s*[mfwhdx])?|all genders|tous genres)\b[)\]]?/gi,'').replace(/^\((?:junior|senior)\)\s*/i,'').replace(/\s+\|\s+.*$/,'');
+  const halves=s.split(/\s+\/\s+/);
+  if(halves.length===2&&halves.every(h=>h.split(' ').length>=2))s=halves[offerLang({title:halves[0]})===lang?0:1];
+  if(kind==='phd'){
+    s=s.replace(/^(?:phd|ph\.d\.?|doctoral|doctorant\w*)(?:\s+(?:position|student position|studentship|fellowship|thesis|f|h))*\s*(?:in|on|en|sur|:|-|–)?\s*/i,'');
+    if(s.length>70&&s.includes(':'))s=s.split(':')[0];
+  }
+  return s.replace(/\s{2,}/g,' ').trim()||String(t||'');
+}
+const cityOf=loc=>{const s=String(loc||'').replace(/\(.*?\)/g,'').split(',')[0].replace(/\s*-\s*\d+.*$/,'').trim();return /^(remote|anywhere.*|worldwide|global|super recruteur|)$/i.test(s)?'':s;};
+const SKIP_SKILL=new Set(['backend','frontend','monitoring','testing','git','linux','agile','research','api','cloud','agents','optimization','monte carlo']);
+function letterParts(q,p,m,lang){
+  const cv=String(p.cv||''),rx=k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  // Skills the offer asks for, written as your CV writes them; skills your CV never names are left out.
+  const spell=k=>{if(!cv)return k;const r=cv.match(new RegExp('(?<![\\w+#])'+rx(k)+'(?![\\w+#])','i'));return r?r[0]:null;};
+  const skills=[];
+  const add=k=>{if(SKIP_SKILL.has(k)||skills.length>=4)return;const s=spell(k);if(s&&!skills.some(o=>o.toLowerCase()===s.toLowerCase()))skills.push(s);};
+  ((m&&m.parts.skills.have)||[]).forEach(add);
+  // Too few from the offer: add the skills your CV names most often, up to two in all (not a random list).
+  if(skills.length<2){const n=k=>(cv.match(new RegExp('(?<![\\w+#])'+rx(k)+'(?![\\w+#])','gi'))||[]).length;[...(p.skills||[])].sort((a,b)=>n(b)-n(a)).forEach(k=>{if(skills.length<2)add(k);});}
+  // The CV bullet naming the most of the offer's skills: an achievement, not a "Stack:" line or a dated header.
+  let evidence='';
+  if(cv&&SC){
+    const want=new Set(SC.skillsIn((q.title||'')+' '+(q.desc||'')));
+    let best='',bs=0;
+    for(const b of cv.split(/\s*[•▪●◦]\s*|\n+/).map(b=>b.trim())){
+      if(b.length<60||/^(stack|skills|tools|technologies|core stack)\b/i.test(b)||/@|\b(19|20)\d{2}\b/.test(b))continue;
+      const sc=SC.skillsIn(b).filter(k=>want.has(k)).length;if(sc>bs){bs=sc;best=b;}
+    }
+    if(best){
+      let s=best.split(/(?<=[.!?])\s+(?=[A-Z])/)[0].replace(/\s+/g,' ').trim();
+      if(s.length>220){
+        const cuts=[', while ',' – ',' — ','; ',', with ',', which ',', and '].map(c=>s.lastIndexOf(c,220)).filter(i=>i>=60);
+        const comma=s.lastIndexOf(', ',220);
+        s=s.slice(0,cuts.length?Math.max(...cuts):comma>=60?comma:s.lastIndexOf(' ',220));
+      }
+      s=s.replace(/[\s.,;:–—-]+$/,'');
+      evidence=/^(?:[A-Z][a-z]+ed|Built|Led|Wrote|Made|Ran|Won|Taught|Grew|Set up|Took|Drove)\b/.test(s)?`In my most relevant work, I ${s[0].toLowerCase()+s.slice(1)}.`:`Relevant experience: ${s}.`;
+    }
+  }
+  const d=p.degree||{},eng=/engineering degree|dipl[oô]me d.ing[ée]nieur/i.test(cv)||(/engineer/i.test(d.name||'')&&!/\bmaster/i.test(cv));
+  const degree=lang==='fr'?(d.level>=4?'doctorat':d.level===3?(eng?"diplôme d'ingénieur":'master'):d.level===2?'licence':'diplôme')
+    :(d.level>=4?'PhD':d.level===3?(eng?'engineering degree':"master's degree"):d.level===2?"bachelor's degree":'degree');
+  const and=lang==='fr'?' et ':' and ',list=a=>a.length>1?a.slice(0,-1).join(', ')+and+a[a.length-1]:a[0]||'';
+  return {skills:list(skills)||(lang==='fr'?"le logiciel et l'IA":'software and AI'),evidence,degree,field:lang==='fr'||!d.field?'':` in ${d.field.replace(/\s*&\s*/g,' and ')}`};
+}
 function letterFor(q){
-  const p=prof(),m=matchOf(q),kind=q.kind==='phd'?'phd':'job',tpl=(p.letters&&p.letters[kind])||LETTER_DEFAULT[kind];
-  // Skills are stored lowercase: write them as your CV does (PyTorch, RAG), else as stored.
-  const cvText=String(p.cv||''),spell=k=>{const r=cvText.match(new RegExp('(?<![\\w+#])'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![\\w+#])','i'));return r?r[0]:k;};
-  const have=((m&&m.parts.skills.have)||[]).slice(0,4).map(spell),mine=(p.skills||[]).slice(0,3).map(spell);
-  const list=a=>a.length>1?a.slice(0,-1).join(', ')+' and '+a[a.length-1]:a[0]||'';
-  const ev=(((m&&m.parts.skills.evidence)||[])[0]||'').replace(/[\s.…]*$/,''),d=p.degree||{};
-  const vals={company:q.org||'your team',title:q.title,place:q.location?` in ${q.location}`:'',
-    degree:d.level>=4?'PhD':d.level===3?"master's degree":d.level===2?"bachelor's degree":'studies',field:d.field?` in ${d.field}`:'',
-    skills:list(have.length?have:mine)||'software and AI',evidence:ev?`Relevant to this role: ${ev}.`:'',name:cvName()};
-  return tpl.replace(/\{(\w+)\}/g,(a,k)=>k in vals?vals[k]:a).replace(/\n{3,}/g,'\n\n').trim();
+  const p=prof(),m=matchOf(q),lang=offerLang(q),key=(q.kind==='phd'?'phd':'job')+(lang==='fr'?'Fr':'');
+  const tpl=(p.letters&&p.letters[key])||LETTER_DEFAULT[key],lp=letterParts(q,p,m,lang),city=cityOf(q.location);
+  const vals={company:q.org||(lang==='fr'?'votre entreprise':'your team'),title:cleanTitle(q.title,q.kind,lang),place:city?(lang==='fr'?` à ${city}`:` in ${city}`):'',
+    degree:lp.degree,field:lp.field,skills:lp.skills,evidence:lp.evidence,name:cvName()};
+  const out=tpl.replace(/\{(\w+)\}/g,(a,k)=>k in vals?vals[k]:a).replace(/\n{3,}/g,'\n\n').trim();
+  return lang==='fr'?out.replace(/\b([Dd])e ([AEIOUYÉÈaeiouyéè])/g,"$1'$2"):out; // "poste de AI…" -> "poste d'AI…"
 }
 function queuePage(){
   const L=qList(),p=prof();
@@ -1464,10 +1538,9 @@ function queuePage(){
   ${todo.length?todo.map(qCard).join(''):`<div class="panel empty"><p>Nothing queued. In <a href="#/opps">Opportunities</a>, press <b>Queue</b> on the offers you want to apply to.</p></div>`}
   ${done.length?`<details class="panel" style="margin-top:16px"><summary><b>Done (${done.length})</b></summary>${done.map(q=>`<div class="row" style="justify-content:space-between;margin-top:8px"><span>${q.status==='sent'?'Sent':'Skipped'} · ${esc(q.title)} · ${esc(q.org)}</span><button class="btn sm ghost" data-qx="${esc(q.id)}">Remove</button></div>`).join('')}</details>`:''}
   <details class="panel" style="margin-top:16px"><summary><b>Letter templates</b></summary>
-    <p class="hint">Placeholders: {company} {title} {place} {degree} {field} {skills} {evidence} {name}. {skills} are the skills from your CV that the offer asks for, {evidence} the CV line that best supports it.</p>
+    <p class="hint">Placeholders: {company} {title} {place} {degree} {field} {skills} {evidence} {name}. French offers get the French templates. {skills} are the skills from your CV that the offer asks for, {evidence} the CV line that best supports it.</p>
     <label class="lab" for="qName">Your name</label><input type="text" id="qName" value="${esc(p.name||cvName())}">
-    <label class="lab" for="qTj" style="margin-top:12px">Jobs</label><textarea id="qTj" rows="12">${esc((p.letters&&p.letters.job)||LETTER_DEFAULT.job)}</textarea>
-    <label class="lab" for="qTp" style="margin-top:12px">PhD positions</label><textarea id="qTp" rows="12">${esc((p.letters&&p.letters.phd)||LETTER_DEFAULT.phd)}</textarea>
+    ${LETTER_KEYS.map(([k,l])=>`<label class="lab" for="qT-${k}" style="margin-top:12px">${l}</label><textarea id="qT-${k}" rows="12">${esc((p.letters&&p.letters[k])||LETTER_DEFAULT[k])}</textarea>`).join("")}
     <div class="row" style="margin-top:10px"><button class="btn primary" id="qTSave">Save templates</button><button class="btn ghost" id="qTReset">Back to defaults</button><span class="hint" id="qTMsg"></span></div></details>`;
   const find=id=>L.find(q=>q.id===id),msgOf=id=>$(`[data-qmsg="${CSS.escape(id)}"]`);
   let tq=null;
@@ -1480,8 +1553,8 @@ function queuePage(){
     q.status='sent';q.doneAt=Date.now();save();queuePage();}));
   document.querySelectorAll('[data-qskip]').forEach(b=>b.addEventListener('click',()=>{const q=find(b.dataset.qskip);if(q){q.status='skipped';q.doneAt=Date.now();save();queuePage();}}));
   document.querySelectorAll('[data-qx]').forEach(b=>b.addEventListener('click',()=>{state.queue=L.filter(q=>q.id!==b.dataset.qx);save();queuePage();}));
-  $('#qTSave').addEventListener('click',()=>{setProfile({name:$('#qName').value.trim(),letters:{job:$('#qTj').value,phd:$('#qTp').value}});$('#qTMsg').textContent='Saved. Letters you have not edited use the new templates.';});
-  $('#qTReset').addEventListener('click',()=>{$('#qTj').value=LETTER_DEFAULT.job;$('#qTp').value=LETTER_DEFAULT.phd;$('#qTMsg').textContent='Press Save templates to keep the defaults.';});
+  $('#qTSave').addEventListener('click',()=>{setProfile({name:$('#qName').value.trim(),letters:Object.fromEntries(LETTER_KEYS.map(([k])=>[k,$('#qT-'+k).value]))});$('#qTMsg').textContent='Saved. Letters you have not edited use the new templates.';});
+  $('#qTReset').addEventListener('click',()=>{LETTER_KEYS.forEach(([k])=>{$('#qT-'+k).value=LETTER_DEFAULT[k];});$('#qTMsg').textContent='Press Save templates to keep the defaults.';});
 }
 function qCard(q){
   const m=matchOf(q),u=safeUrl(q.url),v=DOM[q.kind]||DOM.job,c=cById(q.c)||{flag:''},id=esc(q.id);
