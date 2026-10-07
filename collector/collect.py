@@ -397,6 +397,13 @@ def main():
             status["Master's"] = {"ok": False, "count": 0, "error": str(e)[:160]}
         st = status["Master's"]
         print(f"  Master's         {'ok ' if st['ok'] else 'ERR'} {st['count']:4}  {st.get('error', '')}")
+        try:  # Poli sponsor directory and sponsored employees, in their own store, refreshed once a day
+            import poli
+            status["Poli directory"] = poli.run(store, dry=dry, force="--poli" in sys.argv)
+        except Exception as e:
+            status["Poli directory"] = {"ok": False, "count": 0, "error": str(e)[:160]}
+        st = status["Poli directory"]
+        print(f"  Poli directory   {'ok ' if st['ok'] else 'ERR'} {st['count']:4}  {st.get('error', '')}")
 
     if dry:
         for x in items[:15]:

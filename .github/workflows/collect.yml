@@ -34,5 +34,7 @@ jobs:
           STEALTH: "1"
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          POLI_EMAIL: ${{ secrets.POLI_EMAIL }}
+          POLI_PASSWORD: ${{ secrets.POLI_PASSWORD }}
           PYTHONUNBUFFERED: "1"
         run: python collector/collect.py ${{ (inputs.dry_run || secrets.UPSTASH_REDIS_REST_URL == '') && '--dry-run' || '' }}

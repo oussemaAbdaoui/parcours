@@ -466,10 +466,39 @@ def we_work_remotely(keywords):
     return out
 
 
+# Poli category ids: Engineering (Software), Data, Research (Technical). Seniority ids: entry-level, junior, mid-level.
+POLI_CATEGORIES, POLI_SENIORITIES = (6, 8, 3), (1, 2, 3)
+
+
+def poli(keywords):
+    """Poli (withpoli.com), UK jobs at licensed visa sponsors. With a Poli account (POLI_EMAIL / POLI_PASSWORD) reads
+    the signed-in feed (poli.py); without one, the feed shown to signed-out visitors, which returns 10 offers per set
+    of preferences, so each category and seniority is asked for separately."""
+    import poli as poli_api
+    s = poli_api.session()
+    if s:
+        return poli_api.jobs(s)
+    out, seen = [], set()
+    for cat in POLI_CATEGORIES:
+        for sen in POLI_SENIORITIES:
+            prefs = {"jobTypes": [1], "jobCategories": [cat], "jobSeniorities": [sen],
+                     "jobLocations": [1, 2, 3, 4, 5, 6], "immediateSponsorshipRequired": True}
+            page = Fetcher.post(poli_api.BASE + "jobs", json={"initialFetch": True, "visitorPreferences": prefs},
+                                stealthy_headers=True, timeout=30)
+            if page.status != 200:
+                raise RuntimeError(f"HTTP {page.status} from app.withpoli.com")
+            time.sleep(UA_PAUSE)
+            for j in (page.json().get("data") or {}).get("jobs") or []:
+                if j.get("id") not in seen and j.get("active", True) and j.get("url"):
+                    seen.add(j["id"])
+                    out.append(poli_api.offer(j))
+    return out
+
+
 SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
             "jobs.ch": jobs_ch, "Job Bank": jobbank, "CNRS": cnrs, "Max Planck": max_planck, "jobRxiv": jobrxiv,
             "Farojob": farojob, "Himalayas": himalayas, "Jobicy": jobicy, "Working Nomads": working_nomads,
-            "We Work Remotely": we_work_remotely}
+            "We Work Remotely": we_work_remotely, "Poli": poli}
 COUNTRY_WORDS = (("france", "fr"), ("germany", "de"), ("deutschland", "de"), ("switzerland", "ch"), ("schweiz", "ch"),
                  ("suisse", "ch"), ("canada", "ca"), ("tunisia", "tn"), ("tunisie", "tn"))
 

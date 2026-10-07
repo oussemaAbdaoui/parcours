@@ -23,6 +23,17 @@ module.exports = async (req, res) => {
       return res.status(502).json({ error: 'Storage is unavailable right now.' });
     }
   }
+  if ((req.query || {}).set === 'poli') {
+    // Poli (collector/poli.py): UK sponsor directory, employees likely sponsored there, and the run report with Poli's totals.
+    try {
+      const [co, pe, meta] = await Promise.all([redis(u, ['HVALS', 'parcours:poli:companies']), redis(u, ['HVALS', 'parcours:poli:people']),
+        redis(u, ['GET', 'parcours:poli:meta'])]);
+      const parse = (r) => ((r && r.result) || []).map((v) => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
+      return res.status(200).json({ ...(meta && meta.result ? JSON.parse(meta.result) : { at: 0 }), companies: parse(co), people: parse(pe) });
+    } catch (e) {
+      return res.status(502).json({ error: 'Storage is unavailable right now.' });
+    }
+  }
   if ((req.query || {}).set === 'companies') {
     // Daily company refresh (collector/companies.py): ratings, open offers, last refresh, keyed by normalised name.
     try {

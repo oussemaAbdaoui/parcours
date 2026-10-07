@@ -74,6 +74,7 @@ Your saved searches drive the job boards (4 defaults until you save your own); a
 | Switzerland, Canada | jobs.ch, Job Bank | Scrapling |
 | Tunisia | Keejob, Farojob | Scrapling |
 | PhD and research | jobs.ac.uk, ELLIS, jobRxiv, Academic Positions, ScholarshipDB | Scrapling (the last two in stealth mode) |
+| UK visa sponsorship | Poli (withpoli.com) | Its JSON API: the signed-in feed with a Poli account, else the visitor feed (10 offers per category and level) |
 | Remote | We Work Remotely (RSS), Himalayas, Jobicy, Working Nomads (APIs) | Public feeds |
 
 **Stealth mode.** ABG, Academic Positions, ScholarshipDB and StepStone sit behind Cloudflare or similar bot protection, so they are read with Scrapling's `StealthyFetcher`, a real browser that passes those challenges (the workflow installs it with `scrapling install`). This goes against those sites' terms; it reads a few listing pages per run and a failure only marks that source as failed.
@@ -81,6 +82,8 @@ Your saved searches drive the job boards (4 defaults until you save your own); a
 **Not reachable from GitHub:** FindAPhD, Tanitjobs, MastersPortal, PhDPortal, DAAD, ZipRecruiter, Glassdoor and Bayt block GitHub's IP addresses outright, and Google Jobs returns nothing to servers. Euraxess disallows its search in robots.txt. Subscribe to their email alerts; Scan Gmail picks them up. No master's programme catalogue is reachable yet.
 
 Setup: add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as repository secrets on GitHub. Without them the workflow runs in dry-run mode and only prints what it found. Run it by hand from the Actions tab (**Collect opportunities, Run workflow**). Items older than 45 days or past their deadline are dropped.
+
+**Poli.** With `POLI_EMAIL` and `POLI_PASSWORD` (a Poli Pro account) as repository secrets, the collector signs in to Poli and reads, besides up to 300 offers from its personalised feed (it follows the preferences saved in the Poli account), the whole UK sponsor directory and the employees likely sponsored there (each company's list plus the account's network), once a day (`collector/poli.py`, `--poli` forces a refresh). The app reads them from `/api/opps?set=poli`.
 
 ## Updating the radar
 
