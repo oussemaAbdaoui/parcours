@@ -2647,9 +2647,9 @@ function sponsorsPage(tab){
   }).catch(e=>{$('#spBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load the sponsor directory.'))}</p>`;});
 }
 
-/* Live Poli jobs (api/poli.js): the account's feed, every detail Poli has, and each company's jobs and sponsored staff */
+/* Live Poli jobs (api/_poli.js, served at /api/opps?set=poli-live): the account's feed, every detail Poli has, and each company's jobs and sponsored staff */
 let pj={mode:'feed',jobs:[],more:false,loading:false,sort:'relevance',q:'',open:null,at:0,opts:null,prefs:null};
-async function poliApi(actions){return (await api('/api/poli',{method:'POST',body:JSON.stringify({actions})})).results;}
+async function poliApi(actions){return (await api('/api/opps?set=poli-live',{method:'POST',body:JSON.stringify({actions})})).results;}
 // Poli stores some text double-encoded ("Â£28,000", "â€“"): decode it back when that is what happened.
 const CP1252={'€':128,'‚':130,'ƒ':131,'„':132,'…':133,'†':134,'‡':135,'ˆ':136,'‰':137,'Š':138,'‹':139,'Œ':140,'Ž':142,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'˜':152,'™':153,'š':154,'›':155,'œ':156,'ž':158,'Ÿ':159};
 const pfix=s=>{s=String(s==null?'':s);if(!/[ÂÃâ]/.test(s))return s;const b=[];

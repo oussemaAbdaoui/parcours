@@ -1,10 +1,11 @@
-const { auth, upstash, redis } = require('./_lib');
+const { upstash, redis } = require('./_lib');
 
 // Live Poli (withpoli.com) inside the app: signs in with POLI_EMAIL / POLI_PASSWORD (Vercel environment) and relays
 // a fixed list of Poli API calls the Poli web app makes: the jobs feed and its paging, applied jobs, filter options,
 // any company's open jobs and sponsored employees, the network. The only writes are the feed preferences and sort
 // order, which is how the Poli feed is filtered. The Poli session cookie is kept in Redis (about an hour), so the
-// app does not sign in on every request. Collector side: collector/poli.py.
+// app does not sign in on every request. Served by api/opps.js (?set=poli-live: the Hobby plan allows 12 functions).
+// Collector side: collector/poli.py.
 const BASE = 'https://app.withpoli.com/api/';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36';
 const SESSION_KEY = 'parcours:poli:session';
@@ -82,8 +83,6 @@ async function call(u, method, path, body, retried) {
 }
 
 module.exports = async (req, res) => {
-  if (!auth(req, res)) return;
-  res.setHeader('Cache-Control', 'no-store');
   const b = (req.method === 'POST' ? req.body : req.query) || {};
   const list = Array.isArray(b.actions) ? b.actions : [b];
   if (!list.length || list.length > 8 || list.some((a) => !ACTIONS[a && a.action])) return res.status(400).json({ error: 'Unknown Poli action.' });

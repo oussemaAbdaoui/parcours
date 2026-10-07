@@ -23,6 +23,7 @@ module.exports = async (req, res) => {
       return res.status(502).json({ error: 'Storage is unavailable right now.' });
     }
   }
+  if ((req.query || {}).set === 'poli-live') return require('./_poli')(req, res); // live Poli (api/_poli.js)
   if ((req.query || {}).set === 'poli') {
     // Poli (collector/poli.py): UK sponsor directory, employees likely sponsored there, and the run report with Poli's totals.
     try {
