@@ -556,7 +556,7 @@ textarea{height:auto}
 .sc:has(input:checked),.fchips button[aria-pressed="true"]{background:var(--blue-t);color:var(--blue-ink);border-color:transparent}
 .seg{border-radius:999px;padding:4px;background:var(--surface);box-shadow:var(--card-sh)}
 .seg button{height:32px;border-radius:999px;padding:0 14px;font-weight:600}
-.seg button[aria-pressed="true"]{background:var(--ink-strong);color:#fff;box-shadow:none}
+.seg button[aria-pressed="true"]{background:var(--ink-strong);color:var(--bg);box-shadow:none}
 
 /* white cards on the soft canvas */
 .panel{background:var(--surface);border:0;border-radius:26px;padding:24px 26px;margin-bottom:20px;box-shadow:var(--card-sh)}
@@ -626,6 +626,7 @@ textarea{height:auto}
 .card .big{font-family:var(--display);font-weight:600;font-size:21px;letter-spacing:-.015em}
 .card.dom{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 10%,var(--surface)) 0,var(--surface) 75%)}
 .card.dom .big::before{width:10px;height:10px;border-radius:50%}
+.card.dom .big{align-items:baseline}.card.dom .big::before{flex:0 0 auto;transform:translateY(-2px)}
 .col{background:color-mix(in srgb,var(--surface) 55%,transparent);border:0;border-radius:26px;padding:12px}
 .colh{font-weight:800}
 .kcard{border:0;border-radius:18px;box-shadow:var(--card-sh)}
@@ -638,6 +639,52 @@ textarea{height:auto}
 .imp,.found{border:0;border-radius:20px;background:var(--surface);box-shadow:var(--card-sh)}
 dialog{border-radius:28px;box-shadow:var(--pop)}
 .foot{border-top:1px solid var(--line)}
+
+
+/* ---------- redesign: section tabs, drawer, compact rows ---------- */
+.subnav{display:flex;gap:6px;margin:0 0 22px;overflow-x:auto;scrollbar-width:none}
+.subnav[hidden]{display:none}
+.subnav a{flex:0 0 auto;display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;background:transparent}
+.subnav a:hover{background:var(--surface);color:var(--ink-strong)}
+.subnav a[aria-current="page"]{background:var(--ink-strong);color:var(--bg)}
+.tabs a,:root[data-theme="dark"] .tabs a{font-size:12px}
+.two.one{grid-template-columns:1fr}
+.panel[hidden]{display:none}
+.skfold>summary{cursor:pointer;font-weight:600;font-size:13.5px;color:var(--blue-ink);margin:6px 0 10px;list-style:none}
+.skfold>summary::-webkit-details-marker{display:none}
+.skfold>summary::before{content:"▸ ";}.skfold[open]>summary::before{content:"▾ ";}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100vw);z-index:40;background:var(--surface);box-shadow:var(--pop);overflow-y:auto;overscroll-behavior:contain;transform:translateX(105%);transition:transform .22s ease;visibility:hidden}
+.has-drawer .drawer{transform:none;visibility:visible}
+.drawer-top{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:var(--surface);border-bottom:1px solid var(--line-2)}
+.drawer-top b{font-family:var(--display);font-size:16px;color:var(--ink-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drawer-body{padding:18px 20px 40px}
+.drawer-body .pjd{margin:0;background:none;padding:0}
+.drawer-body .offer{grid-template-columns:minmax(0,1fr);padding:12px 0}
+.drawer-scrim{position:fixed;inset:0;z-index:39;background:rgba(10,16,34,.28);opacity:0;pointer-events:none;transition:opacity .2s}
+.has-drawer .drawer-scrim{opacity:1;pointer-events:auto}
+@media(min-width:1280px){.has-drawer .drawer-scrim{background:transparent}}
+.rowbtn{cursor:pointer}
+.rowbtn:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}
+.acline{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:13px;color:var(--muted);margin-top:3px}
+.acline b{color:var(--ink);font-weight:600}
+.mailok{color:var(--ok);font-weight:700}.mailguess{color:var(--warn);font-weight:700}
+@media(max-width:900px){
+  .subnav{margin:0 -16px 18px;padding:0 16px}
+  .stats{grid-template-columns:1fr 1fr;gap:10px}
+  .stats .stat:first-child:last-child{grid-column:1/-1}
+  .stats .stat:last-child:nth-child(odd){grid-column:1/-1}
+  #view>.sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #view>h1{font-size:30px}
+  .stat b{font-size:28px}
+  #weekBox .stat:first-child b{font-size:56px}
+  #weekBox .stat:first-child{padding:20px 22px;border-radius:24px}
+  .toolbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding:2px 16px 6px}
+  .toolbar>*{flex:0 0 auto}
+  .toolbar input[type=search]{min-width:220px;max-width:none}
+  .drawer{width:100vw}
+  .drawer-body{padding:16px 16px calc(40px + env(safe-area-inset-bottom,0px))}
+  .bottombar{grid-template-columns:repeat(5,1fr)}
+}
 
 /* ---------- phones (last, so it wins over the desktop rules above) ---------- */
 .bottombar,.sheet,.tb-logo,.fbtn{display:none}
@@ -734,18 +781,10 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
 <aside class="side">
   <a class="brand" href="#/" aria-label="Parcours home"><img class="logo-mark" src="/logo-96.png" width="52" height="52" alt=""><span>Parcours<small>Jobs, master's and PhD</small></span></a>
   <nav class="tabs" id="tabs" aria-label="Sections">
-    <div class="navlab">General</div>
-    <a href="#/" data-t="overview"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg>Overview</a>
-    <div class="navlab">Search</div>
-    <a href="#/opps" data-t="opps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z"/></svg>Opportunities</a>
-    <a href="#/academia" data-t="academia"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></svg>Professors</a>
-    <a href="#/sponsors" data-t="sponsors"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>Poli</a>
-    <div class="navlab">Track</div>
-    <a href="#/apps" data-t="apps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z"/></svg>Applications</a>
-    <a href="#/queue" data-t="queue"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"/></svg>Apply queue</a>
-    <a href="#/companies" data-t="companies"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M240,208H224V96a16,16,0,0,0-16-16H144V32a16,16,0,0,0-24.88-13.32L39.12,72A16,16,0,0,0,32,85.34V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,96V208H144V96ZM48,85.34,128,32V208H48ZM112,112v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm-32,0v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm0,56v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Zm32,0v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Z"/></svg>Companies</a>
+    <a href="#/" data-t="overview"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg>Home</a>
+    <a href="#/opps" data-t="discover"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>Discover</a>
+    <a href="#/apps" data-t="track"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z"/></svg>Track</a>
     <a href="#/notes" data-t="notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>Notes</a>
-    <div class="navlab">You</div>
     <a href="#/profile" data-t="profile"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></svg>Profile</a>
   </nav>
   <div class="side-foot"><span class="syncl" id="sync"></span></div>
@@ -756,6 +795,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
 <div class="wrap">
   <div class="demo warn" id="notice" role="status" aria-live="polite" hidden></div>
   <div id="demoBar"></div>
+  <nav class="subnav" id="subnav" aria-label="In this section"></nav>
   <main id="view" tabindex="-1"></main>
   <p class="foot">Platform lists come from general knowledge, so check each site for current deadlines and eligibility. <button type="button" id="exp">Export backup</button> · <button type="button" id="bkImp">Import backup</button> · <button type="button" id="reset">Reset all data</button> · <button type="button" id="signout">Sign out</button></p><input type="file" id="bkFile" accept="application/json" hidden>
 </div>
@@ -763,20 +803,11 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
 </div>
 <nav class="bottombar" aria-label="Sections">
   <a href="#/" data-t="overview"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg><span>Home</span></a>
-  <a href="#/opps" data-t="opps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z"/></svg><span>Offers</span></a>
-  <a href="#/apps" data-t="apps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z"/></svg><span>Board</span></a>
-  <a href="#/companies" data-t="companies"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M240,208H224V96a16,16,0,0,0-16-16H144V32a16,16,0,0,0-24.88-13.32L39.12,72A16,16,0,0,0,32,85.34V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,96V208H144V96ZM48,85.34,128,32V208H48ZM112,112v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm-32,0v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm0,56v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Zm32,0v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Z"/></svg><span>Companies</span></a>
+  <a href="#/opps" data-t="discover"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg><span>Discover</span></a>
+  <a href="#/apps" data-t="track"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z"/></svg><span>Track</span></a>
+  <a href="#/notes" data-t="notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg><span>Notes</span></a>
   <a href="#/profile" data-t="profile"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></svg><span>Profile</span></a>
-  <button type="button" id="moreBtn" data-t="more" aria-expanded="false" aria-controls="moreSheet"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z"/></svg><span>More</span></button>
 </nav>
-<div class="sheet" id="moreSheet" hidden>
-  <a href="#/academia"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></svg>Professors</a>
-  <a href="#/sponsors"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>Poli</a>
-  <a href="#/queue"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"/></svg>Apply queue</a>
-  <a href="#/notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>Notes</a>
-  <button type="button" id="themeBtn2"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z"/></svg>Switch light and dark</button>
-  <span class="syncl" id="sync2"></span>
-</div>
 
 <dialog id="loginDlg" aria-labelledby="loginT">
   <div class="dl"><h2 id="loginT">Sign in</h2><p class="hint" id="loginMsg" style="margin:0"></p>
@@ -1129,14 +1160,14 @@ function overview(){
     <div class="panel"><h2>By platform</h2><p class="hint">Dark part: replied.</p>${platforms(apps)}</div>
   </div>
   <div class="panel"><h2>Where you applied</h2><p class="hint">Select a cell to see those applications.</p>${matrix(apps)}</div>
-  <div class="panel"><h2>Read my search</h2><p class="hint">Claude looks at your numbers and points out patterns and next steps.</p>
+  <div class="panel" ${caps.ai&&!demo?'':'hidden'}><h2>Read my search</h2><p class="hint">Claude looks at your numbers and points out patterns and next steps.</p>
     <button class="btn" id="insBtn" ${sample?'':'hidden'}>Analyse my search</button>
     <div class="insight" id="insOut" aria-live="polite"></div></div>`;
   loadBest();weekPanel();
 }
 async function loadBest(){
   const b=$('#bestBox');if(!b)return;
-  if(!caps.online||demo){b.innerHTML='<p class="hint" style="margin:0">Your top-scored offers appear here in the deployed app.</p>';return;}
+  if(!caps.online||demo){const pn=b.closest('.panel');if(pn)pn.remove();return;}
   if(!colData){b.innerHTML='<p class="hint" style="margin:0">Loading…</p>';try{colData=await api('/api/opps');}catch(e){b.innerHTML='<p class="hint" style="margin:0">Could not load collected offers.</p>';return;}}
   if(!$('#bestBox'))return;
   const hidden=new Set(state.oppsHidden||[]);
@@ -1709,9 +1740,10 @@ function visibleOffers(){
   scoreProf=null;return l;
 }
 async function ensureCollected(box){
+  if(colData&&!Array.isArray(colData.items))colData=null;
   if(colData)return true;
   if(!caps.online){if(box)box.innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return false;}
-  try{colData=await api('/api/opps');}catch(e){if(box)box.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load collected offers.'))}</p>`;return false;}
+  try{colData=await api('/api/opps');if(!Array.isArray(colData.items))throw {code:'bad',message:'Collected offers came back empty.'};}catch(e){colData=null;if(box)box.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load collected offers.'))}</p>`;return false;}
   if(colPrev===null){colPrev=state.oppsSeenAt||0;const mx=Math.max(0,...colData.items.map(x=>x.foundAt||0));if(mx>(state.oppsSeenAt||0)&&!demo){state.oppsSeenAt=mx;save();}}
   return true;
 }
@@ -1778,15 +1810,12 @@ function marketCharts(all){
 })();
 
 function oppsHub(){
-  $('#view').innerHTML=`<h1>Opportunities</h1><p class="sub">Offers collected for you every 6 hours, sorted into categories, plus your own search tools.</p>
+  $('#view').innerHTML=`<h1>Jobs</h1><p class="sub">Offers collected for you every 6 hours, sorted into categories, plus your own search tools.</p>
   <h2 class="sec">Collected for you</h2><div class="grid" id="hubKinds"><p class="hint">Loading…</p></div>
-  <h2 class="sec">Master's in Germany, France and Italy</h2><div class="grid" id="hubMasters"><p class="hint">Loading…</p></div>
   <div id="hubCharts"></div>
   <h2 class="sec">Search and track</h2><div class="grid tools">
     <a class="card tool" href="#/opps/search"><span class="big">Search jobs</span><p>Live search on up to 10 sources, with match scores.</p></a>
     <a class="card tool" href="#/opps/saved-searches"><span class="big">Saved searches</span><p>${state.searches.length} of 4 saved. They also steer the collector.</p></a>
-    <a class="card tool" href="#/opps/labs"><span class="big">PhD supervisors</span><p>Who publishes on your topic lately, and where. From OpenAlex and HAL.</p></a>
-    <a class="card tool" href="#/opps/radar"><span class="big">PhD and master's radar</span><p>Hand-picked programmes and positions with deadlines.</p></a>
     <a class="card tool" href="#/opps/feeds"><span class="big">Your feeds</span><p>${state.feeds.length} RSS or Atom feed${state.feeds.length===1?'':'s'}.</p></a>
     <a class="card tool" href="#/opps/saved"><span class="big">Saved jobs</span><p>${state.saved.length} saved.</p></a>
   </div>`;
@@ -1806,7 +1835,7 @@ function oppsHub(){
 }
 function oppsCountries(kind){
   const v=DOM[kind]||DOM.job;
-  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],KIND_LABEL[kind])+`<div style="--accent:var(${v.color});--tint:var(${v.tint})"><h1>${KIND_LABEL[kind]}</h1><p class="sub">Choose a country. Ordered by your preference in Profile.</p><div class="grid" id="ctyBox"><p class="hint">Loading…</p></div></div>`;
+  $('#view').innerHTML=crumbs([['Jobs','#/opps']],KIND_LABEL[kind])+`<div style="--accent:var(${v.color});--tint:var(${v.tint})"><h1>${KIND_LABEL[kind]}</h1><p class="sub">Choose a country. Ordered by your preference in Profile.</p><div class="grid" id="ctyBox"><p class="hint">Loading…</p></div></div>`;
   const box=$('#ctyBox');
   ensureCollected(box).then(ok=>{
     if(!ok||!$('#ctyBox'))return;
@@ -1829,7 +1858,7 @@ function oppsList(kind,c){
   loadCollected();
 }
 function oppsSearch(){
-  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],'Search jobs')+`<h1>Search jobs</h1><p class="sub">Live listings from job APIs and boards, scored against your profile.</p>
+  $('#view').innerHTML=crumbs([['Jobs','#/opps']],'Search jobs')+`<h1>Search jobs</h1><p class="sub">Live listings from job APIs and boards, scored against your profile.</p>
   <div class="panel">
     <div class="g2"><div><label class="lab" for="jS">Keywords</label><input type="text" id="jS" list="jSl" value="machine learning engineer"><datalist id="jSl"><option value="machine learning engineer"><option value="AI engineer"><option value="NLP engineer"><option value="backend developer"><option value="software engineer"><option value="data scientist"></datalist></div>
     <div><label class="lab" for="jC">Country</label><select id="jC">${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select></div></div>
@@ -1850,7 +1879,7 @@ function oppsSearch(){
   $('#jSaveS').addEventListener('click',saveSearch);
 }
 function oppsTool(name,h,sub,boxId,init){
-  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],h)+`<h1>${esc(h)}</h1><p class="sub">${sub}</p><div class="panel"><div id="${boxId}"></div></div>`;
+  $('#view').innerHTML=crumbs([['Jobs','#/opps']],h)+`<h1>${esc(h)}</h1><p class="sub">${sub}</p><div class="panel"><div id="${boxId}"></div></div>`;
   init();
 }
 /* PhD supervisor finder (OpenAlex, HAL) */
@@ -1859,7 +1888,7 @@ function oppsLabs(){
   const p=prof();
   const sugg=[...new Set([...(p.skills||[]).filter(s=>SC&&['nlp','llm','xai','ir','cv','ml','opt'].includes(SC.FAMILY[s])),...(p.roles||[]).filter(r=>/research|phd|these/i.test(r))])].slice(0,10);
   if(!labQ.q)labQ.q=sugg.includes('explainable ai')?'explainable AI':sugg[0]||'natural language processing';
-  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],'PhD supervisors')+`<h1>PhD supervisors</h1>
+  $('#view').innerHTML=crumbs([['Jobs','#/opps']],'PhD supervisors')+`<h1>PhD supervisors</h1>
     <p class="sub">Researchers publishing on your topic lately, ranked by recent papers. Papers where they are last author count double, since that is usually the supervisor. Writing to them directly is the strongest PhD route.</p>
     <div class="panel"><form id="lbF" class="toolbar" style="margin:0">
       <input type="search" id="lbQ" list="lbS" placeholder="Research topic, e.g. explainable AI…" value="${esc(labQ.q)}" aria-label="Research topic" style="max-width:360px">
@@ -1914,7 +1943,7 @@ function mastersHubCards(){
 function mastersPage(t){
   if(t==='program'||t==='scholarship')msF.t=t;else if(!t)msF.t='';
   const title=msF.t==='program'?"Master's programmes":msF.t==='scholarship'?'Scholarships':"Master's programmes and scholarships";
-  $('#view').innerHTML=crumbs([['Opportunities','#/opps']],title)+`<h1>${title}</h1>
+  $('#view').innerHTML=crumbs([['Jobs','#/opps']],title)+`<h1>${title}</h1>
     <p class="sub">Germany, France and Italy, matched to the skills and languages in your profile. Scholarships are filtered to Tunisian graduates.</p>
     <div class="toolbar">
       <input type="search" id="msQ" placeholder="Search programme, university, city…" aria-label="Search master's programmes" value="${esc(msF.q)}">
@@ -2259,7 +2288,9 @@ function profilePage(){
     <div id="pfMsg" class="found" aria-live="polite"></div>
     <div id="pfAts"></div></div>
   <div class="panel"><h2>Skills</h2><p class="hint">${p.skills.length} selected. Offers asking for a skill in the same family as yours get half credit.</p>
-    <div class="fams">${Object.entries(groups).map(([f,l])=>`<div class="fam"><span class="lab">${esc(FAMILY_LABEL[f]||f)}</span><div class="skills">${l.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="${p.skills.includes(n)}">${esc(n)}</button>`).join('')}</div></div>`).join('')}</div>
+    ${p.skills.length?`<div class="skills" style="margin:4px 0 12px">${p.skills.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="true">${esc(n)}</button>`).join('')}</div>`:''}
+    <details class="skfold" ${p.skills.length?'':'open'}><summary>${p.skills.length?'Add or remove skills':'Pick your skills'} · ${Object.keys(groups).length} families</summary>
+    <div class="fams">${Object.entries(groups).map(([f,l])=>`<div class="fam"><span class="lab">${esc(FAMILY_LABEL[f]||f)}</span><div class="skills">${l.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="${p.skills.includes(n)}">${esc(n)}</button>`).join('')}</div></div>`).join('')}</div></details>
     <label class="lab" for="pfExtra" style="margin-top:16px">Other terms from your CV <span class="hint" style="font-weight:400">(matched word for word in offers, comma separated)</span></label>
     <textarea id="pfExtra" rows="2">${esc(p.extra.join(', '))}</textarea></div>
   <div class="two">
@@ -2568,8 +2599,8 @@ async function weekPanel(){
       <div class="stat"><span>Deadlines</span><b>${soon.length}</b><small>Next 14 days</small></div>
       <div class="stat"><span>Follow-ups due</span><b>${follow.length}</b><small>No reply after 14 days</small></div>
       <div class="stat"><span>Applications this week</span><b>${logged}</b><small>Logged in the last 7 days</small></div></div>
-    <div class="two">
-      <div class="panel"><h2>New strong matches</h2>${strong.length?'<div class="offers compact">'+strong.slice(0,5).map(x=>`<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${link(x.url,x.title)}</h3><div class="meta"><b>${coLink(x.org)}</b> · ${esc(x.source)}</div></div></article>`).join('')+'</div>'+(strong.length>5?`<p style="margin:8px 0 0"><a href="#/opps/all">All ${strong.length}</a></p>`:''):'<p class="hint" style="margin:0">None this week yet.</p>'}</div>
+    <div class="two${strong.length?'':' one'}">
+      ${strong.length?'<div class="panel"><h2>New strong matches</h2><div class="offers compact">'+strong.slice(0,5).map(x=>`<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${link(x.url,x.title)}</h3><div class="meta"><b>${coLink(x.org)}</b> · ${esc(x.source)}</div></div></article>`).join('')+'</div>'+(strong.length>5?`<p style="margin:8px 0 0"><a href="#/opps/all">All ${strong.length}</a></p>`:'')+'</div>':''}
       <div class="panel"><h2>Coming up</h2>
         ${soon.length?soon.slice(0,6).map(x=>{const n=Math.round((tms(x.d)-today0)/864e5);return `<div class="rn"><b>${link(x.url,x.t)}</b><span>${esc(x.org||'')} · ${n===0?'today':n===1?'tomorrow':'in '+n+' days'} (${esc(x.d)}) · ${x.src}</span></div>`;}).join(''):'<p class="hint">No deadlines in the next two weeks.</p>'}
         <h2 style="margin-top:14px">Follow up</h2>
@@ -2751,7 +2782,8 @@ async function poliLive(el,companyId,kind,offset=0){
 document.addEventListener('click',e=>{
   if(!e.target.closest)return;
   const o=e.target.closest('[data-pjopen]');
-  if(o){const id=+o.dataset.pjopen;pj.open=pj.open===id?null:id;if(pj.open)poliApi([{action:'markSeen',jobId:id}]).catch(()=>{});const j=pj.jobs.find(x=>x.id===id),row=o.closest('.offer');if(j&&row)row.outerHTML=pjRow(j);return;}
+  if(o){const id=+o.dataset.pjopen,j=pj.jobs.find(x=>x.id===id);if(!j)return;poliApi([{action:'markSeen',jobId:id}]).catch(()=>{});
+    openDrawer(pjRow(j)+pjDetails(j),pfix(j.title));return;}
   const c=e.target.closest('[data-pjco]');
   if(c){const box=c.dataset.off?c.closest('.pjlive'):(c.closest('.pjd,.panel')||document).querySelector('.pjlive');if(box){c.disabled=true;poliLive(box,c.dataset.pjco,c.dataset.k,+(c.dataset.off||0)).then(()=>{c.disabled=false;});}}
 });
@@ -2808,7 +2840,7 @@ document.addEventListener('click',async e=>{
       if(k==='applied'){await poliApi([{action:'markApplied',jobId:j.id}]);j.applied=true;a.textContent='Marked applied on Poli';return;}
       if(k==='down'){await poliApi([{action:'downvote',jobId:j.id}]);pj.jobs=pj.jobs.filter(x=>x.id!==j.id);}
       if(k==='hide'){await poliApi([{action:'hideCompany',companyId:co.id}]);pm.hidden.add(co.id);pj.jobs=pj.jobs.filter(x=>(x.company||{}).id!==co.id);}
-      pj.open=null;renderPoliJobs();
+      pj.open=null;closeDrawer();renderPoliJobs();
     }catch(err){a.disabled=false;a.textContent=errText(err,{},'Poli did not answer. Try again.');}
     return;
   }
@@ -2894,7 +2926,7 @@ function poliPanelHtml(name){
 }
 
 /* Schools and professors (collector/academia.py): who to write to for a master's, a PhD or a scholarship */
-let acData=null,acAt=0,acF={tab:'professors',c:'',q:'',kind:'',sort:'score',offer:'',open:null},acMax=40;
+let acData=null,acAt=0,acF={tab:'professors',c:'',q:'',kind:'',sort:'score',offer:'research',open:null},acMax=40;
 const AC_C={fr:['🇫🇷','France'],de:['🇩🇪','Germany'],ca:['🇨🇦','Canada'],ch:['🇨🇭','Switzerland'],tn:['🇹🇳','Tunisia']};
 async function loadAcademia(){
   if(!acData||Date.now()-acAt>10*60e3){acData=await api('/api/opps?set=academia');acAt=Date.now();acIdx=null;}
@@ -2916,6 +2948,8 @@ function acOffers(){
 function academiaPage(tab){
   if(tab==='professors'||tab==='schools')acF.tab=tab;
   const T=acF.tab;
+  if(T==='schools'&&!['topic','cs','name'].includes(acF.sort))acF.sort='topic';
+  if(T==='professors'&&!['score','papers','h','theses'].includes(acF.sort))acF.sort='score';
   $('#view').innerHTML=`<h1>Schools and professors</h1>
     <p class="sub">Every university and school in your countries, and the researchers working on your topics: who could supervise a thesis, teach in a master's you want, or back a scholarship application. Refreshed weekly.</p>
     <div id="acStats"></div>
@@ -2961,18 +2995,28 @@ function acPersonRow(p,withSchool=true){
     <div class="row" style="margin-top:8px">${links.map(([u,l])=>`<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${l}</a>`).join('')}</div></div>
     <div class="oa"><button class="btn sm primary" type="button" data-aclog="${esc(p.id)}">Log PhD contact</button></div></div>`;
 }
+function acCompactRow(p){
+  const th=p.theses&&p.theses.count,em=(p.emails||[])[0],sc=p.score>=70?'s-hi':p.score>=50?'s-mid':'s-lo';
+  return `<div class="offer rowbtn" data-acperson="${esc(p.id)}" tabindex="0" role="button" aria-label="${esc(p.name)}, details"><span class="score ${sc}">${p.score}</span><div>
+    <h3>${esc(p.name)} <span class="xp">${(AC_C[p.c]||[''])[0]}</span>${p.last>=3||th?' <span class="xp pst s-hi">PhD supervisor</span>':''}</h3>
+    <div class="acline"><span>${esc(p.instName||'')}</span><span><b>${p.papers}</b> on your topics</span>${p.h!=null?`<span>h-index ${p.h}</span>`:''}${th?`<span><b>${th}</b> theses directed</span>`:''}
+      <span class="${em?(em.guess?'mailguess':'mailok'):''}">${em?(em.guess?'✉ email guessed':'✉ email'):'no email'}</span></div></div></div>`;
+}
+function acSchoolDetail(s){
+  const o=acOffers().get(s.id)||{programs:[],scholarships:[]},people=((acData&&acData.people)||[]).filter(p=>p.ror===s.id).sort((a,b)=>b.score-a.score);
+  return `<div class="acline" style="margin:0 0 10px"><span>${(AC_C[s.c]||[''])[0]} ${esc(s.city||'')}</span><span>${esc((s.types||[]).join(', '))}</span>${s.established?`<span>since ${s.established}</span>`:''}</div>
+    <div class="row" style="margin-bottom:16px">${safeUrl(s.website)?`<a class="btn sm" href="${esc(s.website)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}<a class="btn sm" href="${esc(s.ror)}" target="_blank" rel="noopener noreferrer">ROR</a></div>
+    <div class="stats" style="margin-bottom:18px"><div class="stat"><span>On your topics</span><b>${s.topic||0}</b><small>papers since ${esc(String((acData&&acData.since)||'').slice(0,4))}</small></div><div class="stat"><span>Computer science</span><b>${s.cs||0}</b><small>papers</small></div></div>
+    <div class="pjd"><h4>Professors for you · ${people.length}</h4>${people.length?`<div class="offers compact">${people.map(acCompactRow).join('')}</div>`:'<p class="hint">No professor on your topics found here yet.</p>'}
+    <h4>Master's programmes · ${o.programs.length}</h4>${o.programs.length?o.programs.map(x=>`<div class="rn"><a href="${esc(safeUrl(x.url)||'#')}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><span>${esc([x.city,x.lang,x.deadline?'deadline '+x.deadline:''].filter(Boolean).join(' · '))}</span></div>`).join(''):'<p class="hint">None in your master\'s list for this school.</p>'}
+    <h4>Scholarships · ${o.scholarships.length}</h4>${o.scholarships.length?o.scholarships.map(x=>`<div class="rn"><a href="${esc(safeUrl(x.url)||'#')}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><span>${esc(x.source||'')}</span></div>`).join(''):'<p class="hint">None tied to this school; see Master\'s &amp; scholarships for national ones.</p>'}</div>`;
+}
 function acSchoolRow(s){
-  const o=acOffers().get(s.id)||{programs:[],scholarships:[]},people=((acData&&acData.people)||[]).filter(p=>p.ror===s.id);
-  const open=acF.open===s.id,flag=(AC_C[s.c]||[''])[0];
-  return `<div class="offer"><div><h3><button type="button" class="pjt" data-acschool="${esc(s.id)}" aria-expanded="${open}">${esc(s.name)}</button>${s.acronym?` <span class="xp">${esc(s.acronym)}</span>`:''}</h3>
-    <div class="meta"><span>${flag} ${esc(s.city||'')}</span><span>${esc((s.types||[]).join(', '))}</span>${s.topic?`<span><b>${s.topic}</b> papers on your topics</span>`:''}${s.cs?`<span>${s.cs} CS papers</span>`:''}</div>
-    <div class="meta" style="margin-top:6px">${people.length?`<span class="xp pst s-hi">${people.length} professor${people.length===1?'':'s'} for you</span>`:''}${o.programs.length?`<span class="xp">${o.programs.length} master's</span>`:''}${o.scholarships.length?`<span class="xp">${o.scholarships.length} scholarship${o.scholarships.length===1?'':'s'}</span>`:''}${s.children?`<span>${s.children} labs and institutes</span>`:''}</div>
-    ${open?`<div class="pjd">
-      ${people.length?`<h4>Professors for you</h4><div class="offers compact">${people.sort((a,b)=>b.score-a.score).map(p=>acPersonRow(p,false)).join('')}</div>`:'<p class="hint">No professor on your topics found here yet.</p>'}
-      ${o.programs.length?`<h4>Master's programmes</h4>${o.programs.map(x=>`<div class="rn"><a href="${esc(safeUrl(x.url)||'#')}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><span>${esc([x.city,x.lang,x.deadline?'deadline '+x.deadline:''].filter(Boolean).join(' · '))}</span></div>`).join('')}`:''}
-      ${o.scholarships.length?`<h4>Scholarships</h4>${o.scholarships.map(x=>`<div class="rn"><a href="${esc(safeUrl(x.url)||'#')}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><span>${esc(x.source||'')}</span></div>`).join('')}`:''}
-    </div>`:''}</div>
-    <div class="oa">${safeUrl(s.website)?`<a class="btn sm" href="${esc(s.website)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}<a class="btn sm" href="${esc(s.ror)}" target="_blank" rel="noopener noreferrer">ROR</a></div></div>`;
+  const o=acOffers().get(s.id)||{programs:[],scholarships:[]},n=((acData&&acData.people)||[]).filter(p=>p.ror===s.id).length;
+  return `<div class="offer rowbtn" data-acschool="${esc(s.id)}" tabindex="0" role="button" aria-label="${esc(s.name)}, details"><div>
+    <h3>${esc(s.name)}${s.acronym?` <span class="xp">${esc(s.acronym)}</span>`:''}</h3>
+    <div class="acline"><span>${(AC_C[s.c]||[''])[0]} ${esc(s.city||'')}</span>${s.topic?`<span><b>${s.topic}</b> papers on your topics</span>`:''}${s.cs?`<span>${s.cs} CS papers</span>`:''}
+      ${n?`<span class="mailok">${n} professor${n===1?'':'s'} for you</span>`:''}${o.programs.length?`<span><b>${o.programs.length}</b> master's</span>`:''}${o.scholarships.length?`<span><b>${o.scholarships.length}</b> scholarship${o.scholarships.length===1?'':'s'}</span>`:''}</div></div></div>`;
 }
 function renderAcademia(){
   const box=$('#acBox'),d=acData;if(!box||!d)return;
@@ -2985,7 +3029,7 @@ function renderAcademia(){
     rows=(d.people||[]).filter(p=>(!acF.c||p.c===acF.c)&&has(`${p.name} ${p.instName} ${(p.topics||[]).join(' ')} ${(p.fields||[]).join(' ')}`)
       &&(acF.kind!=='phd'||p.last>=3||(p.theses&&p.theses.count))&&(acF.kind!=='email'||(p.emails||[]).length)&&(acF.kind!=='master'||((off.get(p.ror)||{}).programs||[]).length))
       .sort((a,b)=>key(b)-key(a));
-    html=rows.slice(0,acMax).map(p=>acPersonRow(p)).join('');
+    html=rows.slice(0,acMax).map(acCompactRow).join('');
   }else{
     const off=acOffers(),pc={};(d.people||[]).forEach(p=>{pc[p.ror]=(pc[p.ror]||0)+1;});
     const key={topic:s=>s.topic*1e6+s.cs,cs:s=>s.cs}[acF.sort];
@@ -2994,7 +3038,7 @@ function renderAcademia(){
       .sort((a,b)=>key?key(b)-key(a)||a.name.localeCompare(b.name):a.name.localeCompare(b.name));
     html=rows.slice(0,acMax).map(acSchoolRow).join('');
   }
-  box.innerHTML=rows.length?`<p class="hint">${rows.length.toLocaleString('en')} ${acF.tab}${rows.length>acMax?`, showing ${acMax}`:''}. Updated ${esc(rel(new Date(d.at).toISOString().slice(0,10)))}.${acF.tab==='professors'?' The score adds topic fit, supervision (last-author papers, theses directed), recent activity and impact; hover it for the detail.':' Select a school for its professors, master\'s and scholarships.'}</p>
+  box.innerHTML=rows.length?`<p class="hint">${rows.length.toLocaleString('en')} ${acF.tab}${rows.length>acMax?`, showing ${acMax}`:''}. Updated ${esc(rel(new Date(d.at).toISOString().slice(0,10)))}.${acF.tab==='professors'?' The score adds topic fit, supervision (last-author papers, theses directed), recent activity and impact. Select a professor for emails, links and papers.':' Select a school for its professors, master\'s and scholarships.'}</p>
     <div class="offers">${html}</div>${rows.length>acMax?`<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" type="button" id="acMore">Show more</button></div>`:''}`
     :'<p class="hint">Nothing matches.</p>';
   const m=$('#acMore');if(m)m.addEventListener('click',()=>{acMax+=40;renderAcademia();});
@@ -3002,21 +3046,50 @@ function renderAcademia(){
 document.addEventListener('click',e=>{
   if(!e.target.closest)return;
   const s=e.target.closest('[data-acschool]');
-  if(s){const id=s.dataset.acschool;if(acF.tab!=='schools'){acF={...acF,tab:'schools',open:id,q:'',c:''};location.hash='#/academia/schools';return;}
-    acF.open=acF.open===id?null:id;const sc=acSchool(id),row=s.closest('.offer');if(sc&&row&&row.parentElement.closest('#acBox'))row.outerHTML=acSchoolRow(sc);return;}
+  if(s){const sc=acSchool(s.dataset.acschool);if(sc)openDrawer(acSchoolDetail(sc),sc.name);return;}
+  const pr=e.target.closest('[data-acperson]');
+  if(pr&&!e.target.closest('a,button:not([data-acperson])')){const p=((acData&&acData.people)||[]).find(x=>x.id===pr.dataset.acperson);if(p)openDrawer(acPersonRow(p),p.name);return;}
   const l=e.target.closest('[data-aclog]');
   if(l){const p=((acData&&acData.people)||[]).find(x=>x.id===l.dataset.aclog);if(!p)return;
     openDlg({org:p.instName,role:'PhD with '+p.name,c:cById(p.c)?p.c:'fr',d:'phd',p:'Direct email to supervisors',link:safeUrl(p.homepage)||'https://openalex.org/'+p.id,notes:(p.emails||[]).map(x=>x.email).join(', ')});}
 });
 
+const SECTION_LABEL={overview:'Home',discover:'Discover',track:'Track',notes:'Notes',profile:'Profile'};
+const SECTION_OF=(t,seg)=>['opps','sponsors','academia'].includes(t)?'discover':['apps','queue','companies','company'].includes(t)?'track':['notes','profile'].includes(t)?t:'overview';
+const SUBTABS={
+  discover:[['#/opps','Jobs',(t,s)=>t==='opps'&&!['masters','labs','radar'].includes(s[1])],['#/opps/masters',"Master's & scholarships",(t,s)=>t==='opps'&&s[1]==='masters'],
+    ['#/academia','Professors & schools',(t,s)=>t==='academia'||(t==='opps'&&s[1]==='labs')],['#/sponsors','Poli (UK)',t=>t==='sponsors'],['#/opps/radar','Radar',(t,s)=>t==='opps'&&s[1]==='radar']],
+  track:[['#/apps','Applications',t=>t==='apps'],['#/queue','Apply queue',t=>t==='queue'],['#/companies','Companies',t=>t==='companies'||t==='company']]};
+// Detail drawer: a side panel on wide screens, a full-screen sheet on phones.
+function openDrawer(html,label){
+  let d=$('#drawer');
+  if(!d){d=document.createElement('aside');d.id='drawer';d.className='drawer';d.setAttribute('role','dialog');d.setAttribute('aria-modal','false');document.body.appendChild(d);
+    const sc=document.createElement('div');sc.id='drawerScrim';sc.className='drawer-scrim';sc.addEventListener('click',closeDrawer);document.body.appendChild(sc);}
+  d.setAttribute('aria-label',label||'Details');
+  d.innerHTML=`<div class="drawer-top"><b>${esc(label||'Details')}</b><button class="iconbtn" type="button" id="drawerX" aria-label="Close">✕</button></div><div class="drawer-body">${html}</div>`;
+  $('#drawerX').addEventListener('click',closeDrawer);
+  document.body.classList.add('has-drawer');d.scrollTop=0;
+}
+function closeDrawer(){document.body.classList.remove('has-drawer');const d=$('#drawer');if(d)d.innerHTML='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('has-drawer'))closeDrawer();
+  if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('rowbtn')){e.preventDefault();e.target.click();}});
+// A loading message never stays forever: after 15 s it turns into an error with a retry.
+let loadWatch=0;
+function watchLoading(){clearTimeout(loadWatch);loadWatch=setTimeout(()=>{document.querySelectorAll('#view .hint').forEach(h=>{if(/^Loading/.test(h.textContent.trim())){
+  h.innerHTML='This did not load. <button class="linkbtn" type="button" data-act="retry">Try again</button>';}});},15000);}
+document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('[data-act="retry"]');if(r){colData=null;route();}});
 function route(){
   const h=location.hash.replace(/^#\/?/,'');const [path,qs]=h.split('?');const seg=path.split('/').filter(Boolean);
   const t=seg[0]||'overview';
   const tab=t==='company'?'companies':t;
   document.body.dataset.page=tab;
-  document.querySelectorAll('.bottombar [data-t]').forEach(a=>{const on=a.dataset.t===tab||(a.dataset.t==='more'&&(tab==='notes'||tab==='queue'||tab==='sponsors'||tab==='academia'));if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
-  const ms=$('#moreSheet');if(ms){ms.hidden=true;$('#moreBtn').setAttribute('aria-expanded','false');}
-  document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.t===tab){a.setAttribute('aria-current','page');const ts=$('#topSec');if(ts)ts.textContent=a.textContent.trim();}else a.removeAttribute('aria-current');});
+  // Five sections; Discover and Track have tabs of their own.
+  const sec=SECTION_OF(t,seg);
+  document.querySelectorAll('#tabs a,.bottombar [data-t]').forEach(a=>{if(a.dataset.t===sec)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  const ts=$('#topSec');if(ts)ts.textContent=SECTION_LABEL[sec]||'Home';
+  const tabs=SUBTABS[sec],cur=tabs?tabs.find(x=>x[2](t,seg)):null,sn=$('#subnav');
+  if(sn){sn.innerHTML=tabs?tabs.map(([h,l,on])=>`<a href="${h}" ${on(t,seg)?'aria-current="page"':''}>${l}</a>`).join(''):'';sn.hidden=!tabs;}
+  closeDrawer();
   $('#demoBar').innerHTML=demo?`<div class="demo"><span>Previewing sample data. Nothing here is saved.</span><button class="btn sm" data-act="exitdemo">Exit preview</button></div>`:'';
   if(t==='apps')apps(qs);
   else if(t==='opps')opps(seg.slice(1));
@@ -3029,7 +3102,7 @@ function route(){
   else if(t==='company')companyPage(seg[1],qs);
   else if(t==='explore'){location.replace('#/');return;}
   else overview();
-  window.scrollTo(0,0);
+  window.scrollTo(0,0);watchLoading();
 }
 
 /* demo data (in memory only) */
@@ -3114,9 +3187,6 @@ $('#fSave').addEventListener('click',saveDlg);
 $('#fCancel').addEventListener('click',()=>$('#dlg').close());
 $('#fDel').addEventListener('click',()=>{if(editId&&confirm('Delete this application?')){state.apps=state.apps.filter(a=>a.id!==editId);save();$('#dlg').close();route();}});
 $('#reset').addEventListener('click',()=>{if(confirm('Clear all applications, statuses and notes? This cannot be undone.')){state=emptyState();demo=false;real=null;save();route();}});
-$('#moreBtn').addEventListener('click',()=>{const sh=$('#moreSheet');sh.hidden=!sh.hidden;$('#moreBtn').setAttribute('aria-expanded',String(!sh.hidden));});
-document.addEventListener('click',e=>{const sh=$('#moreSheet');if(sh&&!sh.hidden&&!e.target.closest('#moreSheet,#moreBtn')){sh.hidden=true;$('#moreBtn').setAttribute('aria-expanded','false');}});
-$('#themeBtn2').addEventListener('click',()=>$('#themeBtn').click());
 $('#themeBtn').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark';});
 window.addEventListener('hashchange',route);
 
