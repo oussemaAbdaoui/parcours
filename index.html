@@ -589,6 +589,20 @@ textarea{height:auto}
 .chip{height:24px;border-radius:999px;padding:0 10px;font-size:12px;font-weight:700}
 .xp,.conf,.new,.urgent,.kcard .kres{border-radius:999px;padding:0 9px;height:24px;font-weight:700}
 .urgent{background:var(--red-t);color:var(--red-ink)}
+.xp.pst.s-hi{background:var(--hi-t);color:var(--hi)}.xp.pst.s-mid{background:var(--mid-t);color:var(--mid)}.xp.pst.s-lo{background:var(--lo-t);color:var(--lo)}
+.offer.pj .meta+.meta{margin-top:6px}
+.pjt{font:inherit;color:inherit;text-align:left;background:none;border:0;padding:0;cursor:pointer}
+.pjt:hover{text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+.pjlogo{vertical-align:-3px;margin-right:8px;border-radius:5px}
+.pjd{margin-top:14px;padding:16px 18px;border-radius:18px;background:var(--surface-2);font-size:14px}
+.pjd h4,.pjlive h4{margin:14px 0 6px;font-family:var(--display);font-size:14px;font-weight:600;color:var(--ink-strong)}
+.pjd h4:first-child{margin-top:0}.pjd p{margin:0 0 8px}
+.pq{margin:6px 0;padding:9px 12px;border-left:3px solid var(--ok);background:var(--surface);border-radius:10px;font-size:13.5px}
+.pq.neg{border-left-color:var(--red)}.pq small{display:block;color:var(--muted);font-size:11.5px;margin-top:4px}
+.pjlive{margin-top:10px}.pjlive .offers.compact .offer{grid-template-columns:minmax(0,1fr)}
+.pjf fieldset{border:0;padding:0;margin:0 0 12px}.pjf legend{font-weight:700;font-size:13px;color:var(--muted);margin-bottom:6px}
+.pjf .ck{display:inline-flex;gap:6px;align-items:center;margin:0 14px 6px 0;font-size:13.5px;cursor:pointer}
+.pjf .pjsub{display:block;margin:0 0 6px 22px}
 .new{background:var(--red-t);color:var(--red-ink)}
 .score{width:48px;height:48px;border-radius:16px;font-weight:800;font-size:15px}
 .score.weak{border:0;background:var(--surface-2);font-size:20px}
@@ -722,7 +736,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
     <a href="#/" data-t="overview"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg>Overview</a>
     <div class="navlab">Search</div>
     <a href="#/opps" data-t="opps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z"/></svg>Opportunities</a>
-    <a href="#/sponsors" data-t="sponsors"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>UK sponsors</a>
+    <a href="#/sponsors" data-t="sponsors"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>Poli</a>
     <div class="navlab">Track</div>
     <a href="#/apps" data-t="apps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z"/></svg>Applications</a>
     <a href="#/queue" data-t="queue"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"/></svg>Apply queue</a>
@@ -753,7 +767,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
   <button type="button" id="moreBtn" data-t="more" aria-expanded="false" aria-controls="moreSheet"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z"/></svg><span>More</span></button>
 </nav>
 <div class="sheet" id="moreSheet" hidden>
-  <a href="#/sponsors"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>UK sponsors</a>
+  <a href="#/sponsors"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>Poli</a>
   <a href="#/queue"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"/></svg>Apply queue</a>
   <a href="#/notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>Notes</a>
   <button type="button" id="themeBtn2"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z"/></svg>Switch light and dark</button>
@@ -2561,7 +2575,7 @@ document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest
 
 /* ---------- Router ---------- */
 /* UK visa sponsors, from Poli (collector/poli.py): the sponsor directory and employees likely sponsored there */
-let poliData=null,poliAt=0,poliIdx=null,poliF={tab:'companies',q:'',filter:'jobs',size:'',sort:'jobs'},poliMax=50;
+let poliData=null,poliAt=0,poliIdx=null,poliF={tab:'jobs',q:'',filter:'jobs',size:'',sort:'jobs'},poliMax=50;
 async function loadPoli(){
   if(!caps.online)return null;
   if(!poliData||Date.now()-poliAt>10*60e3){
@@ -2589,37 +2603,174 @@ function poliPersonRow(p,withCo=true){
     <div class="oa">${liBtn(p.linkedin)}</div></div>`;
 }
 function sponsorsPage(tab){
-  if(tab==='people'||tab==='companies')poliF.tab=tab;
-  $('#view').innerHTML=`<h1>UK visa sponsors</h1>
-    <p class="sub">Companies licensed to sponsor a Skilled Worker visa, and people who were likely sponsored there: the ones to ask for a referral or advice. From Poli, refreshed every 6 hours.</p>
+  if(['jobs','companies','people'].includes(tab))poliF.tab=tab;
+  const T=poliF.tab;
+  $('#view').innerHTML=`<h1>Poli</h1>
+    <p class="sub">UK jobs at companies licensed to sponsor a Skilled Worker visa, live from your Poli account, plus the sponsor directory and people likely sponsored there: the ones to ask for a referral or advice.</p>
     <div id="spStats"></div>
     <div class="toolbar">
-      <span class="seg" role="group" aria-label="Show"><button type="button" data-sp="companies" aria-pressed="${poliF.tab==='companies'}">Companies</button><button type="button" data-sp="people" aria-pressed="${poliF.tab==='people'}">People</button></span>
-      <input type="search" id="spQ" placeholder="${poliF.tab==='people'?'Search name, role, company…':'Search company…'}" aria-label="Search" value="${esc(poliF.q)}">
-      ${poliF.tab==='companies'?`<select id="spF" aria-label="Filter"><option value="">All sponsors</option><option value="jobs" ${poliF.filter==='jobs'?'selected':''}>With open jobs</option><option value="staff" ${poliF.filter==='staff'?'selected':''}>With sponsored staff to contact</option><option value="cos" ${poliF.filter==='cos'?'selected':''}>Sponsored visas in 2025</option></select>
+      <span class="seg" id="spTabs" role="group" aria-label="Show">${[['jobs','Jobs'],['companies','Companies'],['people','People']].map(([k,l])=>`<button type="button" data-sp="${k}" aria-pressed="${T===k}">${l}</button>`).join('')}</span>
+      ${T==='jobs'?`<span class="seg" id="pjMode" role="group" aria-label="Feed"><button type="button" data-pjm="feed" aria-pressed="${pj.mode==='feed'}">For you</button><button type="button" data-pjm="applied" aria-pressed="${pj.mode==='applied'}">Applied</button></span>
+      <select id="pjS" aria-label="Order"><option value="relevance" ${pj.sort==='relevance'?'selected':''}>Most relevant</option><option value="date_added" ${pj.sort==='date_added'?'selected':''}>Newest first</option></select>
+      <input type="search" id="spQ" placeholder="Filter loaded jobs…" aria-label="Filter loaded jobs" value="${esc(pj.q)}">
+      <button class="btn sm" type="button" id="pjF" aria-expanded="false" aria-controls="pjFilters">Job preferences</button>`
+      :`<input type="search" id="spQ" placeholder="${T==='people'?'Search name, role, company…':'Search company…'}" aria-label="Search" value="${esc(poliF.q)}">
+      ${T==='companies'?`<select id="spF" aria-label="Filter"><option value="">All sponsors</option><option value="jobs" ${poliF.filter==='jobs'?'selected':''}>With open jobs</option><option value="staff" ${poliF.filter==='staff'?'selected':''}>With sponsored staff to contact</option><option value="cos" ${poliF.filter==='cos'?'selected':''}>Sponsored visas in 2025</option></select>
       <select id="spZ" aria-label="Company size"><option value="">Any size</option></select>
       <select id="spS" aria-label="Sort"><option value="jobs" ${poliF.sort==='jobs'?'selected':''}>Most open jobs</option><option value="cos" ${poliF.sort==='cos'?'selected':''}>Most visas sponsored in 2025</option><option value="staff" ${poliF.sort==='staff'?'selected':''}>Most sponsored staff</option><option value="new" ${poliF.sort==='new'?'selected':''}>Newest on the register</option><option value="name" ${poliF.sort==='name'?'selected':''}>Name</option></select>`
-      :`<select id="spF" aria-label="Filter"><option value="">Everyone</option><option value="network" ${poliF.filter==='network'?'selected':''}>Your Poli network</option><option value="notcontacted" ${poliF.filter==='notcontacted'?'selected':''}>Not contacted yet</option></select>`}
-    </div><div id="spBox"><p class="hint">Loading…</p></div>`;
-  $('#view').querySelector('.seg').addEventListener('click',e=>{const b=e.target.closest('[data-sp]');if(!b||b.dataset.sp===poliF.tab)return;
+      :`<select id="spF" aria-label="Filter"><option value="">Everyone</option><option value="network" ${poliF.filter==='network'?'selected':''}>Your Poli network</option><option value="notcontacted" ${poliF.filter==='notcontacted'?'selected':''}>Not contacted yet</option></select>`}`}
+    </div>${T==='jobs'?'<div id="pjFilters" class="panel pjf" hidden></div>':''}<div id="spBox"><p class="hint">Loading…</p></div>`;
+  $('#spTabs').addEventListener('click',e=>{const b=e.target.closest('[data-sp]');if(!b||b.dataset.sp===poliF.tab)return;
     poliF={...poliF,tab:b.dataset.sp,filter:b.dataset.sp==='people'?'':'jobs'};poliMax=50;location.hash='#/sponsors/'+poliF.tab;});
+  if(!caps.online){$('#spBox').innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return;}
+  const stats=d=>{const st=d.stats||{},n=k=>st[k]&&st[k].count!=null?st[k].count.toLocaleString('en'):'–';
+    $('#spStats').innerHTML=d.at?`<div class="stats">
+      <div class="stat"><b>${n('sponsored-jobs')}</b><span>Jobs at sponsors</span><small>Tracked by Poli</small></div>
+      <div class="stat"><b>${(d.companies||[]).length.toLocaleString('en')}</b><span>Licensed sponsors</span></div>
+      <div class="stat"><b>${(d.people||[]).length.toLocaleString('en')}</b><span>People to contact</span><small>Likely sponsored themselves</small></div></div>`:'';};
+  if(T==='jobs'){
+    $('#pjMode').addEventListener('click',e=>{const b=e.target.closest('[data-pjm]');if(!b||b.dataset.pjm===pj.mode)return;pj.mode=b.dataset.pjm;
+      $('#pjMode').querySelectorAll('[data-pjm]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.pjm===pj.mode));poliJobsLoad(true);});
+    $('#pjS').addEventListener('change',e=>{pj.sort=e.target.value;poliJobsLoad(true,[{action:'sort',sortBy:pj.sort}]);});
+    $('#spQ').addEventListener('input',e=>{pj.q=e.target.value.trim();renderPoliJobs();});
+    $('#pjF').addEventListener('click',e=>{const p=$('#pjFilters');p.hidden=!p.hidden;e.target.setAttribute('aria-expanded',!p.hidden);if(!p.hidden)poliPrefsForm();});
+    loadPoli().then(stats).catch(()=>{});
+    if(pj.jobs.length&&Date.now()-pj.at<10*60e3)renderPoliJobs();else poliJobsLoad(true);
+    return;
+  }
   const upd=()=>{poliF.q=$('#spQ').value.trim();poliF.filter=$('#spF').value;if($('#spZ'))poliF.size=$('#spZ').value;if($('#spS'))poliF.sort=$('#spS').value;poliMax=50;renderSponsors();};
   $('#spQ').addEventListener('input',upd);['spF','spZ','spS'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',upd);});
-  if(!caps.online){$('#spBox').innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return;}
   loadPoli().then(d=>{
     const z=$('#spZ');
     if(z){const sizes=[...new Set((d.companies||[]).map(c=>c.size).filter(Boolean))].sort();z.innerHTML='<option value="">Any size</option>'+sizes.map(s=>`<option ${poliF.size===s?'selected':''}>${esc(s)}</option>`).join('');}
-    const st=d.stats||{},n=k=>st[k]&&st[k].count!=null?st[k].count.toLocaleString('en'):'–';
-    $('#spStats').innerHTML=d.at?`<div class="stats">
-      <div class="stat"><b>${(d.companies||[]).length.toLocaleString('en')}</b><span>Licensed sponsors</span></div>
-      <div class="stat"><b>${n('sponsored-jobs')}</b><span>Jobs at sponsors</span><small>Tracked by Poli</small></div>
-      <div class="stat"><b>${(d.people||[]).length.toLocaleString('en')}</b><span>People to contact</span><small>Likely sponsored themselves</small></div></div>`:'';
-    renderSponsors();
+    stats(d);renderSponsors();
   }).catch(e=>{$('#spBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load the sponsor directory.'))}</p>`;});
 }
+
+/* Live Poli jobs (api/poli.js): the account's feed, every detail Poli has, and each company's jobs and sponsored staff */
+let pj={mode:'feed',jobs:[],more:false,loading:false,sort:'relevance',q:'',open:null,at:0,opts:null,prefs:null};
+async function poliApi(actions){return (await api('/api/poli',{method:'POST',body:JSON.stringify({actions})})).results;}
+// Poli stores some text double-encoded ("Â£28,000", "â€“"): decode it back when that is what happened.
+const CP1252={'€':128,'‚':130,'ƒ':131,'„':132,'…':133,'†':134,'‡':135,'ˆ':136,'‰':137,'Š':138,'‹':139,'Œ':140,'Ž':142,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'˜':152,'™':153,'š':154,'›':155,'œ':156,'ž':158,'Ÿ':159};
+const pfix=s=>{s=String(s==null?'':s);if(!/[ÂÃâ]/.test(s))return s;const b=[];
+  for(const ch of s){const c=ch.charCodeAt(0);if(c<256)b.push(c);else if(CP1252[ch])b.push(CP1252[ch]);else return s;}
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(new Uint8Array(b));}catch(e){return s;}};
+async function poliJobsLoad(reset,before=[],pages=3){
+  if(pj.loading)return;pj.loading=true;
+  const act=pj.mode==='applied'?'applied':'feed';
+  if(reset){pj.jobs=[];pj.open=null;const b=$('#spBox');if(b)b.innerHTML='<p class="hint">Loading from Poli…</p>';}
+  else{const m=$('#pjMore');if(m){m.disabled=true;m.textContent='Loading…';}}
+  try{
+    // Poli pages 10 jobs at a time and keeps the position in its session, so pages are asked for in order.
+    const res=await poliApi([...before,...Array.from({length:pages},(_,i)=>({action:act,initialFetch:reset&&i===0}))]);
+    const seen=new Set(pj.jobs.map(j=>j.id));
+    res.slice(before.length).forEach(d=>{(d&&d.jobs||[]).forEach(j=>{if(!seen.has(j.id)){seen.add(j.id);pj.jobs.push(j);}});pj.more=!!(d&&d.moreJobsExist);});
+    pj.at=Date.now();
+  }catch(e){
+    pj.loading=false;const b=$('#spBox');
+    if(b)b.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Add POLI_EMAIL and POLI_PASSWORD in Vercel (Settings, Environment Variables), then redeploy.'},'Could not reach Poli.'))}</p>`;
+    return;
+  }
+  pj.loading=false;renderPoliJobs();
+}
+function pjStatus(j){const n=((j.sponsorship_status||{}).name||'').toLowerCase();
+  return n==='sponsored'?['s-hi','Sponsorship likely']:/unlikely|not|no_/.test(n)?['s-lo','Sponsorship unlikely']:n?['s-mid','Sponsorship '+n.replace(/_/g,' ')]:null;}
+const pjLogo=(u,s=18)=>safeUrl(u)?`<img src="${esc(u)}" alt="" width="${s}" height="${s}" loading="lazy" referrerpolicy="no-referrer" class="pjlogo" onerror="this.remove()">`:'';
+function pjRow(j){
+  const co=j.company||{},id='poli:'+j.id,st=pjStatus(j),title=pfix(j.title),org=pfix(co.trading_name),loc=/other/i.test(j.location||'')?'Remote or anywhere in the UK':(j.location||'UK')+', UK';
+  const posted=String(j.created_at||'').slice(0,10),salary=pfix(j.salary).trim(),open=pj.open===j.id;
+  jobReg[id]={id,title,company:org,location:loc,posted,type:(j.type||{}).display_name||'',url:j.url,c:'gl',source:'Poli'};
+  const saved=state.saved.some(x=>x.id===id);
+  return `<div class="offer pj"><div>
+    <h3>${pjLogo(co.url_favicon)}<button type="button" class="pjt" data-pjopen="${j.id}" aria-expanded="${open}">${esc(title)}</button></h3>
+    <div class="meta"><span>${coLink(org)}</span><span>${esc(loc)}</span>${salary?`<span><b>${esc(salary)}</b></span>`:''}${posted?`<span>${esc(rel(posted))}</span>`:''}</div>
+    <div class="meta">${st?`<span class="xp pst ${st[0]}">${st[1]}</span>`:''}${j.suitable_for_graduates?'<span class="xp">Graduate visa OK</span>':''}${j.relocation_support_available?'<span class="xp">Relocation support</span>':''}${j.below_gov_min_salary_threshold?'<span class="xp pst s-lo">Below the visa salary minimum</span>':''}<span>${esc([(j.type||{}).display_name,(j.seniority||{}).display_name,(j.category||{}).display_name].filter(Boolean).join(' · '))}</span></div>
+    ${open?pjDetails(j):''}</div>
+    <div class="oa">${safeUrl(j.url)?`<a class="btn sm primary" href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" type="button" data-jsave="${esc(id)}" ${saved?'disabled':''}>${saved?'Saved':'Save'}</button><button class="btn sm" type="button" data-jlog="${esc(id)}">Log</button></div></div>`;
+}
+function pjDetails(j){
+  const co=j.company||{},m=j.sponsorship_mentions||[],org=pfix(co.trading_name);
+  const facts=[co.licensed_sponsor?'<b>Licensed sponsor</b>':'Not on the sponsor register',co.cos_used_count_2025!=null?`<b>${co.cos_used_count_2025}</b> visas sponsored in 2025`:'',
+    co.sponsored_employees_count?`<b>${co.sponsored_employees_count}</b> sponsored employees found`:'',co.possibly_sponsored_employee_count?`${co.possibly_sponsored_employee_count} possibly sponsored`:'',
+    co.estimated_num_employees?`about ${Number(co.estimated_num_employees).toLocaleString('en')} employees`:''].filter(Boolean);
+  return `<div class="pjd">
+    <h4>What the offer says about sponsorship</h4>
+    ${m.length?m.map(x=>`<blockquote class="pq${x.type==='negative'?' neg':''}">${esc(pfix(x.text))}<small>${x.type==='negative'?'Against':'In favour'} · from the ${esc(x.source||'offer')}</small></blockquote>`).join(''):'<p class="hint">The offer says nothing about sponsorship. The status above comes from the company\'s sponsor record.</p>'}
+    <h4>${pjLogo(co.url_favicon,20)}${esc(org)}</h4><p>${facts.join(' · ')}.</p>${co.policy?`<p>${esc(pfix(co.policy))}</p>`:''}
+    ${co.description?`<details class="desc"><summary>About ${esc(org)}</summary><p>${esc(pfix(co.description))}</p></details>`:''}
+    <div class="row">${safeUrl(co.url)?`<a class="btn sm" href="${esc(co.url)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}${liBtn(co.url_linkedin)}
+      <button class="btn sm" type="button" data-pjco="${co.id}" data-k="jobs">All open jobs at ${esc(org)}</button>
+      ${co.sponsored_employees_count?`<button class="btn sm" type="button" data-pjco="${co.id}" data-k="people">Sponsored employees (${co.sponsored_employees_count})</button>`:''}</div>
+    <div class="pjlive"></div></div>`;
+}
+function renderPoliJobs(){
+  const box=$('#spBox');if(!box||poliF.tab!=='jobs')return;
+  const words=pj.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const list=pj.jobs.filter(j=>{const t=`${j.title} ${(j.company||{}).trading_name} ${j.location} ${(j.category||{}).display_name}`.toLowerCase();return words.every(w=>t.includes(w));});
+  box.innerHTML=pj.jobs.length?`<p class="hint">${list.length} of ${pj.jobs.length} jobs loaded${pj.more?', more on Poli':''}. ${pj.mode==='applied'?'Jobs you marked as applied on Poli.':'Chosen by Poli from your job preferences.'} Select a title for every detail.</p>
+    <div class="offers">${list.map(pjRow).join('')||'<p class="hint" style="padding:16px 20px">Nothing loaded matches.</p>'}</div>
+    ${pj.more?`<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" type="button" id="pjMore">Load 30 more</button></div>`:''}`
+    :`<p class="hint">${pj.mode==='applied'?'No jobs marked as applied on Poli yet.':'Poli has no jobs for your preferences. Widen them with Job preferences.'}</p>`;
+  const m=$('#pjMore');if(m)m.addEventListener('click',()=>poliJobsLoad(false));
+}
+// Live list of one company's open jobs or sponsored employees, with paging.
+async function poliLive(el,companyId,kind,offset=0){
+  if(!offset)el.innerHTML='<p class="hint">Loading from Poli…</p>';
+  try{
+    const [d]=await poliApi([{action:kind==='people'?'companyEmployees':'companyJobs',companyId:+companyId,offset}]);
+    const items=(kind==='people'?d.employees:d.jobs)||[];
+    const rows=kind==='people'?items.map(p=>poliPersonRow({name:p.name,title:p.jobTitle,linkedin:p.linkedInUrl,sponsorship:p.sponsorshipStatus},false)).join('')
+      :items.map(x=>{const st=pjStatus(x);return `<div class="offer"><div><h3>${safeUrl(x.url)?`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(pfix(x.title))}</a>`:esc(pfix(x.title))}</h3>
+        <div class="meta">${x.location?`<span>${esc(/other/i.test(x.location)?'Remote / UK':x.location)}</span>`:''}${x.salary?`<span>${esc(pfix(x.salary))}</span>`:''}${x.created_at?`<span>${esc(rel(String(x.created_at).slice(0,10)))}</span>`:''}${st?`<span class="xp pst ${st[0]}">${st[1]}</span>`:''}</div></div></div>`;}).join('');
+    const shown=offset+items.length;
+    const more=d.hasMore?`<button class="btn sm" type="button" data-pjco="${companyId}" data-k="${kind}" data-off="${shown}">Load more (${shown} of ${d.totalCount})</button>`:'';
+    const list=offset?el.querySelector('.offers'):null;
+    if(list){list.insertAdjacentHTML('beforeend',rows);const b=el.querySelector('[data-off]');if(b)b.outerHTML=more;}
+    else el.innerHTML=items.length?`<h4>${kind==='people'?'Sponsored employees':'Open jobs'} · ${d.totalCount}</h4><div class="offers compact">${rows}</div>${more}`:`<p class="hint">${kind==='people'?'No sponsored employees listed.':'No open jobs listed right now.'}</p>`;
+  }catch(e){el.innerHTML=`<p class="hint">${esc(errText(e,{},'Could not reach Poli.'))}</p>`;}
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest)return;
+  const o=e.target.closest('[data-pjopen]');
+  if(o){const id=+o.dataset.pjopen;pj.open=pj.open===id?null:id;const j=pj.jobs.find(x=>x.id===id),row=o.closest('.offer');if(j&&row)row.outerHTML=pjRow(j);return;}
+  const c=e.target.closest('[data-pjco]');
+  if(c){const box=c.dataset.off?c.closest('.pjlive'):(c.closest('.pjd,.panel')||document).querySelector('.pjlive');if(box){c.disabled=true;poliLive(box,c.dataset.pjco,c.dataset.k,+(c.dataset.off||0)).then(()=>{c.disabled=false;});}}
+});
+// Job preferences: the filters the Poli feed follows, saved to the Poli account.
+async function poliPrefsForm(){
+  const p=$('#pjFilters');p.innerHTML='<p class="hint" style="margin:0">Loading your Poli preferences…</p>';
+  try{
+    if(!pj.opts){const [cats,types,sens,locs]=await poliApi([{action:'categories'},{action:'types'},{action:'seniorities'},{action:'locations'}]);pj.opts={cats,types,sens,locs};}
+    const [pr]=await poliApi([{action:'preferences'}]);pj.prefs=(pr&&pr.preferences)||{};
+  }catch(e){p.innerHTML=`<p class="hint" style="margin:0">${esc(errText(e,{},'Could not load your Poli preferences.'))}</p>`;return;}
+  const P=pj.prefs,o=pj.opts,has=(k,id)=>(P[k]||[]).includes(id);
+  const kids=id=>o.cats.filter(c=>c.parent_id===id),parents=o.cats.filter(c=>c.parent_id==null).sort((a,b)=>a.display_name.localeCompare(b.display_name));
+  const ck=(name,id,label,on,extra='')=>`<label class="ck"><input type="checkbox" name="${name}" value="${id}" ${on?'checked':''} ${extra}>${esc(label)}</label>`;
+  const group=(t,html)=>`<fieldset><legend>${t}</legend><div>${html}</div></fieldset>`;
+  p.innerHTML=`<h2>Job preferences</h2><p class="hint">The Poli feed follows these. Saving updates them on your Poli account too.</p>
+    ${group('Job types',o.types.map(t=>ck('t',t.id,t.display_name,has('job.type',t.id))).join(''))}
+    ${group('Experience',o.sens.filter(s=>s.name!=='unclear').map(s=>ck('s',s.id,`${s.display_name}${s.summary?` (${s.summary})`:''}`,has('job.seniority',s.id))).join(''))}
+    ${group('Locations',o.locs.map(l=>ck('l',l.id,l.display_name==='Other'?'Remote / other':l.display_name,has('job.locations',l.id))).join(''))}
+    ${group('Categories',parents.map(c=>{const k=kids(c.id),on=k.length?k.some(x=>has('job.category',x.id)):has('job.category',c.id);
+      return ck('c',c.id,c.display_name,on)+(k.length?`<details class="desc pjsub"><summary>${esc(c.display_name)}: ${k.length} specialities</summary><div>${k.map(x=>ck('cs',x.id,x.display_name,has('job.category',x.id),`data-parent="${c.id}"`)).join('')}</div></details>`:'');}).join(''))}
+    ${group('Sponsorship',`<label class="ck"><input type="checkbox" id="pjImm" ${P['job.requires_sponsorship']!==false?'checked':''}>I need sponsorship from day one</label>`)}
+    <div class="row" style="margin-top:12px"><button class="btn primary" type="button" id="pjSave">Save and reload jobs</button><span class="hint" id="pjMsg" style="margin:0"></span></div>`;
+  $('#pjSave').addEventListener('click',()=>{
+    const vals=n=>[...p.querySelectorAll(`input[name="${n}"]:checked`)].map(x=>+x.value);
+    // A category with specialities counts as all of them unless some are ticked (what the Poli form does).
+    const cats=[];vals('c').forEach(id=>{const k=kids(id);if(!k.length){cats.push(id);return;}
+      const picked=[...p.querySelectorAll(`input[name="cs"][data-parent="${id}"]:checked`)].map(x=>+x.value);cats.push(...(picked.length?picked:k.map(x=>x.id)));});
+    vals('cs').forEach(id=>{if(!cats.includes(id))cats.push(id);});
+    const body={action:'savePreferences',jobTypes:vals('t'),jobSeniorities:vals('s'),jobLocations:vals('l'),jobCategories:cats,immediateSponsorshipRequired:$('#pjImm').checked};
+    if(!body.jobTypes.length||!body.jobSeniorities.length||!body.jobLocations.length||!cats.length){$('#pjMsg').textContent='Pick at least one of each.';return;}
+    p.hidden=true;$('#pjF').setAttribute('aria-expanded','false');pj.mode='feed';
+    $('#pjMode').querySelectorAll('[data-pjm]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.pjm==='feed'));
+    poliJobsLoad(true,[body]);
+  });
+}
 function renderSponsors(){
-  const box=$('#spBox'),d=poliData;if(!box||!d)return;
-  if(!d.at){box.innerHTML='<p class="hint">No Poli data yet. Add <code>POLI_EMAIL</code> and <code>POLI_PASSWORD</code> as GitHub secrets, then run the collector (Actions, Collect opportunities).</p>';return;}
+  const box=$('#spBox'),d=poliData;if(!box||!d||poliF.tab==='jobs')return;
+  if(!d.at){box.innerHTML='<p class="hint">No Poli directory yet. It fills on the next collector run (every 6 hours).</p>';return;}
   const words=poliF.q.toLowerCase().split(/\s+/).filter(Boolean),has=t=>words.every(w=>t.toLowerCase().includes(w));
   let rows,html;
   if(poliF.tab==='people'){
@@ -2643,7 +2794,9 @@ function poliPanelHtml(name){
   const people=poliPeopleAt(c);
   return `<div class="panel"><h2>UK visa sponsorship</h2><p class="hint">From Poli's sponsor directory${c.legalName?` (registered as ${esc(c.legalName)})`:''}.</p>
     <p style="margin:0 0 12px">${[c.licensed?'<b>Licensed sponsor</b>':'Not on the sponsor register',c.cos2025!=null?`<b>${c.cos2025}</b> visas sponsored in 2025`:'',`<b>${c.jobs}</b> open job${c.jobs===1?'':'s'} in the UK`,c.size,c.policy?esc(c.policy.replace(/\.+$/,'')):''].filter(Boolean).join(' · ')}.</p>
-    ${people.length?`<h2 style="margin-top:14px">Likely sponsored here</h2><p class="hint">People who probably went through the same visa route: good for a referral or advice.</p><div class="offers compact">${people.slice(0,12).map(p=>poliPersonRow(p,false)).join('')}</div>${people.length>12?`<p class="hint" style="margin-top:8px"><a href="#/sponsors/people">${people.length-12} more on the UK sponsors page</a></p>`:''}`:''}</div>`;
+    ${people.length?`<h2 style="margin-top:14px">Likely sponsored here</h2><p class="hint">People who probably went through the same visa route: good for a referral or advice.</p><div class="offers compact">${people.slice(0,12).map(p=>poliPersonRow(p,false)).join('')}</div>${people.length>12?`<p class="hint" style="margin-top:8px"><a href="#/sponsors/people">${people.length-12} more on the Poli page</a></p>`:''}`:''}
+    <div class="row" style="margin-top:12px">${c.jobs?`<button class="btn sm" type="button" data-pjco="${c.id}" data-k="jobs">See its ${c.jobs} open UK job${c.jobs===1?'':'s'}</button>`:''}${c.sponsoredEmployees?`<button class="btn sm" type="button" data-pjco="${c.id}" data-k="people">All sponsored employees</button>`:''}</div>
+    <div class="pjlive"></div></div>`;
 }
 
 function route(){
