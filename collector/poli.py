@@ -9,7 +9,7 @@ Poli web app itself uses:
   parcours:poli:companies.
 - People: employees likely sponsored by their employer, from each company that lists some and from the account's
   personalised network, in the hash parcours:poli:people. Useful for referrals and advice.
-Companies and people are refreshed at most once a day; parcours:poli:meta holds the run report and Poli's totals.
+Companies and people are refreshed on every collector run (every 6 hours); parcours:poli:meta holds the run report and Poli's totals.
 """
 import json
 import os
@@ -194,13 +194,13 @@ def _replace_hash(store, key, records):
 
 
 def run(store, dry=False, force=False):
-    """Refreshes companies and people at most once a day. Returns a status line for the run report."""
+    """Refreshes companies and people, at most every 5 hours (so on each 6-hourly run). Returns a status line for the run report."""
     if not os.environ.get("POLI_EMAIL"):
         return {"ok": True, "count": 0, "error": "no Poli account (POLI_EMAIL / POLI_PASSWORD)"}
     now = int(time.time() * 1000)
     meta = (store.get_json(META_KEY) if store else None) or {}
-    if not force and now - meta.get("at", 0) < 20 * 3600 * 1000:
-        return {"ok": True, "count": meta.get("companies", 0), "error": "fresh, next refresh within a day"}
+    if not force and now - meta.get("at", 0) < 5 * 3600 * 1000:
+        return {"ok": True, "count": meta.get("companies", 0), "error": "fresh, refreshed on the next run"}
     companies, people, stats, status = collect()
     for name, st in status.items():
         print(f"  Poli {name:20} {'ok ' if st['ok'] else 'ERR'} {st['count']:5}  {st.get('error', '')}")

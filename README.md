@@ -83,7 +83,7 @@ Your saved searches drive the job boards (4 defaults until you save your own); a
 
 Setup: add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as repository secrets on GitHub. Without them the workflow runs in dry-run mode and only prints what it found. Run it by hand from the Actions tab (**Collect opportunities, Run workflow**). Items older than 45 days or past their deadline are dropped.
 
-**Poli.** With `POLI_EMAIL` and `POLI_PASSWORD` (a Poli Pro account) as repository secrets, the collector signs in to Poli and reads, besides up to 300 offers from its personalised feed (it follows the preferences saved in the Poli account), the whole UK sponsor directory and the employees likely sponsored there (each company's list plus the account's network), once a day (`collector/poli.py`, `--poli` forces a refresh). The app reads them from `/api/opps?set=poli`.
+**Poli.** With `POLI_EMAIL` and `POLI_PASSWORD` (a Poli Pro account) as repository secrets, the collector signs in to Poli and reads, besides up to 300 offers from its personalised feed (it follows the preferences saved in the Poli account), the whole UK sponsor directory and the employees likely sponsored there (each company's list plus the account's network), on every 6-hourly run (`collector/poli.py`, `--poli` forces a refresh). The app reads them from `/api/opps?set=poli`.
 
 ## Updating the radar
 
