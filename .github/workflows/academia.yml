@@ -1,0 +1,38 @@
+name: Refresh schools and professors
+
+on:
+  schedule:
+    - cron: "10 3 * * 0" # weekly, Sunday 04:10 in Tunis
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print results without saving"
+        type: boolean
+        default: false
+      only:
+        description: "Countries, comma separated (fr,de,ca,ch,tn); empty for all"
+        type: string
+        default: ""
+
+concurrency:
+  group: academia
+  cancel-in-progress: false
+
+jobs:
+  academia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: collector/requirements.txt
+      - run: pip install -r collector/requirements.txt
+      - name: Schools, professors and their contacts
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: python collector/academia.py ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.only && format('--only={0}', inputs.only) || '' }}

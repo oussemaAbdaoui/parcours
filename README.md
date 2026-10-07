@@ -85,6 +85,14 @@ Setup: add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as repository
 
 **Poli.** With `POLI_EMAIL` and `POLI_PASSWORD` (a Poli Pro account) as repository secrets, the collector signs in to Poli and reads, besides up to 300 offers from its personalised feed (it follows the preferences saved in the Poli account), the whole UK sponsor directory and the employees likely sponsored there (each company's list plus the account's network), on every 6-hourly run (`collector/poli.py`, `--poli` forces a refresh). The app reads them from `/api/opps?set=poli`. For the live Poli page (every job in the account's feed with all its details, each company's open jobs and sponsored employees, and the job preferences), add the same `POLI_EMAIL` and `POLI_PASSWORD` in Vercel too: `api/_poli.js` (served at `/api/opps?set=poli-live`) signs in to Poli from the server and keeps the session in Redis.
 
+## Schools and professors
+
+`collector/academia.py` runs weekly (workflow **Refresh schools and professors**, Sunday; run it by hand with a country list to refresh only some) and fills the **Professors** page, for master's, PhD and scholarship applications in France, Germany, Canada, Switzerland and Tunisia:
+
+1. **Schools**: every education and research organisation in ROR, ranked by recent computer-science papers and papers on your topics (OpenAlex). The app attaches the master's programmes and scholarships of `masters.py` by name.
+2. **Professors**: researchers publishing on your profile's topics in each country over the last three years, scored on topic fit, supervision (last-author papers, and theses directed from theses.fr in France), activity and impact. 60 per country.
+3. **Contacts**: an email from ORCID, their homepage, or the first page of their own arXiv papers (matched to their name), with its source; when colleagues at the same school all use first.last@domain, a guessed address in that format, shown as guessed. Google Scholar and LinkedIn are search links: neither allows automated reading.
+
 ## Updating the radar
 
 `radar.json` holds the PhD and master's radar. Edit it in your repository (or ask Claude to refresh it) and redeploy. Deadlines in the past hide automatically.

@@ -24,6 +24,17 @@ module.exports = async (req, res) => {
     }
   }
   if ((req.query || {}).set === 'poli-live') return require('./_poli')(req, res); // live Poli (api/_poli.js)
+  if ((req.query || {}).set === 'academia') {
+    // Schools and professors (collector/academia.py), refreshed weekly.
+    try {
+      const [sc, pe, meta] = await Promise.all([redis(u, ['HVALS', 'parcours:academia:schools']), redis(u, ['HVALS', 'parcours:academia:people']),
+        redis(u, ['GET', 'parcours:academia:meta'])]);
+      const parse = (r) => ((r && r.result) || []).map((v) => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
+      return res.status(200).json({ ...(meta && meta.result ? JSON.parse(meta.result) : { at: 0 }), schools: parse(sc), people: parse(pe) });
+    } catch (e) {
+      return res.status(502).json({ error: 'Storage is unavailable right now.' });
+    }
+  }
   if ((req.query || {}).set === 'poli') {
     // Poli (collector/poli.py): UK sponsor directory, employees likely sponsored there, and the run report with Poli's totals.
     try {

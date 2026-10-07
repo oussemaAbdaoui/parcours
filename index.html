@@ -603,7 +603,8 @@ textarea{height:auto}
 .pjf fieldset{border:0;padding:0;margin:0 0 12px}.pjf legend{font-weight:700;font-size:13px;color:var(--muted);margin-bottom:6px}
 .pjf .ck{display:inline-flex;gap:6px;align-items:center;margin:0 14px 6px 0;font-size:13.5px;cursor:pointer}
 .pjf .pjsub{display:block;margin:0 0 6px 22px}
-.pjacts{margin-top:10px}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
+.pjacts{margin-top:10px}
+.acems{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:13.5px}.acem small{color:var(--muted)}.acem.guess .mono{color:var(--muted);font-style:italic}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
 .new{background:var(--red-t);color:var(--red-ink)}
 .score{width:48px;height:48px;border-radius:16px;font-weight:800;font-size:15px}
 .score.weak{border:0;background:var(--surface-2);font-size:20px}
@@ -737,6 +738,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
     <a href="#/" data-t="overview"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg>Overview</a>
     <div class="navlab">Search</div>
     <a href="#/opps" data-t="opps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z"/></svg>Opportunities</a>
+    <a href="#/academia" data-t="academia"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></svg>Professors</a>
     <a href="#/sponsors" data-t="sponsors"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>Poli</a>
     <div class="navlab">Track</div>
     <a href="#/apps" data-t="apps"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,48H40a8,8,0,0,0-8,8V208a16,16,0,0,0,16,16H88a16,16,0,0,0,16-16V160h48v16a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V56A8,8,0,0,0,216,48ZM88,208H48V128H88Zm0-96H48V64H88Zm64,32H104V64h48Zm56,32H168V128h40Zm0-64H168V64h40Z"/></svg>Applications</a>
@@ -768,6 +770,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
   <button type="button" id="moreBtn" data-t="more" aria-expanded="false" aria-controls="moreSheet"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z"/></svg><span>More</span></button>
 </nav>
 <div class="sheet" id="moreSheet" hidden>
+  <a href="#/academia"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></svg>Professors</a>
   <a href="#/sponsors"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.050,8.050,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/></svg>Poli</a>
   <a href="#/queue"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"/></svg>Apply queue</a>
   <a href="#/notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>Notes</a>
@@ -2890,12 +2893,128 @@ function poliPanelHtml(name){
     <div class="pjlive"></div></div>`;
 }
 
+/* Schools and professors (collector/academia.py): who to write to for a master's, a PhD or a scholarship */
+let acData=null,acAt=0,acF={tab:'professors',c:'',q:'',kind:'',sort:'score',offer:'',open:null},acMax=40;
+const AC_C={fr:['🇫🇷','France'],de:['🇩🇪','Germany'],ca:['🇨🇦','Canada'],ch:['🇨🇭','Switzerland'],tn:['🇹🇳','Tunisia']};
+async function loadAcademia(){
+  if(!acData||Date.now()-acAt>10*60e3){acData=await api('/api/opps?set=academia');acAt=Date.now();acIdx=null;}
+  return acData;
+}
+// Master's programmes and scholarships (masters.py) attached to each school by name.
+let acIdx=null;
+const acNorm=s=>coNorm(s).replace(/\b(universite|university|universitat|universita|de|du|des|la|le|of|the|et|and|ecole|school)\b/g,' ').replace(/\s+/g,' ').trim();
+function acOffers(){
+  if(acIdx)return acIdx;
+  acIdx=new Map();
+  const items=(msData&&msData.items)||[],schools=(acData&&acData.schools)||[];
+  const keys=schools.map(s=>({s,names:[s.name,...(s.aliases||[]),s.acronym].filter(Boolean).map(acNorm).filter(n=>n.length>3)}));
+  items.forEach(x=>{const o=acNorm(x.org);if(!o)return;
+    const hit=keys.find(k=>k.s.c===x.country&&k.names.some(n=>n===o||(n.length>8&&(o.includes(n)||n.includes(o)))));
+    if(hit){const r=acIdx.get(hit.s.id)||{programs:[],scholarships:[]};(x.type==='scholarship'?r.scholarships:r.programs).push(x);acIdx.set(hit.s.id,r);}});
+  return acIdx;
+}
+function academiaPage(tab){
+  if(tab==='professors'||tab==='schools')acF.tab=tab;
+  const T=acF.tab;
+  $('#view').innerHTML=`<h1>Schools and professors</h1>
+    <p class="sub">Every university and school in your countries, and the researchers working on your topics: who could supervise a thesis, teach in a master's you want, or back a scholarship application. Refreshed weekly.</p>
+    <div id="acStats"></div>
+    <div class="toolbar">
+      <span class="seg" id="acTabs" role="group" aria-label="Show"><button type="button" data-ac="professors" aria-pressed="${T==='professors'}">Professors</button><button type="button" data-ac="schools" aria-pressed="${T==='schools'}">Schools</button></span>
+      <select id="acC" aria-label="Country"><option value="">All countries</option>${Object.entries(AC_C).map(([k,[f,n]])=>`<option value="${k}" ${acF.c===k?'selected':''}>${f} ${n}</option>`).join('')}</select>
+      <input type="search" id="acQ" placeholder="${T==='schools'?'Search school or city…':'Search name, school, topic…'}" aria-label="Search" value="${esc(acF.q)}">
+      ${T==='professors'?`<select id="acK" aria-label="Show"><option value="">Everyone</option><option value="phd" ${acF.kind==='phd'?'selected':''}>Likely PhD supervisors</option><option value="email" ${acF.kind==='email'?'selected':''}>With an email</option><option value="master" ${acF.kind==='master'?'selected':''}>At a school with your master's</option></select>
+      <select id="acS" aria-label="Sort"><option value="score" ${acF.sort==='score'?'selected':''}>Best fit first</option><option value="papers" ${acF.sort==='papers'?'selected':''}>Most papers on your topics</option><option value="h" ${acF.sort==='h'?'selected':''}>Highest h-index</option><option value="theses" ${acF.sort==='theses'?'selected':''}>Most theses supervised</option></select>`
+      :`<select id="acK" aria-label="Offers"><option value="">All schools</option><option value="research" ${acF.offer==='research'?'selected':''}>Publishing on your topics</option><option value="program" ${acF.offer==='program'?'selected':''}>With a master's for you</option><option value="scholarship" ${acF.offer==='scholarship'?'selected':''}>With a scholarship</option><option value="people" ${acF.offer==='people'?'selected':''}>With professors listed</option></select>
+      <select id="acS" aria-label="Sort"><option value="topic" ${acF.sort==='topic'?'selected':''}>Most papers on your topics</option><option value="cs" ${acF.sort==='cs'?'selected':''}>Most computer-science papers</option><option value="name" ${acF.sort==='name'?'selected':''}>Name</option></select>`}
+    </div><div id="acBox"><p class="hint">Loading…</p></div>`;
+  $('#acTabs').addEventListener('click',e=>{const b=e.target.closest('[data-ac]');if(!b||b.dataset.ac===acF.tab)return;acF={...acF,tab:b.dataset.ac,sort:b.dataset.ac==='schools'?'topic':'score',open:null};acMax=40;location.hash='#/academia/'+acF.tab;});
+  const upd=()=>{acF.c=$('#acC').value;acF.q=$('#acQ').value.trim();if(T==='professors')acF.kind=$('#acK').value;else acF.offer=$('#acK').value;acF.sort=$('#acS').value;acMax=40;renderAcademia();};
+  $('#acQ').addEventListener('input',upd);['acC','acK','acS'].forEach(id=>$('#'+id).addEventListener('change',upd));
+  if(!caps.online){$('#acBox').innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return;}
+  Promise.all([loadAcademia(),loadMasters().catch(()=>null)]).then(([d])=>{
+    acIdx=null;
+    $('#acStats').innerHTML=d.at?`<div class="stats">
+      <div class="stat"><b>${(d.schools||[]).length.toLocaleString('en')}</b><span>Schools and institutes</span><small>${(d.schools||[]).filter(s=>s.topic).length} publish on your topics</small></div>
+      <div class="stat"><b>${(d.people||[]).length}</b><span>Professors for you</span><small>${esc((d.topics||[]).slice(0,3).join(', '))}…</small></div>
+      <div class="stat"><b>${(d.people||[]).filter(p=>(p.emails||[]).length).length}</b><span>With an email</span><small>${(d.people||[]).filter(p=>(p.emails||[]).some(e=>!e.guess)).length} found, the rest guessed</small></div></div>`:'';
+    renderAcademia();
+  }).catch(e=>{$('#acBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load schools and professors.'))}</p>`;});
+}
+const acSchool=id=>((acData&&acData.schools)||[]).find(s=>s.id===id);
+function acPersonRow(p,withSchool=true){
+  const th=p.theses&&p.theses.count,flag=(AC_C[p.c]||[''])[0],q=encodeURIComponent(p.name);
+  const parts=p.parts||{},tip=`Topic fit ${parts.fit||0}/45 · Supervision ${parts.supervision||0}/25 · Activity ${parts.activity||0}/10 · Impact ${parts.impact||0}/20`;
+  const sc=p.score>=70?'s-hi':p.score>=50?'s-mid':'s-lo';
+  const em=(p.emails||[]).map(e=>`<span class="acem${e.guess?' guess':''}"><span class="mono">${esc(e.email)}</span> <button class="linkbtn" type="button" data-copy="${esc(e.email)}">Copy</button> <small>${safeUrl(e.url)?`<a href="${esc(e.url)}" target="_blank" rel="noopener noreferrer">${esc(e.source)}</a>`:esc(e.source)}</small></span>`).join('');
+  const links=[safeUrl(p.homepage)?[p.homepage,'Homepage']:null,p.orcid?['https://orcid.org/'+p.orcid,'ORCID']:null,['https://openalex.org/'+p.id,'Papers'],
+    p.theses&&p.theses.id?['https://theses.fr/'+p.theses.id,'Theses directed']:null,
+    ['https://scholar.google.com/citations?view_op=search_authors&mauthors='+q,'Google Scholar'],
+    ['https://www.linkedin.com/search/results/people/?keywords='+encodeURIComponent(p.name+' '+(p.instName||'')),'LinkedIn']].filter(Boolean);
+  return `<div class="offer"><span class="score ${sc}" data-tip="${esc(tip)}" title="${esc(tip)}">${p.score}</span><div>
+    <h3>${esc(p.name)} <span class="xp">${flag} ${esc((AC_C[p.c]||['',''])[1])}</span>${p.last>=3||th?' <span class="xp pst s-hi">Likely PhD supervisor</span>':''}</h3>
+    <div class="meta">${withSchool&&p.instName?`<span>${p.ror&&acSchool(p.ror)?`<button class="linkbtn" type="button" data-acschool="${esc(p.ror)}">${esc(p.instName)}</button>`:esc(p.instName)}</span>`:''}
+      <span><b>${p.papers}</b> paper${p.papers===1?'':'s'} on your topics since ${esc(String((acData&&acData.since)||'').slice(0,4))}</span><span>${p.last} as last author</span>${p.h!=null?`<span>h-index ${p.h}</span>`:''}${th?`<span><b>${th}</b> PhD theses directed</span>`:''}</div>
+    <div class="meta" style="margin-top:6px">${(p.topics||[]).map(t=>`<span class="xp">${esc(t)}</span>`).join('')}</div>
+    ${em?`<div class="acems">${em}</div>`:'<p class="hint" style="margin:6px 0 0">No public email found. Try the homepage or LinkedIn.</p>'}
+    ${(p.recent||[]).length?`<details class="desc"><summary>Recent papers</summary>${p.recent.map(r=>`<div class="rn"><a href="https://openalex.org/${esc(r.id)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a><span>${esc(r.year||'')}</span></div>`).join('')}</details>`:''}
+    <div class="row" style="margin-top:8px">${links.map(([u,l])=>`<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${l}</a>`).join('')}</div></div>
+    <div class="oa"><button class="btn sm primary" type="button" data-aclog="${esc(p.id)}">Log PhD contact</button></div></div>`;
+}
+function acSchoolRow(s){
+  const o=acOffers().get(s.id)||{programs:[],scholarships:[]},people=((acData&&acData.people)||[]).filter(p=>p.ror===s.id);
+  const open=acF.open===s.id,flag=(AC_C[s.c]||[''])[0];
+  return `<div class="offer"><div><h3><button type="button" class="pjt" data-acschool="${esc(s.id)}" aria-expanded="${open}">${esc(s.name)}</button>${s.acronym?` <span class="xp">${esc(s.acronym)}</span>`:''}</h3>
+    <div class="meta"><span>${flag} ${esc(s.city||'')}</span><span>${esc((s.types||[]).join(', '))}</span>${s.topic?`<span><b>${s.topic}</b> papers on your topics</span>`:''}${s.cs?`<span>${s.cs} CS papers</span>`:''}</div>
+    <div class="meta" style="margin-top:6px">${people.length?`<span class="xp pst s-hi">${people.length} professor${people.length===1?'':'s'} for you</span>`:''}${o.programs.length?`<span class="xp">${o.programs.length} master's</span>`:''}${o.scholarships.length?`<span class="xp">${o.scholarships.length} scholarship${o.scholarships.length===1?'':'s'}</span>`:''}${s.children?`<span>${s.children} labs and institutes</span>`:''}</div>
+    ${open?`<div class="pjd">
+      ${people.length?`<h4>Professors for you</h4><div class="offers compact">${people.sort((a,b)=>b.score-a.score).map(p=>acPersonRow(p,false)).join('')}</div>`:'<p class="hint">No professor on your topics found here yet.</p>'}
+      ${o.programs.length?`<h4>Master's programmes</h4>${o.programs.map(x=>`<div class="rn"><a href="${esc(safeUrl(x.url)||'#')}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><span>${esc([x.city,x.lang,x.deadline?'deadline '+x.deadline:''].filter(Boolean).join(' · '))}</span></div>`).join('')}`:''}
+      ${o.scholarships.length?`<h4>Scholarships</h4>${o.scholarships.map(x=>`<div class="rn"><a href="${esc(safeUrl(x.url)||'#')}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><span>${esc(x.source||'')}</span></div>`).join('')}`:''}
+    </div>`:''}</div>
+    <div class="oa">${safeUrl(s.website)?`<a class="btn sm" href="${esc(s.website)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}<a class="btn sm" href="${esc(s.ror)}" target="_blank" rel="noopener noreferrer">ROR</a></div></div>`;
+}
+function renderAcademia(){
+  const box=$('#acBox'),d=acData;if(!box||!d)return;
+  if(!d.at){box.innerHTML='<p class="hint">Nothing collected yet. Run the workflow "Refresh schools and professors" in GitHub Actions (it also runs every Sunday).</p>';return;}
+  const words=acF.q.toLowerCase().split(/\s+/).filter(Boolean),has=t=>{t=t.toLowerCase();return words.every(w=>t.includes(w));};
+  let rows,html;
+  if(acF.tab==='professors'){
+    const off=acOffers();
+    const key={score:p=>p.score,papers:p=>p.papers,h:p=>p.h||0,theses:p=>(p.theses&&p.theses.count)||0}[acF.sort]||(p=>p.score);
+    rows=(d.people||[]).filter(p=>(!acF.c||p.c===acF.c)&&has(`${p.name} ${p.instName} ${(p.topics||[]).join(' ')} ${(p.fields||[]).join(' ')}`)
+      &&(acF.kind!=='phd'||p.last>=3||(p.theses&&p.theses.count))&&(acF.kind!=='email'||(p.emails||[]).length)&&(acF.kind!=='master'||((off.get(p.ror)||{}).programs||[]).length))
+      .sort((a,b)=>key(b)-key(a));
+    html=rows.slice(0,acMax).map(p=>acPersonRow(p)).join('');
+  }else{
+    const off=acOffers(),pc={};(d.people||[]).forEach(p=>{pc[p.ror]=(pc[p.ror]||0)+1;});
+    const key={topic:s=>s.topic*1e6+s.cs,cs:s=>s.cs}[acF.sort];
+    rows=(d.schools||[]).filter(s=>(!acF.c||s.c===acF.c)&&has(`${s.name} ${(s.aliases||[]).join(' ')} ${s.acronym} ${s.city}`)
+      &&(acF.offer!=='research'||s.topic)&&(acF.offer!=='program'||((off.get(s.id)||{}).programs||[]).length)&&(acF.offer!=='scholarship'||((off.get(s.id)||{}).scholarships||[]).length)&&(acF.offer!=='people'||pc[s.id]))
+      .sort((a,b)=>key?key(b)-key(a)||a.name.localeCompare(b.name):a.name.localeCompare(b.name));
+    html=rows.slice(0,acMax).map(acSchoolRow).join('');
+  }
+  box.innerHTML=rows.length?`<p class="hint">${rows.length.toLocaleString('en')} ${acF.tab}${rows.length>acMax?`, showing ${acMax}`:''}. Updated ${esc(rel(new Date(d.at).toISOString().slice(0,10)))}.${acF.tab==='professors'?' The score adds topic fit, supervision (last-author papers, theses directed), recent activity and impact; hover it for the detail.':' Select a school for its professors, master\'s and scholarships.'}</p>
+    <div class="offers">${html}</div>${rows.length>acMax?`<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" type="button" id="acMore">Show more</button></div>`:''}`
+    :'<p class="hint">Nothing matches.</p>';
+  const m=$('#acMore');if(m)m.addEventListener('click',()=>{acMax+=40;renderAcademia();});
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest)return;
+  const s=e.target.closest('[data-acschool]');
+  if(s){const id=s.dataset.acschool;if(acF.tab!=='schools'){acF={...acF,tab:'schools',open:id,q:'',c:''};location.hash='#/academia/schools';return;}
+    acF.open=acF.open===id?null:id;const sc=acSchool(id),row=s.closest('.offer');if(sc&&row&&row.parentElement.closest('#acBox'))row.outerHTML=acSchoolRow(sc);return;}
+  const l=e.target.closest('[data-aclog]');
+  if(l){const p=((acData&&acData.people)||[]).find(x=>x.id===l.dataset.aclog);if(!p)return;
+    openDlg({org:p.instName,role:'PhD with '+p.name,c:cById(p.c)?p.c:'fr',d:'phd',p:'Direct email to supervisors',link:safeUrl(p.homepage)||'https://openalex.org/'+p.id,notes:(p.emails||[]).map(x=>x.email).join(', ')});}
+});
+
 function route(){
   const h=location.hash.replace(/^#\/?/,'');const [path,qs]=h.split('?');const seg=path.split('/').filter(Boolean);
   const t=seg[0]||'overview';
   const tab=t==='company'?'companies':t;
   document.body.dataset.page=tab;
-  document.querySelectorAll('.bottombar [data-t]').forEach(a=>{const on=a.dataset.t===tab||(a.dataset.t==='more'&&(tab==='notes'||tab==='queue'||tab==='sponsors'));if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  document.querySelectorAll('.bottombar [data-t]').forEach(a=>{const on=a.dataset.t===tab||(a.dataset.t==='more'&&(tab==='notes'||tab==='queue'||tab==='sponsors'||tab==='academia'));if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   const ms=$('#moreSheet');if(ms){ms.hidden=true;$('#moreBtn').setAttribute('aria-expanded','false');}
   document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.t===tab){a.setAttribute('aria-current','page');const ts=$('#topSec');if(ts)ts.textContent=a.textContent.trim();}else a.removeAttribute('aria-current');});
   $('#demoBar').innerHTML=demo?`<div class="demo"><span>Previewing sample data. Nothing here is saved.</span><button class="btn sm" data-act="exitdemo">Exit preview</button></div>`:'';
@@ -2906,6 +3025,7 @@ function route(){
   else if(t==='profile')profilePage();
   else if(t==='companies')companiesPage();
   else if(t==='sponsors')sponsorsPage(seg[1]);
+  else if(t==='academia')academiaPage(seg[1]);
   else if(t==='company')companyPage(seg[1],qs);
   else if(t==='explore'){location.replace('#/');return;}
   else overview();

@@ -2,3 +2,4 @@ python-jobspy==1.1.82
 scrapling[fetchers]==0.4.15
 requests>=2.31
 pywebpush==2.0.3
+pypdf==6.12.2
