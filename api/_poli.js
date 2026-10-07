@@ -2,8 +2,8 @@ const { upstash, redis } = require('./_lib');
 
 // Live Poli (withpoli.com) inside the app: signs in with POLI_EMAIL / POLI_PASSWORD (Vercel environment) and relays
 // a fixed list of Poli API calls the Poli web app makes: the jobs feed and its paging, applied jobs, filter options,
-// any company's open jobs and sponsored employees, the network. The only writes are the feed preferences and sort
-// order, which is how the Poli feed is filtered. The Poli session cookie is kept in Redis (about an hour), so the
+// any company's open jobs and sponsored employees, the network, the shortlist. Writes are the ones Poli's own buttons
+// make: feed preferences and order, applied / seen / not interested, hide or shortlist a company, contacted. The Poli session cookie is kept in Redis (about an hour), so the
 // app does not sign in on every request. Served by api/opps.js (?set=poli-live: the Hobby plan allows 12 functions).
 // Collector side: collector/poli.py.
 const BASE = 'https://app.withpoli.com/api/';
@@ -27,6 +27,17 @@ const ACTIONS = {
   companyJobs: (b) => ['POST', 'company/jobs', { companyId: num(b.companyId), offset: num(b.offset) }],
   companyEmployees: (b) => ['POST', 'company/employees', { companyId: num(b.companyId), offset: num(b.offset) }],
   network: (b) => ['POST', 'employees/network', { initialFetch: !!b.initialFetch }],
+  networkContacted: (b) => ['POST', 'employees/network/contacted', { initialFetch: !!b.initialFetch }],
+  favourites: () => ['POST', 'companies/favourites', {}],
+  hiddenCompanies: () => ['GET', 'companies/hidden'],
+  // What you do in the app, sent back to Poli the way its own buttons do.
+  markApplied: (b) => ['POST', 'job/mark-as-applied', { jobId: num(b.jobId) }],
+  markSeen: (b) => ['POST', 'job/mark-as-seen', { jobId: num(b.jobId) }],
+  downvote: (b) => ['POST', 'job/mark-as-downvoted', { jobId: num(b.jobId) }],
+  hideCompany: (b) => ['POST', 'company/hide', { companyId: num(b.companyId) }],
+  unhideCompany: (b) => ['POST', 'company/unhide', { companyId: num(b.companyId) }],
+  toggleFavourite: (b) => ['POST', 'company/toggle-favourite', { companyId: num(b.companyId) }],
+  toggleContacted: (b) => ['POST', 'employee/toggle-contacted', { employeeId: num(b.employeeId) }],
   savePreferences: (b) => ['POST', 'jobs/preferences', {
     jobTypes: ids(b.jobTypes), jobCategories: ids(b.jobCategories), jobSeniorities: ids(b.jobSeniorities),
     jobLocations: ids(b.jobLocations), immediateSponsorshipRequired: !!b.immediateSponsorshipRequired

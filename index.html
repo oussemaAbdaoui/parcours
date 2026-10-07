@@ -603,6 +603,7 @@ textarea{height:auto}
 .pjf fieldset{border:0;padding:0;margin:0 0 12px}.pjf legend{font-weight:700;font-size:13px;color:var(--muted);margin-bottom:6px}
 .pjf .ck{display:inline-flex;gap:6px;align-items:center;margin:0 14px 6px 0;font-size:13.5px;cursor:pointer}
 .pjf .pjsub{display:block;margin:0 0 6px 22px}
+.pjacts{margin-top:10px}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
 .new{background:var(--red-t);color:var(--red-ink)}
 .score{width:48px;height:48px;border-radius:16px;font-weight:800;font-size:15px}
 .score.weak{border:0;background:var(--surface-2);font-size:20px}
@@ -2595,7 +2596,7 @@ function poliCoRow(c){
   const logo=safeUrl(c.logo)?`<img src="${esc(c.logo)}" alt="" width="18" height="18" loading="lazy" referrerpolicy="no-referrer" style="vertical-align:-3px;margin-right:7px;border-radius:4px">`:'';
   return `<div class="offer"><div><h3>${logo}${coLink(c.name)}${c.sponsoredEmployees?` <span class="xp">${c.sponsoredEmployees} sponsored staff</span>`:''}</h3>
     <div class="meta">${c.size?`<span>${esc(c.size)}</span>`:''}<span><b>${c.jobs}</b> open job${c.jobs===1?'':'s'}</span>${c.cos2025!=null?`<span>Visas sponsored in 2025: <b>${c.cos2025}</b></span>`:''}${c.policy?`<span>${esc(c.policy)}</span>`:''}</div></div>
-    <div class="oa">${safeUrl(c.url)?`<a class="btn sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}${liBtn(c.linkedin)}</div></div>`;
+    <div class="oa">${pm.hidden.has(c.id)?`<button class="btn sm" type="button" data-punhide="${c.id}">Unhide</button>`:''}${favBtn(c.id)}${safeUrl(c.url)?`<a class="btn sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}${liBtn(c.linkedin)}</div></div>`;
 }
 function poliPersonRow(p,withCo=true){
   return `<div class="offer"><div><h3>${esc(p.name||'Unnamed')}${p.sponsorship?` <span class="xp">${esc(p.sponsorship)}</span>`:''}${p.contacted?' <span class="xp">contacted</span>':''}</h3>
@@ -2603,19 +2604,21 @@ function poliPersonRow(p,withCo=true){
     <div class="oa">${liBtn(p.linkedin)}</div></div>`;
 }
 function sponsorsPage(tab){
-  if(['jobs','companies','people'].includes(tab))poliF.tab=tab;
+  if(['jobs','network','companies','people'].includes(tab))poliF.tab=tab;
   const T=poliF.tab;
   $('#view').innerHTML=`<h1>Poli</h1>
     <p class="sub">UK jobs at companies licensed to sponsor a Skilled Worker visa, live from your Poli account, plus the sponsor directory and people likely sponsored there: the ones to ask for a referral or advice.</p>
     <div id="spStats"></div>
     <div class="toolbar">
-      <span class="seg" id="spTabs" role="group" aria-label="Show">${[['jobs','Jobs'],['companies','Companies'],['people','People']].map(([k,l])=>`<button type="button" data-sp="${k}" aria-pressed="${T===k}">${l}</button>`).join('')}</span>
-      ${T==='jobs'?`<span class="seg" id="pjMode" role="group" aria-label="Feed"><button type="button" data-pjm="feed" aria-pressed="${pj.mode==='feed'}">For you</button><button type="button" data-pjm="applied" aria-pressed="${pj.mode==='applied'}">Applied</button></span>
+      <span class="seg" id="spTabs" role="group" aria-label="Show">${[['jobs','Jobs'],['network','Network'],['companies','Companies'],['people','People']].map(([k,l])=>`<button type="button" data-sp="${k}" aria-pressed="${T===k}">${l}</button>`).join('')}</span>
+      ${T==='network'?`<span class="seg" id="pnMode" role="group" aria-label="Show"><button type="button" data-pnm="all" aria-pressed="${pn.mode==='all'}">Everyone</button><button type="button" data-pnm="contacted" aria-pressed="${pn.mode==='contacted'}">Contacted</button></span>
+      <input type="search" id="spQ" placeholder="Filter loaded people…" aria-label="Filter loaded people" value="${esc(pn.q)}">`
+      :T==='jobs'?`<span class="seg" id="pjMode" role="group" aria-label="Feed"><button type="button" data-pjm="feed" aria-pressed="${pj.mode==='feed'}">For you</button><button type="button" data-pjm="applied" aria-pressed="${pj.mode==='applied'}">Applied</button></span>
       <select id="pjS" aria-label="Order"><option value="relevance" ${pj.sort==='relevance'?'selected':''}>Most relevant</option><option value="date_added" ${pj.sort==='date_added'?'selected':''}>Newest first</option></select>
       <input type="search" id="spQ" placeholder="Filter loaded jobs…" aria-label="Filter loaded jobs" value="${esc(pj.q)}">
       <button class="btn sm" type="button" id="pjF" aria-expanded="false" aria-controls="pjFilters">Job preferences</button>`
       :`<input type="search" id="spQ" placeholder="${T==='people'?'Search name, role, company…':'Search company…'}" aria-label="Search" value="${esc(poliF.q)}">
-      ${T==='companies'?`<select id="spF" aria-label="Filter"><option value="">All sponsors</option><option value="jobs" ${poliF.filter==='jobs'?'selected':''}>With open jobs</option><option value="staff" ${poliF.filter==='staff'?'selected':''}>With sponsored staff to contact</option><option value="cos" ${poliF.filter==='cos'?'selected':''}>Sponsored visas in 2025</option></select>
+      ${T==='companies'?`<select id="spF" aria-label="Filter"><option value="">All sponsors</option><option value="jobs" ${poliF.filter==='jobs'?'selected':''}>With open jobs</option><option value="staff" ${poliF.filter==='staff'?'selected':''}>With sponsored staff to contact</option><option value="cos" ${poliF.filter==='cos'?'selected':''}>Sponsored visas in 2025</option><option value="shortlist" ${poliF.filter==='shortlist'?'selected':''}>Your shortlist</option><option value="hidden" ${poliF.filter==='hidden'?'selected':''}>Hidden by you</option></select>
       <select id="spZ" aria-label="Company size"><option value="">Any size</option></select>
       <select id="spS" aria-label="Sort"><option value="jobs" ${poliF.sort==='jobs'?'selected':''}>Most open jobs</option><option value="cos" ${poliF.sort==='cos'?'selected':''}>Most visas sponsored in 2025</option><option value="staff" ${poliF.sort==='staff'?'selected':''}>Most sponsored staff</option><option value="new" ${poliF.sort==='new'?'selected':''}>Newest on the register</option><option value="name" ${poliF.sort==='name'?'selected':''}>Name</option></select>`
       :`<select id="spF" aria-label="Filter"><option value="">Everyone</option><option value="network" ${poliF.filter==='network'?'selected':''}>Your Poli network</option><option value="notcontacted" ${poliF.filter==='notcontacted'?'selected':''}>Not contacted yet</option></select>`}`}
@@ -2628,6 +2631,14 @@ function sponsorsPage(tab){
       <div class="stat"><b>${n('sponsored-jobs')}</b><span>Jobs at sponsors</span><small>Tracked by Poli</small></div>
       <div class="stat"><b>${(d.companies||[]).length.toLocaleString('en')}</b><span>Licensed sponsors</span></div>
       <div class="stat"><b>${(d.people||[]).length.toLocaleString('en')}</b><span>People to contact</span><small>Likely sponsored themselves</small></div></div>`:'';};
+  if(T==='network'){
+    $('#pnMode').addEventListener('click',e=>{const b=e.target.closest('[data-pnm]');if(!b||b.dataset.pnm===pn.mode)return;pn.mode=b.dataset.pnm;
+      $('#pnMode').querySelectorAll('[data-pnm]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.pnm===pn.mode));poliNetLoad(true);});
+    $('#spQ').addEventListener('input',e=>{pn.q=e.target.value.trim();renderPoliNet();});
+    loadPoli().then(stats).catch(()=>{});
+    if(pn.people.length&&Date.now()-pn.at<10*60e3)renderPoliNet();else poliNetLoad(true);
+    return;
+  }
   if(T==='jobs'){
     $('#pjMode').addEventListener('click',e=>{const b=e.target.closest('[data-pjm]');if(!b||b.dataset.pjm===pj.mode)return;pj.mode=b.dataset.pjm;
       $('#pjMode').querySelectorAll('[data-pjm]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.pjm===pj.mode));poliJobsLoad(true);});
@@ -2635,6 +2646,7 @@ function sponsorsPage(tab){
     $('#spQ').addEventListener('input',e=>{pj.q=e.target.value.trim();renderPoliJobs();});
     $('#pjF').addEventListener('click',e=>{const p=$('#pjFilters');p.hidden=!p.hidden;e.target.setAttribute('aria-expanded',!p.hidden);if(!p.hidden)poliPrefsForm();});
     loadPoli().then(stats).catch(()=>{});
+    poliMarks().then(()=>{if(pj.open)renderPoliJobs();});
     if(pj.jobs.length&&Date.now()-pj.at<10*60e3)renderPoliJobs();else poliJobsLoad(true);
     return;
   }
@@ -2644,6 +2656,7 @@ function sponsorsPage(tab){
     const z=$('#spZ');
     if(z){const sizes=[...new Set((d.companies||[]).map(c=>c.size).filter(Boolean))].sort();z.innerHTML='<option value="">Any size</option>'+sizes.map(s=>`<option ${poliF.size===s?'selected':''}>${esc(s)}</option>`).join('');}
     stats(d);renderSponsors();
+    if(T==='companies')poliMarks().then(renderSponsors);
   }).catch(e=>{$('#spBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load the sponsor directory.'))}</p>`;});
 }
 
@@ -2699,8 +2712,11 @@ function pjDetails(j){
     <h4>${pjLogo(co.url_favicon,20)}${esc(org)}</h4><p>${facts.join(' · ')}.</p>${co.policy?`<p>${esc(pfix(co.policy))}</p>`:''}
     ${co.description?`<details class="desc"><summary>About ${esc(org)}</summary><p>${esc(pfix(co.description))}</p></details>`:''}
     <div class="row">${safeUrl(co.url)?`<a class="btn sm" href="${esc(co.url)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}${liBtn(co.url_linkedin)}
-      <button class="btn sm" type="button" data-pjco="${co.id}" data-k="jobs">All open jobs at ${esc(org)}</button>
+      <button class="btn sm" type="button" data-pjco="${co.id}" data-k="jobs">All open jobs at ${esc(org)}</button>${favBtn(co.id)}
       ${co.sponsored_employees_count?`<button class="btn sm" type="button" data-pjco="${co.id}" data-k="people">Sponsored employees (${co.sponsored_employees_count})</button>`:''}</div>
+    <div class="row pjacts"><button class="btn sm" type="button" data-pjact="applied" data-job="${j.id}" ${j.applied?'disabled':''}>${j.applied?'Marked applied on Poli':'Mark applied on Poli'}</button>
+      <button class="btn sm" type="button" data-pjact="down" data-job="${j.id}">Not interested</button>
+      <button class="btn sm" type="button" data-pjact="hide" data-job="${j.id}">Hide all jobs from ${esc(org)}</button></div>
     <div class="pjlive"></div></div>`;
 }
 function renderPoliJobs(){
@@ -2732,9 +2748,84 @@ async function poliLive(el,companyId,kind,offset=0){
 document.addEventListener('click',e=>{
   if(!e.target.closest)return;
   const o=e.target.closest('[data-pjopen]');
-  if(o){const id=+o.dataset.pjopen;pj.open=pj.open===id?null:id;const j=pj.jobs.find(x=>x.id===id),row=o.closest('.offer');if(j&&row)row.outerHTML=pjRow(j);return;}
+  if(o){const id=+o.dataset.pjopen;pj.open=pj.open===id?null:id;if(pj.open)poliApi([{action:'markSeen',jobId:id}]).catch(()=>{});const j=pj.jobs.find(x=>x.id===id),row=o.closest('.offer');if(j&&row)row.outerHTML=pjRow(j);return;}
   const c=e.target.closest('[data-pjco]');
   if(c){const box=c.dataset.off?c.closest('.pjlive'):(c.closest('.pjd,.panel')||document).querySelector('.pjlive');if(box){c.disabled=true;poliLive(box,c.dataset.pjco,c.dataset.k,+(c.dataset.off||0)).then(()=>{c.disabled=false;});}}
+});
+/* Poli network, shortlist, hidden companies, and the actions sent back to Poli */
+let pn={mode:'all',people:[],more:false,loading:false,q:'',at:0,meta:{}},pm={fav:new Set(),hidden:new Set(),at:0};
+async function poliMarks(){
+  if(Date.now()-pm.at<5*60e3)return;
+  try{const [f,h]=await poliApi([{action:'favourites'},{action:'hiddenCompanies'}]);
+    pm={fav:new Set(((f&&f.companies)||[]).map(c=>c.id)),hidden:new Set(((h&&h.companies)||[]).map(c=>c.id)),at:Date.now()};}catch(e){}
+}
+const favBtn=id=>`<button class="btn sm" type="button" data-pfav="${id}" aria-pressed="${pm.fav.has(id)}">${pm.fav.has(id)?'★ Shortlisted':'☆ Shortlist'}</button>`;
+async function poliNetLoad(reset,pages=3){
+  if(pn.loading)return;pn.loading=true;
+  const act=pn.mode==='contacted'?'networkContacted':'network';
+  if(reset){pn.people=[];const b=$('#spBox');if(b)b.innerHTML='<p class="hint">Loading from Poli…</p>';}
+  else{const m=$('#pnMore');if(m){m.disabled=true;m.textContent='Loading…';}}
+  try{
+    const res=await poliApi(Array.from({length:pages},(_,i)=>({action:act,initialFetch:reset&&i===0})));
+    const seen=new Set(pn.people.map(p=>p.id));
+    res.forEach(d=>{(d&&d.employees||[]).forEach(p=>{if(!seen.has(p.id)){seen.add(p.id);pn.people.push(p);}});pn.more=!!(d&&d.moreEmployeesExist);if(d&&reset)pn.meta=d;});
+    pn.at=Date.now();
+  }catch(e){pn.loading=false;const b=$('#spBox');if(b)b.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Add POLI_EMAIL and POLI_PASSWORD in Vercel (Settings, Environment Variables), then redeploy.'},'Could not reach Poli.'))}</p>`;return;}
+  pn.loading=false;renderPoliNet();
+}
+function pnRow(p){
+  const co=p.company||{},st=(p.sponsorship_status||{}).display_name||'';
+  const why=[p.applied_company_match&&'At a company you applied to',p.shortlisted_company_match&&'At a company you shortlisted',
+    (p.preference_category_match||p.category_match)&&'Works in your field',p.application_category_match&&'Same field as your applications'].filter(Boolean);
+  const av=safeUrl(p.avatar_url)?`<img src="${esc(p.avatar_url)}" alt="" width="28" height="28" loading="lazy" referrerpolicy="no-referrer" class="pnav" onerror="this.remove()">`:'';
+  return `<div class="offer"><div><h3>${av}${esc(p.full_name||'Unnamed')}${st?` <span class="xp">${esc(st)}</span>`:''}</h3>
+    <div class="meta">${p.job_title?`<span><b>${esc(p.job_title)}</b></span>`:''}${co.trading_name?`<span>at ${coLink(co.trading_name)}</span>`:''}${p.experience_tag?`<span>${esc(p.experience_tag)}</span>`:''}${p.expertise_tag?`<span>${esc(p.expertise_tag)}</span>`:''}</div>
+    ${why.length?`<div class="meta" style="margin-top:6px">${why.map(w=>`<span class="xp pst s-hi">${w}</span>`).join('')}</div>`:''}</div>
+    <div class="oa">${liBtn(p.url_linkedin)}<button class="btn sm" type="button" data-pcontact="${p.id}" aria-pressed="${!!p.isContacted}">${p.isContacted?'Contacted ✓':'Mark contacted'}</button></div></div>`;
+}
+function renderPoliNet(){
+  const box=$('#spBox');if(!box||poliF.tab!=='network')return;
+  const words=pn.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const list=pn.people.filter(p=>{const t=`${p.full_name} ${p.job_title} ${(p.company||{}).trading_name} ${p.expertise_tag}`.toLowerCase();return words.every(w=>t.includes(w));});
+  const m=pn.meta||{};
+  const tip=pn.mode==='all'&&m.isPersonalised===false?' Log applications or shortlist companies on Poli to personalise it.'
+    :pn.mode==='all'&&!m.hasAppliedJobs&&!m.hasShortlistedCompanies?' Mark jobs applied or shortlist companies to rank people at those companies first.':'';
+  box.innerHTML=pn.people.length?`<p class="hint">${list.length} of ${pn.people.length} people loaded${pn.more?', more on Poli':''}. People at sponsoring companies who were likely sponsored themselves: ask them for a referral or how their visa went.${tip}</p>
+    <div class="offers">${list.map(pnRow).join('')||'<p class="hint" style="padding:16px 20px">Nothing loaded matches.</p>'}</div>
+    ${pn.more?`<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" type="button" id="pnMore">Load 30 more</button></div>`:''}`
+    :`<p class="hint">${pn.mode==='contacted'?'Nobody marked as contacted yet.':'Your Poli network is empty.'}</p>`;
+  const b=$('#pnMore');if(b)b.addEventListener('click',()=>poliNetLoad(false));
+}
+document.addEventListener('click',async e=>{
+  if(!e.target.closest)return;
+  const a=e.target.closest('[data-pjact]');
+  if(a){
+    const j=pj.jobs.find(x=>x.id===+a.dataset.job);if(!j)return;const co=j.company||{},k=a.dataset.pjact;a.disabled=true;
+    try{
+      if(k==='applied'){await poliApi([{action:'markApplied',jobId:j.id}]);j.applied=true;a.textContent='Marked applied on Poli';return;}
+      if(k==='down'){await poliApi([{action:'downvote',jobId:j.id}]);pj.jobs=pj.jobs.filter(x=>x.id!==j.id);}
+      if(k==='hide'){await poliApi([{action:'hideCompany',companyId:co.id}]);pm.hidden.add(co.id);pj.jobs=pj.jobs.filter(x=>(x.company||{}).id!==co.id);}
+      pj.open=null;renderPoliJobs();
+    }catch(err){a.disabled=false;a.textContent=errText(err,{},'Poli did not answer. Try again.');}
+    return;
+  }
+  const f=e.target.closest('[data-pfav]');
+  if(f){const id=+f.dataset.pfav;f.disabled=true;
+    try{await poliApi([{action:'toggleFavourite',companyId:id}]);if(pm.fav.has(id))pm.fav.delete(id);else pm.fav.add(id);
+      document.querySelectorAll(`[data-pfav="${id}"]`).forEach(b=>{b.outerHTML=favBtn(id);});}
+    catch(err){f.disabled=false;}
+    return;
+  }
+  const u=e.target.closest('[data-punhide]');
+  if(u){const id=+u.dataset.punhide;u.disabled=true;
+    try{await poliApi([{action:'unhideCompany',companyId:id}]);pm.hidden.delete(id);renderSponsors();}catch(err){u.disabled=false;}
+    return;
+  }
+  const c=e.target.closest('[data-pcontact]');
+  if(c){const p=pn.people.find(x=>x.id===+c.dataset.pcontact);if(!p)return;c.disabled=true;
+    try{await poliApi([{action:'toggleContacted',employeeId:p.id}]);p.isContacted=!p.isContacted;const row=c.closest('.offer');if(row)row.outerHTML=pnRow(p);}
+    catch(err){c.disabled=false;}
+  }
 });
 // Job preferences: the filters the Poli feed follows, saved to the Poli account.
 async function poliPrefsForm(){
@@ -2779,7 +2870,7 @@ function renderSponsors(){
     html=rows.slice(0,poliMax).map(p=>poliPersonRow(p)).join('');
   }else{
     const f=poliF.filter,key={jobs:c=>c.jobs,cos:c=>c.cos2025||0,staff:c=>c.sponsoredEmployees,new:c=>Date.parse(c.onRegisterSince)||0}[poliF.sort];
-    rows=(d.companies||[]).filter(c=>has(`${c.name} ${c.legalName}`)&&(!poliF.size||c.size===poliF.size)&&(f!=='jobs'||c.jobs>0)&&(f!=='staff'||c.sponsoredEmployees>0)&&(f!=='cos'||c.cos2025>0))
+    rows=(d.companies||[]).filter(c=>has(`${c.name} ${c.legalName}`)&&(!poliF.size||c.size===poliF.size)&&(f!=='jobs'||c.jobs>0)&&(f!=='staff'||c.sponsoredEmployees>0)&&(f!=='cos'||c.cos2025>0)&&(f!=='shortlist'||pm.fav.has(c.id))&&(f!=='hidden'||pm.hidden.has(c.id)))
       .sort((a,b)=>key?key(b)-key(a)||a.name.localeCompare(b.name):a.name.localeCompare(b.name));
     html=rows.slice(0,poliMax).map(poliCoRow).join('');
   }
