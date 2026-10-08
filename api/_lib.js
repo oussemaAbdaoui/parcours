@@ -70,7 +70,7 @@ async function claude(prompt, { tier, maxTokens = 2000, ms = 28000 } = {}) {
   if (!key) throw { status: 503, message: 'Claude features are off. Add ANTHROPIC_API_KEY in Vercel.' };
   const model = tier === 'quick'
     ? (process.env.ANTHROPIC_MODEL_FAST || 'claude-haiku-4-5-20251001')
-    : (process.env.ANTHROPIC_MODEL || 'claude-sonnet-5');
+    : (process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5');
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
   try {
