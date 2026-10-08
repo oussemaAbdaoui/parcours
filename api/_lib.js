@@ -8,14 +8,29 @@ function safeEq(a, b) {
 }
 
 // Every endpoint requires the shared password. Without APP_PASSWORD the API stays closed,
-// so nobody can use your keys or read your data.
-function auth(req, res) {
+// so nobody can use your keys or read your data. Wrong passwords are counted per address in Redis: after
+// LOCK_AFTER of them within LOCK_SECONDS, that address is refused (even with the right password) until the window ends.
+const LOCK_AFTER = 10, LOCK_SECONDS = 900;
+const clientIp = (req) => String(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '').split(',')[0].trim() || 'unknown';
+async function auth(req, res) {
   const pw = process.env.APP_PASSWORD;
   if (!pw) {
     res.status(503).json({ error: 'APP_PASSWORD is not set on the server. Add it in Vercel, then redeploy.' });
     return false;
   }
+  const u = upstash(), key = 'parcours:authfail:' + clientIp(req);
+  if (u) {
+    const n = await redis(u, ['GET', key]).catch(() => null);
+    if (n && +n.result >= LOCK_AFTER) {
+      res.status(429).json({ error: 'Too many wrong passwords from this connection. Try again in 15 minutes.' });
+      return false;
+    }
+  }
   if (!safeEq(req.headers['x-app-password'] || '', pw)) {
+    if (u) {
+      await redis(u, ['INCR', key]).catch(() => {});
+      await redis(u, ['EXPIRE', key, String(LOCK_SECONDS), 'NX']).catch(() => {});
+    }
     res.status(401).json({ error: 'Wrong or missing password.' });
     return false;
   }

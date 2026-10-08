@@ -8,7 +8,7 @@ const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-
 const key = (c, r) => norm(c).replace(/ /g, '-') + '|' + norm(r).replace(/ /g, '-');
 
 module.exports = async (req, res) => {
-  if (!auth(req, res)) return;
+  if (!(await auth(req, res))) return;
   const u = upstash();
   if (!u) return res.status(501).json({ error: 'Storage is not configured.' });
   res.setHeader('Cache-Control', 'no-store');

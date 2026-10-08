@@ -39,7 +39,7 @@ async function scan(req, u) {
 }
 
 module.exports = async (req, res) => {
-  if (!auth(req, res)) return;
+  if (!(await auth(req, res))) return;
   res.setHeader('Cache-Control', 'no-store');
   const miss = missing(req);
   if (req.method === 'GET' && miss.length) return res.status(200).json({ configured: false, missing: miss });

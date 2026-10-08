@@ -1,8 +1,8 @@
 const { auth, upstash, aiOn } = require('./_lib');
 
 // Login check + tells the app which optional sources and features are configured.
-module.exports = (req, res) => {
-  if (!auth(req, res)) return;
+module.exports = async (req, res) => {
+  if (!(await auth(req, res))) return;
   const e = process.env;
   res.status(200).json({
     ok: true,

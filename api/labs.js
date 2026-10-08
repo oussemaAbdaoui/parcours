@@ -72,7 +72,7 @@ async function hal(q, years) {
 }
 
 module.exports = async (req, res) => {
-  if (!auth(req, res)) return;
+  if (!(await auth(req, res))) return;
   const q = String((req.query || {}).q || '').trim().slice(0, 120), c = String((req.query || {}).c || 'any');
   const years = Math.min(5, Math.max(1, +((req.query || {}).years) || 2));
   if (q.length < 2) return res.status(400).json({ error: 'Add a research topic.' });

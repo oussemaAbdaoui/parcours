@@ -15,7 +15,7 @@ const version = async (u, cmds) => (await Promise.all(cmds.map((c) => redis(u, c
 // parcours:opps:items (id -> offer JSON), plus run reports in parcours:opps:meta.
 // Falls back to the older one-blob keys until the collector has migrated them.
 module.exports = async (req, res) => {
-  if (!auth(req, res)) return;
+  if (!(await auth(req, res))) return;
   const u = upstash();
   if (!u) return res.status(501).json({ error: 'Storage is not configured. Add Upstash Redis in Vercel.' });
   res.setHeader('Cache-Control', 'no-store');

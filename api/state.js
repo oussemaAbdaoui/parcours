@@ -77,7 +77,7 @@ async function mirror(u, state) {
 }
 
 module.exports = async (req, res) => {
-  if (!auth(req, res)) return;
+  if (!(await auth(req, res))) return;
   const pool = db(), u = upstash();
   if (!pool && !u) return res.status(501).json({ error: 'Sync is not configured.' });
   res.setHeader('Cache-Control', 'no-store');

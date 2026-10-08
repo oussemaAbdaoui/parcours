@@ -162,7 +162,7 @@ const SOURCES = {
 };
 
 module.exports = async (req, res) => {
-  if (!auth(req, res)) return;
+  if (!(await auth(req, res))) return;
   const b = req.query || {};
   const q = {
     q: String(b.q || '').trim().slice(0, 100), c: String(b.c || 'fr'), loc: String(b.loc || '').trim().slice(0, 80),

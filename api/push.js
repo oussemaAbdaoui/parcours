@@ -14,7 +14,7 @@ function vapid() {
 }
 
 module.exports = async (req, res) => {
-  if (!auth(req, res)) return;
+  if (!(await auth(req, res))) return;
   res.setHeader('Cache-Control', 'no-store');
   const pub = vapid(), u = upstash();
   if (!pub || !u) return res.status(501).json({ error: 'Notifications are not configured on the server.' });

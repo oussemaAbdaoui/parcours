@@ -164,11 +164,30 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _redis(self, *args):
+        url = os.environ.get("UPSTASH_REDIS_REST_URL") or os.environ.get("KV_REST_API_URL")
+        tok = os.environ.get("UPSTASH_REDIS_REST_TOKEN") or os.environ.get("KV_REST_API_TOKEN")
+        if not url or not tok:
+            return None
+        try:
+            import requests
+            return requests.post(url, headers={"Authorization": "Bearer " + tok}, json=list(args), timeout=5).json().get("result")
+        except Exception:
+            return None
+
     def do_GET(self):
         pw = os.environ.get("APP_PASSWORD", "")
         if not pw:
             return self._send(503, {"error": "APP_PASSWORD is not set on the server. Add it in Vercel, then redeploy."})
+        # Same lockout as api/_lib.js: 10 wrong passwords in 15 minutes from one address.
+        ip = (self.headers.get("x-forwarded-for") or self.headers.get("x-real-ip") or "unknown").split(",")[0].strip()
+        key = "parcours:authfail:" + ip
+        n = self._redis("GET", key)
+        if n is not None and int(n) >= 10:
+            return self._send(429, {"error": "Too many wrong passwords from this connection. Try again in 15 minutes."})
         if not hmac.compare_digest(self.headers.get("x-app-password", "").encode(), pw.encode()):
+            self._redis("INCR", key)
+            self._redis("EXPIRE", key, "900", "NX")
             return self._send(401, {"error": "Wrong or missing password."})
 
         p = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
