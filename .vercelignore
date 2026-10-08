@@ -1,4 +1,6 @@
-collector
+collector/*
+!collector/sources.py
+!collector/poli.py
 .github
 __pycache__
 .agents

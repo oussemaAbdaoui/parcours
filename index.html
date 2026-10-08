@@ -961,6 +961,33 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 .gs-snip{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}.gs-snip mark,.gs-main mark{background:color-mix(in srgb,var(--warn) 30%,transparent);color:inherit;border-radius:3px;padding:0 1px}
 .gs-foot{margin:0;padding:8px 14px;border-top:1px solid var(--line-2);font-size:11.5px;color:var(--faint)}
 @media(max-width:900px){.gs{padding:0}.gs-box{max-height:100dvh;height:100dvh;border-radius:0;width:100%}.gs-type{flex-basis:84px}.gs-foot{display:none}}
+
+/* live search engine */
+.ls{max-width:1180px}
+.ls:not(.on){display:flex;flex-direction:column;align-items:center;padding-top:6vh}
+.ls-title{font-size:56px;text-align:center;margin:0 auto 10px}
+.ls-bar{display:flex;gap:8px;width:100%;max-width:760px}
+.ls.on .ls-bar{max-width:none}
+.ls-bar input{flex:1;height:54px!important;font-size:17px;border-radius:999px!important;padding:0 22px;box-shadow:0 6px 24px -14px rgba(0,0,0,.25)}
+.ls-bar .btn.primary{height:54px;padding:0 26px}
+.ls-tabs{display:flex;gap:6px;margin:14px 0 8px;flex-wrap:wrap;justify-content:center}
+.ls.on .ls-tabs{justify-content:flex-start}
+.ls-tabs button{height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.ls-tabs button[aria-pressed="true"]{background:var(--blue-t);color:var(--blue-ink);border-color:transparent}
+.ls-cs{display:flex;gap:6px 16px;flex-wrap:wrap;justify-content:center;font-size:13.5px;margin-bottom:18px}
+.ls.on .ls-cs{justify-content:flex-start}
+.ls-try{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:760px}
+.ls-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.ls-grid>*{min-width:0}
+.ls-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.ls-side{position:sticky;top:96px;display:flex;flex-direction:column;gap:14px}
+.ls-side .panel{margin:0}
+.ls-src{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:6px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+.ls-src b{font-weight:700;color:var(--muted)}.ls-src.ok b{color:var(--ok)}.ls-src.err b{color:var(--red-ink)}.ls-src.run b{color:var(--blue)}
+.ls-src small{grid-column:1/-1;color:var(--faint);font-size:11.5px}
+.ls-snip{margin:6px 0 0;font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ls-head select{width:auto;flex:0 0 auto}.ls-profs .offers{border:0;border-radius:0}.ls-profs .offer{grid-template-columns:minmax(0,1fr) auto;padding:12px 0}.ls-local{padding:12px 14px}.ls-local h2{font-size:15px;margin-bottom:6px}
+@media(max-width:900px){.ls-title{font-size:38px}.ls-grid{grid-template-columns:1fr}.ls-side{position:static;order:-1}.ls-bar input,.ls-bar .btn.primary{height:48px}}
 </style>
 </head>
 <body>
@@ -3509,9 +3536,9 @@ document.addEventListener('click',e=>{
 });
 
 const SECTION_LABEL={overview:'Home',discover:'Discover',track:'Track',notes:'Notes',profile:'Profile'};
-const SECTION_OF=(t,seg)=>['opps','sponsors','academia'].includes(t)?'discover':['apps','queue','companies','company'].includes(t)?'track':['notes','profile'].includes(t)?t:'overview';
+const SECTION_OF=(t,seg)=>['opps','sponsors','academia','search'].includes(t)?'discover':['apps','queue','companies','company'].includes(t)?'track':['notes','profile'].includes(t)?t:'overview';
 const SUBTABS={
-  discover:[['#/opps','Jobs',(t,s)=>t==='opps'&&!['masters','labs','radar'].includes(s[1])],['#/opps/masters',"Master's & scholarships",(t,s)=>t==='opps'&&s[1]==='masters'],
+  discover:[['#/search','Search',t=>t==='search'],['#/opps','Jobs',(t,s)=>t==='opps'&&!['masters','labs','radar'].includes(s[1])],['#/opps/masters',"Master's & scholarships",(t,s)=>t==='opps'&&s[1]==='masters'],
     ['#/academia','Professors & schools',(t,s)=>t==='academia'||(t==='opps'&&s[1]==='labs')],['#/sponsors','Poli (UK)',t=>t==='sponsors'],['#/opps/radar','Radar',(t,s)=>t==='opps'&&s[1]==='radar']],
   track:[['#/apps','Applications',t=>t==='apps'],['#/queue','Apply queue',t=>t==='queue'],['#/companies','Companies',t=>t==='companies'||t==='company']]};
 // Detail drawer: a side panel on wide screens, a full-screen sheet on phones.
@@ -3592,10 +3619,11 @@ function openSearch(){
   if(!o){o=document.createElement('div');o.id='gs';o.className='gs';o.setAttribute('role','dialog');o.setAttribute('aria-label','Search everything');
     o.innerHTML=`<div class="gs-box"><div class="gs-top"><input type="search" id="gsQ" placeholder="Search everything: offers, professors, schools, companies, notes…" aria-label="Search everything" autocomplete="off">
       <button class="iconbtn" type="button" id="gsX" aria-label="Close">✕</button></div><div class="gs-types" id="gsT"></div><div class="gs-res" id="gsR"></div>
-      <p class="gs-foot">↑ ↓ to move · Enter to open · Esc to close · every word must match, accents ignored</p></div>`;
+      <p class="gs-foot">↑ ↓ to move · Enter to open · Esc to close · <button class="linkbtn" type="button" id="gsLive">Search every platform live for this</button></p></div>`;
     document.body.appendChild(o);
     o.addEventListener('click',e=>{if(e.target===o)closeSearch();});
     $('#gsX').addEventListener('click',closeSearch);
+    $('#gsLive').addEventListener('click',()=>{const q=$('#gsQ').value.trim();closeSearch();if(q)location.hash='#/search?'+new URLSearchParams({q});else location.hash='#/search';});
     $('#gsQ').addEventListener('input',e=>{gsF.q=e.target.value;gsSel=0;gsRender();});
     $('#gsQ').addEventListener('keydown',e=>{if(e.key==='ArrowDown'){gsSel=Math.min(gsHits.length-1,gsSel+1);gsRender(true);e.preventDefault();}
       else if(e.key==='ArrowUp'){gsSel=Math.max(0,gsSel-1);gsRender(true);e.preventDefault();}else if(e.key==='Enter'&&gsHits[gsSel]){gsOpen(gsHits[gsSel]);}});
@@ -3657,6 +3685,122 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-act="search"]'))openSearch();});
 
+/* ---------- Search engine: one query, every platform scraped live, merged and scored for you ---------- */
+const LS_TABS=[['all','All'],['jobs','Jobs'],['phd','PhDs'],['masters',"Master's & scholarships"],['profs','Professors'],['cos','Companies']];
+const LS_COUNTRY_NAME={fr:'France',de:'Germany',ca:'Canada',ch:'Switzerland',tn:'Tunisia'};
+// Collector scrapers by market (api/boards.py ?scraper=); the "any" ones cover every country.
+const LS_SCRAPERS={fr:['HelloWork','CNRS','Inria'],de:['Max Planck'],ch:['jobs.ch'],ca:['Job Bank'],tn:['Keejob','Farojob'],gl:['Himalayas','Jobicy','Working Nomads','We Work Remotely'],
+  any:['jobs.ac.uk','ELLIS','jobRxiv']};
+const LS_ACADEMIC=new Set(['CNRS','Inria','Max Planck','jobs.ac.uk','ELLIS','jobRxiv']);
+// Sites that need a real browser or a home connection: searched in a new tab instead.
+const LS_LINKS=[['ABG (PhD, France)',q=>'https://www.abg.asso.fr/fr/candidatOffres/index?keywords='+q],['StepStone (Germany)',q=>'https://www.stepstone.de/jobs/'+q],
+  ['Academic Positions',q=>'https://academicpositions.com/find-jobs?keywords='+q],['Euraxess',q=>'https://euraxess.ec.europa.eu/jobs/search?keywords='+q],
+  ['Tanitjobs (Tunisia)',q=>'https://www.tanitjobs.com/jobs/?keywords='+q],['Welcome to the Jungle',q=>'https://www.welcometothejungle.com/en/jobs?query='+q],
+  ['Google',q=>'https://www.google.com/search?q='+q+'+jobs'],['DAAD (master\'s)',q=>'https://www2.daad.de/deutschland/studienangebote/international-programmes/en/result/?q='+q],
+  ['Mon Master',q=>'https://www.monmaster.gouv.fr/formations?q='+q]];
+let ls={q:'',tab:'all',cs:null,sort:'match',run:0,src:{},items:new Map(),profs:[]};
+function lsCountries(){return ls.cs||(prof().countries||['fr','de']).filter(c=>c!=='gl').slice(0,5);}
+function searchPage(qs){
+  const p=new URLSearchParams(qs||'');
+  if(p.has('q')){ls.q=p.get('q');if(p.get('t'))ls.tab=p.get('t');}
+  const cs=lsCountries(),started=!!ls.q.trim();
+  $('#view').innerHTML=`<div class="ls${started?' on':''}">
+    ${started?'':`<h1 class="ls-title">Search everywhere</h1><p class="sub" style="margin:0 auto 22px;text-align:center">One search, run live on every job board, research site and directory Parcours knows, merged and scored for you.</p>`}
+    <form class="ls-bar" id="lsF"><input type="search" id="lsQ" value="${esc(ls.q)}" placeholder="e.g. machine learning engineer, thèse NLP, explainable AI…" aria-label="Search everywhere" autocomplete="off"><button class="btn primary" type="submit">Search</button></form>
+    <div class="ls-tabs" id="lsT">${LS_TABS.map(([k,l])=>`<button type="button" data-lst="${k}" aria-pressed="${ls.tab===k}">${l}</button>`).join('')}</div>
+    <div class="ls-cs" id="lsC">${Object.entries(LS_COUNTRY_NAME).map(([k,n])=>`<label class="sc"><input type="checkbox" value="${k}" ${cs.includes(k)?'checked':''}> ${(cById(k)||{}).flag||''} ${n}</label>`).join('')}<label class="sc"><input type="checkbox" value="gl" ${cs.includes('gl')?'checked':''}> 🌍 Remote</label></div>
+    ${started?`<div class="ls-grid"><div><div class="ls-head"><span id="lsCount" class="hint" style="margin:0"></span><select id="lsSort" aria-label="Order"><option value="match" ${ls.sort==='match'?'selected':''}>Best match</option><option value="new" ${ls.sort==='new'?'selected':''}>Newest</option></select></div>
+      <div id="lsLocal"></div><div id="lsRes"></div></div>
+      <aside class="ls-side"><div class="panel"><h2>Sources</h2><div id="lsSrc"></div></div>
+        <div class="panel"><h2>Also search on</h2><p class="hint">These need a browser of their own: they open with your query.</p><div class="row">${LS_LINKS.map(([l,u])=>`<a class="btn sm" href="${esc(u(encodeURIComponent(ls.q)))}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join('')}</div></div></aside></div>`
+      :`<div class="ls-try">${['machine learning engineer','PhD explainable AI','data scientist Paris','NLP engineer remote','ingénieur IA','Werkstudent machine learning'].map(t=>`<button type="button" class="btn sm" data-lsq="${esc(t)}">${esc(t)}</button>`).join('')}</div>`}
+  </div>`;
+  $('#lsF').addEventListener('submit',e=>{e.preventDefault();const q=$('#lsQ').value.trim();if(!q)return;ls.q=q;location.hash='#/search?'+new URLSearchParams({q,t:ls.tab});});
+  $('#lsT').addEventListener('click',e=>{const b=e.target.closest('[data-lst]');if(!b)return;ls.tab=b.dataset.lst;if(ls.q.trim())location.hash='#/search?'+new URLSearchParams({q:ls.q,t:ls.tab});else $('#lsT').querySelectorAll('[data-lst]').forEach(x=>x.setAttribute('aria-pressed',x===b));});
+  $('#lsC').addEventListener('change',()=>{ls.cs=[...$('#lsC').querySelectorAll('input:checked')].map(x=>x.value);});
+  document.querySelectorAll('[data-lsq]').forEach(b=>b.addEventListener('click',()=>{ls.q=b.dataset.lsq;location.hash='#/search?'+new URLSearchParams({q:ls.q,t:ls.tab});}));
+  if(!started){$('#lsQ').focus();return;}
+  $('#lsSort').addEventListener('change',e=>{ls.sort=e.target.value;lsRender();});
+  if(!caps.online){$('#lsRes').innerHTML='<p class="hint">Live search runs in the deployed app once you are signed in.</p>';lsLocal();return;}
+  lsRun();
+}
+// Everything Parcours already holds that matches, shown at once.
+function lsLocal(){
+  const box=$('#lsLocal');if(!box)return;
+  const want={all:null,jobs:['offer','saved','queue','poliJob'],phd:['phd','prof','radar'],masters:['master','scholarship','school'],profs:['prof'],cos:['poliCo','poliPerson','school','coNote']}[ls.tab];
+  const hits=gsSearch(ls.q,'').filter(d=>!want||want.includes(d.type)),show=hits.slice(0,6);
+  box.innerHTML=hits.length?`<div class="panel ls-local"><h2>Already in Parcours · ${hits.length}</h2>${show.map((d,i)=>`<button type="button" class="gs-hit" data-lsl="${i}"><span class="gs-type" style="--accent:var(--${(GS_TYPES[d.type]||['',''])[1]})">${esc((GS_TYPES[d.type]||[''])[0])}</span><span class="gs-main"><b>${esc(d.title)}</b>${d.sub?`<small>${esc(d.sub)}</small>`:''}</span></button>`).join('')}
+    ${hits.length>6?`<button class="linkbtn" type="button" id="lsAll">See all ${hits.length} in search everything</button>`:''}</div>`:'';
+  box.querySelectorAll('[data-lsl]').forEach(b=>b.addEventListener('click',()=>gsOpen(show[+b.dataset.lsl])));
+  const all=$('#lsAll');if(all)all.addEventListener('click',()=>{gsF.q=ls.q;openSearch();});
+}
+// The live fan-out: one request per platform (and country), at most six at a time, results added as they arrive.
+async function lsRun(){
+  const run=++ls.run,q=ls.q.trim(),tab=ls.tab,cs=lsCountries();
+  ls.src={};ls.items=new Map();ls.profs=[];
+  const tasks=[],add=(key,label,fn)=>{ls.src[key]={label,state:'wait'};tasks.push([key,fn]);};
+  const jobsTab=tab==='all'||tab==='jobs',phdTab=tab==='all'||tab==='phd';
+  if(jobsTab||phdTab){
+    const qq=phdTab&&!jobsTab&&!/\b(phd|thèse|these|doctora)/i.test(q)?q+' PhD':q;
+    cs.filter(c=>c!=='gl').forEach(c=>{
+      const flag=(cById(c)||{}).flag||'',loc=LS_COUNTRY_NAME[c];
+      ['linkedin','indeed','glassdoor'].filter(s=>SRC[s].c.includes(c)).forEach(s=>add(s+':'+c,`${SRC[s].label} ${flag}`,()=>api('/api/boards?'+new URLSearchParams({q:qq,c,loc,sources:s}))));
+      if(jobsTab)Object.keys(SRC).filter(s=>!PY.includes(s)&&SRC[s].c.includes(c)&&caps.sources[s]!==false).forEach(s=>add(s+':'+c,`${SRC[s].label} ${flag}`,()=>api('/api/jobs?'+new URLSearchParams({q,c,loc:LOC[c]||loc,sources:s}))));
+      (LS_SCRAPERS[c]||[]).filter(n=>jobsTab||LS_ACADEMIC.has(n)).forEach(n=>add(n,`${n} ${flag}`,()=>api('/api/boards?'+new URLSearchParams({q,c,scraper:n}))));
+    });
+    if(cs.includes('gl')&&jobsTab){['remotive','remoteok'].forEach(s=>add(s,SRC[s].label+' 🌍',()=>api('/api/jobs?'+new URLSearchParams({q,c:'gl',loc:'Remote',sources:s}))));
+      LS_SCRAPERS.gl.forEach(n=>add(n,n+' 🌍',()=>api('/api/boards?'+new URLSearchParams({q,c:'gl',scraper:n}))));}
+    LS_SCRAPERS.any.forEach(n=>add(n,n+' 🎓',()=>api('/api/boards?'+new URLSearchParams({q,c:'any',scraper:n}))));
+  }
+  if(tab==='all'||tab==='phd'||tab==='profs')cs.filter(c=>c!=='gl').forEach(c=>add('openalex:'+c,`OpenAlex researchers ${(cById(c)||{}).flag||''}`,()=>api('/api/labs?'+new URLSearchParams({q,c,years:3}))));
+  lsLocal();lsRender();
+  let i=0;
+  const worker=async()=>{while(i<tasks.length){const [key,fn]=tasks[i++];if(run!==ls.run)return;ls.src[key].state='run';ls.src[key].t0=Date.now();lsSources();
+    try{const r=await fn();if(run!==ls.run)return;
+      if(key.startsWith('openalex:')){(r.people||[]).forEach(p=>ls.profs.push(Object.assign({c:key.split(':')[1]},p)));ls.src[key]=Object.assign(ls.src[key],{state:'ok',n:(r.people||[]).length});}
+      else{const st=Object.values(r.sources||{})[0]||{};(r.jobs||[]).forEach(j=>lsAdd(j));ls.src[key]=Object.assign(ls.src[key],st.ok===false?{state:'err',err:st.error}:{state:'ok',n:(r.jobs||[]).length});}}
+    catch(e){if(run!==ls.run)return;ls.src[key]=Object.assign(ls.src[key],{state:'err',err:errText(e,{},'Failed')});}
+    ls.src[key].ms=Date.now()-ls.src[key].t0;lsRender();}};
+  await Promise.all(Array.from({length:6},worker));
+}
+function lsAdd(j){
+  const k=(j.title+'|'+(j.company||'')).toLowerCase().replace(/\s+/g,' ');
+  const prev=ls.items.get(k);
+  if(prev){(j.sources||[j.source]).forEach(s=>{if(!prev.sources.includes(s))prev.sources.push(s);});if(!prev.desc&&j.desc)prev.desc=j.desc;return;}
+  const kind=j.kind||(is_phd(j.title)?'phd':'job');
+  const x={id:'live:'+(j.id||k),title:j.title,org:j.company||'',location:j.location||'',c:j.c||'gl',kind,source:(j.sources||[j.source])[0]||j.source||'',sources:j.sources||[j.source],url:j.url,posted:j.posted||'',deadline:j.deadline||'',desc:j.desc||'',type:j.type||''};
+  x.m=matchOf(x);ls.items.set(k,x);
+  jobReg[x.id]={id:x.id,title:x.title,company:x.org,location:x.location,posted:x.posted,type:x.type,url:x.url,c:x.c,source:x.source};
+}
+const is_phd=t=>/\bph\.?d\b|\bdoctoral|\bdoctorate|\bdoctorant|\bth[eè]se\b/i.test(t||'');
+function lsSources(){
+  const box=$('#lsSrc');if(!box)return;
+  const L=Object.values(ls.src),done=L.filter(s=>s.state==='ok'||s.state==='err').length;
+  box.innerHTML=`<p class="hint" style="margin:0 0 8px">${done} of ${L.length} platforms answered</p>`+L.map(s=>`<div class="ls-src ${s.state}"><span>${esc(s.label)}</span><b>${s.state==='ok'?'✓ '+s.n:s.state==='err'?'✗':s.state==='run'?'…':'·'}</b>${s.state==='err'?`<small>${esc(String(s.err||'').slice(0,90))}</small>`:''}</div>`).join('');
+}
+function lsRender(){
+  lsSources();
+  const box=$('#lsRes');if(!box)return;
+  const L=[...ls.items.values()].filter(x=>!(x.m&&x.m.blockers.length));
+  L.sort(ls.sort==='new'?(a,b)=>String(b.posted).localeCompare(String(a.posted)):(a,b)=>((b.m&&b.m.rank)||0)-((a.m&&a.m.rank)||0));
+  const words=gsFold(ls.q).split(/\s+/).filter(w=>w.length>1);
+  const snip=t=>{let s=esc(String(t||'').replace(/\s+/g,' ').slice(0,260));return s;};
+  const pending=Object.values(ls.src).filter(s=>s.state==='wait'||s.state==='run').length;
+  $('#lsCount').textContent=`${L.length} offer${L.length===1?'':'s'}${ls.profs.length?` · ${ls.profs.length} researchers`:''}${pending?` · ${pending} platforms still searching…`:''}`;
+  const profs=ls.profs.slice().sort((a,b)=>(b.weight||0)-(a.weight||0)).slice(0,12);
+  box.innerHTML=(profs.length?`<div class="panel ls-profs"><h2>Researchers on "${esc(ls.q)}"</h2><div class="offers">${profs.map(p=>`<div class="offer"><div><h3>${esc(p.name)} <span class="xp">${(cById(p.c)||{}).flag||''}</span></h3>
+      <div class="acline"><span>${esc(p.inst||'')}</span><span><b>${p.papers}</b> recent papers</span><span>${p.lastAuthor||0} as last author</span>${p.latest?`<span>latest: ${esc(String(p.latest.title||'').slice(0,70))}</span>`:''}</div></div>
+      <div class="oa">${p.openalex?`<a class="btn sm" href="${esc(p.openalex)}" target="_blank" rel="noopener noreferrer">Papers</a>`:''}<a class="btn sm" href="https://scholar.google.com/citations?view_op=search_authors&mauthors=${encodeURIComponent(p.name)}" target="_blank" rel="noopener noreferrer">Scholar</a><a class="btn sm" href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(p.name+' '+(p.inst||''))}" target="_blank" rel="noopener noreferrer">LinkedIn</a></div></div>`).join('')}</div></div>`:'')
+    +(L.length?`<div class="offers">${L.slice(0,120).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:''},inQ=inQueue(x.id),sv=state.saved.some(s=>s.id===x.id);
+      return `<article class="offer">${scoreBadge(x.m)}<div><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.kind==='phd'?' <span class="xp">PhD</span>':''}</h3>
+        <div class="meta"><b>${esc(x.org)}</b>${x.location?' · '+esc(x.location):''} ${c.flag}${x.posted?' · '+esc(rel(x.posted)):''} · ${x.sources.map(s=>`<span class="xp">${esc((SRC[s]||{}).label||s)}</span>`).join('')}</div>
+        ${x.desc?`<p class="ls-snip">${snip(x.desc)}</p>`:''}</div>
+        <div class="oa"><button class="btn sm primary" type="button" data-lsqueue="${esc(x.id)}" ${inQ?'disabled':''}>${inQ?'Queued':'Queue'}</button><button class="btn sm" type="button" data-jsave="${esc(x.id)}" ${sv?'disabled':''}>${sv?'Saved':'Save'}</button><button class="btn sm" type="button" data-jlog="${esc(x.id)}">Log</button></div></article>`;}).join('')}</div>`
+      :pending?'<p class="hint">Searching every platform…</p>':(profs.length?'':'<p class="hint">No offer matched every word. Try fewer or broader words, or another tab.</p>'));
+}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-lsqueue]');if(!b)return;
+  const x=[...ls.items.values()].find(i=>i.id===b.dataset.lsqueue);if(x){queueAdd(x);b.textContent='Queued';b.disabled=true;}});
+
 function route(){
   const h=location.hash.replace(/^#\/?/,'');const [path,qs]=h.split('?');const seg=path.split('/').filter(Boolean);
   const t=seg[0]||'overview';
@@ -3678,6 +3822,7 @@ function route(){
   else if(t==='companies')companiesPage();
   else if(t==='sponsors')sponsorsPage(seg[1]);
   else if(t==='academia')academiaPage(seg[1]);
+  else if(t==='search')searchPage(qs);
   else if(t==='company')companyPage(seg[1],qs);
   else if(t==='explore'){location.replace('#/');return;}
   else overview();

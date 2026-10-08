@@ -1,4 +1,5 @@
 """Extra job sources through JobSpy (MIT, github.com/speedyapply/JobSpy): Indeed, LinkedIn, Glassdoor, Google Jobs.
+With ?scraper=<name>, runs one of the collector's own scrapers (collector/sources.py) live for the Search page.
 
 Same query parameters and response shape as api/jobs.js, so the app merges both. These sites have no
 official public API; JobSpy reads their public search pages, which can be rate-limited or blocked.
@@ -36,6 +37,79 @@ COUNTRY = {"fr": "france", "de": "germany", "ca": "canada", "ch": "switzerland",
 COUNTRY_NAME = {"fr": "France", "de": "Germany", "ca": "Canada", "ch": "Switzerland", "tn": "Tunisia"}
 JOB_TYPES = {"fulltime", "parttime", "internship", "contract"}
 REMOTE = re.compile(r"remote|télétravail|teletravail|homeoffice|home office", re.I)
+
+
+# Collector scrapers the Search page can run live: plain HTTP ones only (the browser-based and home-IP ones cannot run here).
+LIVE_SCRAPERS = {"HelloWork", "jobs.ch", "Job Bank", "Keejob", "Farojob", "jobs.ac.uk", "CNRS", "Inria", "Max Planck", "ELLIS",
+                 "jobRxiv", "Himalayas", "Jobicy", "Working Nomads", "We Work Remotely", "LinkedIn posts"}
+STOP = {"and", "or", "the", "of", "in", "for", "de", "des", "du", "la", "le", "les", "et", "en", "a", "an", "job", "jobs", "offre", "poste"}
+
+
+def _light_fetcher():
+    """On Vercel the full scraping stack (two browser engines) is over the 500 MB limit, so the collector's scrapers get
+    this stand-in: the same Fetcher.get / Fetcher.post, built on requests and Scrapling's own HTML parser."""
+    import sys
+    import types
+    if os.environ.get("LIGHT_FETCHER") != "1":
+        try:
+            import playwright  # noqa: F401  full Scrapling is installed (PC collector): use it
+            return
+        except ImportError:
+            pass
+    import requests
+    from scrapling.parser import Selector
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36",
+               "Accept-Language": "en,fr;q=0.9,de;q=0.8"}
+
+    class Page(Selector):
+        def __init__(self, r):
+            super().__init__(content=r.content, url=r.url, encoding=r.encoding or "utf-8")
+            self.status, self._r = r.status_code, r
+
+        def json(self):
+            return self._r.json()
+
+    class Fetcher:
+        @staticmethod
+        def get(url, stealthy_headers=True, timeout=30, **kw):
+            return Page(requests.get(url, headers=headers, timeout=timeout))
+
+        @staticmethod
+        def post(url, json=None, data=None, stealthy_headers=True, timeout=30, **kw):
+            return Page(requests.post(url, json=json, data=data, headers=headers, timeout=timeout))
+
+    mod = types.ModuleType("scrapling.fetchers")
+    mod.Fetcher = Fetcher
+    sys.modules["scrapling.fetchers"] = mod
+
+
+def _live_scraper(name, q):
+    """Runs one collector scraper with the query and keeps what matches it (all the words, in the title or text)."""
+    import sys
+    here = os.path.dirname(os.path.abspath(__file__))
+    for d in (os.path.join(here, "..", "collector"), os.path.join(os.getcwd(), "collector")):
+        if os.path.isdir(d) and d not in sys.path:
+            sys.path.insert(0, d)
+    _light_fetcher()
+    import sources
+    sources.UA_PAUSE = 0.3  # one person's search, not a crawl
+    if name == "LinkedIn posts":
+        os.environ["POSTS_ANY_HOUR"] = "1"
+        sources.POST_COUNTRIES = [q["c"]] if q["c"] in sources.POST_PLACES else list(sources.POST_PLACES)
+        sources.POST_QUERIES = [q["q"]]
+    fn = sources.SCRAPERS[name]
+    words = [w for w in re.split(r"[^\w+#]+", q["q"].lower()) if len(w) > 1 and w not in STOP]
+    out = []
+    for x in fn([q["q"]]):
+        text = (x.get("title", "") + " " + x.get("desc", "")).lower()
+        if words and not all(w in text for w in words):
+            continue
+        if q["c"] not in ("", "any") and x.get("c") not in (q["c"], "gl", "", None):
+            continue
+        out.append({"id": x["id"], "title": x["title"], "company": x.get("org", ""), "location": x.get("location", ""), "posted": x.get("posted", ""),
+                    "type": x.get("type", ""), "url": x.get("url", ""), "source": name, "desc": (x.get("desc") or "")[:2500], "kind": x.get("kind", "job"),
+                    "deadline": x.get("deadline", ""), "c": x.get("c") or q["c"]})
+    return out
 
 
 def _val(v):
@@ -100,6 +174,15 @@ class handler(BaseHTTPRequestHandler):
         q = {"q": p.get("q", "").strip()[:100], "c": p.get("c", "fr"), "loc": p.get("loc", "").strip()[:80], "type": p.get("type", "")}
         if not q["q"]:
             return self._send(400, {"error": "Add keywords."})
+        if p.get("scraper"):
+            name = p["scraper"]
+            if name not in LIVE_SCRAPERS:
+                return self._send(400, {"error": "Unknown source."})
+            try:
+                jobs = _live_scraper(name, q)
+                return self._send(200, {"jobs": [dict(j, sources=[name]) for j in jobs], "sources": {name: {"ok": True, "count": len(jobs)}}})
+            except Exception as e:
+                return self._send(200, {"jobs": [], "sources": {name: {"ok": False, "error": (str(e) or e.__class__.__name__)[:160]}}})
         ids = [s for s in p.get("sources", "").split(",") if s in SITES] or list(SITES)
 
         status, merged = {}, {}

@@ -1,6 +1,11 @@
 {
   "functions": {
-    "api/*.js": { "maxDuration": 120 },
-    "api/*.py": { "maxDuration": 60 }
+    "api/*.js": {
+      "maxDuration": 120
+    },
+    "api/boards.py": {
+      "maxDuration": 60,
+      "includeFiles": "collector/{sources,poli}.py"
+    }
   }
 }
