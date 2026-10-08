@@ -9,9 +9,9 @@ const { db } = require('./_db');
 // After each write the assembled state is mirrored to Redis (parcours:state), which the collectors read for
 // the profile and searches. On first use the old Redis copy is imported into Neon.
 const KEY = 'parcours:state';
-const LISTS = ['apps', 'saved', 'journal', 'searches', 'feeds', 'queue'];
+const LISTS = ['apps', 'saved', 'journal', 'searches', 'feeds', 'queue', 'contacts'];
 const NEWEST_FIRST = new Set(['saved', 'journal']); // the app adds these at the top, the others at the end
-const SETTINGS = ['profile', 'status', 'notes', 'companyNotes', 'seen', 'seenAt', 'mailSeen', 'oppsHidden', 'oppsSeenAt'];
+const SETTINGS = ['profile', 'status', 'notes', 'companyNotes', 'seen', 'seenAt', 'mailSeen', 'oppsHidden', 'oppsSeenAt', 'goal'];
 
 async function load(pool) {
   const [items, settings] = await Promise.all([

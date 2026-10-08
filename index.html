@@ -869,6 +869,32 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
   .bottombar [aria-current="page"]{color:var(--blue-ink)}
   .side-foot [data-act="theme"]{display:none}
 }
+
+/* daily goal */
+.goalpill{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap;
+  background:var(--soft);color:var(--ink-strong);border:1px solid var(--line)}
+.goalpill.done{background:color-mix(in srgb,var(--ok) 14%,var(--surface));color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
+.topbar .goalpill{margin-left:auto;margin-right:8px}
+.goal{border-width:1px}
+.goal.met{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.goal.late{border-color:color-mix(in srgb,var(--red) 45%,var(--line))}
+.goalhead{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.goalnum{display:flex;align-items:baseline;gap:8px;margin:4px 0 4px}
+.goalnum b{font-family:var(--display);font-weight:800;font-size:56px;letter-spacing:-.04em;line-height:1;color:var(--ink-strong)}
+.goalnum span{font-size:20px;font-weight:600;color:var(--muted)}
+.goalside{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.goalstreak{text-align:right}.goalstreak b{display:block;font-family:var(--display);font-weight:800;font-size:28px;color:var(--ink-strong);line-height:1}.goalstreak span{font-size:12.5px;color:var(--muted);font-weight:600}
+.goalbar{height:12px;border-radius:999px;background:var(--soft);overflow:hidden;margin:16px 0 10px}
+.goalbar i{display:block;height:100%;border-radius:inherit;background:var(--grad,var(--blue));transition:width .3s}
+.goal.met .goalbar i{background:var(--ok)}
+.goalparts{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--muted)}.goalparts b{color:var(--ink-strong)}
+.goaldays{display:grid;grid-template-columns:repeat(14,1fr);gap:6px;height:74px;margin-top:18px;align-items:end}
+.gd{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.gd i{display:block;width:100%;max-width:26px;border-radius:5px 5px 2px 2px;background:var(--line-strong)}
+.gd.ok i{background:var(--ok)}.gd.miss i{background:color-mix(in srgb,var(--red) 55%,var(--line))}.gd.now i{background:var(--blue)}
+.gd span{font-size:10.5px;color:var(--faint);font-weight:600}
+@media(min-width:901px){.topbar .goalpill{display:none}}
+@media(max-width:900px){.side-foot .goalpill{display:none}.goalnum b{font-size:46px}.goalside{align-items:flex-start}.goalstreak{text-align:left}}
 </style>
 </head>
 <body>
@@ -883,10 +909,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
     <a href="#/notes" data-t="notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>Notes</a>
     <a href="#/profile" data-t="profile"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></svg>Profile</a>
   </nav>
-  <div class="side-foot"><span class="syncl" id="sync"></span><button class="iconbtn" type="button" data-act="theme" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button></div>
+  <div class="side-foot"><a class="goalpill" href="#/">0/60 today</a><span class="syncl" id="sync"></span><button class="iconbtn" type="button" data-act="theme" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button></div>
 </aside>
 <div class="main">
 <header class="topbar"><a class="tb-logo" href="#/" aria-label="Parcours home"><img src="/logo-96.png" width="30" height="30" alt="" style="display:block;border-radius:8px"></a><div class="where"><span class="tb-app">Parcours</span><span class="tb-app">/</span><b id="topSec">Overview</b></div><span class="sp"></span>
+  <a class="goalpill" href="#/">0/60 today</a>
   <button class="iconbtn" id="themeBtn" type="button" aria-label="Toggle light and dark theme" title="Toggle theme"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z"/></svg></button></header>
 <div class="wrap">
   <div class="demo warn" id="notice" role="status" aria-live="polite" hidden></div>
@@ -904,6 +931,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
   <a href="#/notes" data-t="notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg><span>Notes</span></a>
   <a href="#/profile" data-t="profile"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></svg><span>Profile</span></a>
 </nav>
+
+<dialog id="ctDlg" aria-labelledby="ctT">
+  <div class="dl"><h2 id="ctT">Log a contact</h2><p class="hint" style="margin:0 0 10px">Someone you wrote to today: it counts toward your daily goal.</p>
+    <div class="g2"><div><label class="lab" for="ctName">Name</label><input type="text" id="ctName" placeholder="e.g. Prof. Martin"></div>
+      <div><label class="lab" for="ctOrg">Organisation</label><input type="text" id="ctOrg" placeholder="e.g. Inria, Revolut"></div></div>
+    <div class="g2" style="margin-top:10px"><div><label class="lab" for="ctKind">Who</label><select id="ctKind"><option value="professor">Professor or researcher</option><option value="recruiter">Recruiter</option><option value="employee">Employee or alumni</option><option value="other">Other</option></select></div>
+      <div><label class="lab" for="ctChannel">How</label><select id="ctChannel"><option value="email">Email</option><option value="linkedin">LinkedIn</option><option value="other">Other</option></select></div></div>
+    <label class="lab" for="ctNote" style="margin-top:10px">Note</label><input type="text" id="ctNote" placeholder="What you asked, a link…">
+    <p class="err" id="ctErr" hidden>Add a name or an organisation.</p>
+    <div class="acts"><button class="btn" type="button" id="ctCancel">Cancel</button><button class="btn primary" type="button" id="ctSave">Save contact</button></div></div>
+</dialog>
 
 <dialog id="loginDlg" aria-labelledby="loginT">
   <div class="dl"><h2 id="loginT">Sign in</h2><p class="hint" id="loginMsg" style="margin:0"></p>
@@ -1108,7 +1146,7 @@ const pk=(c,d,i)=>`${c}:${d}:${i}`;
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'–';
 const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
 const clone=o=>JSON.parse(JSON.stringify(o));
-const emptyState=()=>({apps:[],queue:[],status:{},notes:{},journal:[],saved:[],searches:[],seen:{},seenAt:0,feeds:[],mailSeen:[],oppsHidden:[],oppsSeenAt:0,profile:null,companyNotes:{},updatedAt:0});
+const emptyState=()=>({apps:[],queue:[],contacts:[],goal:{daily:60},status:{},notes:{},journal:[],saved:[],searches:[],seen:{},seenAt:0,feeds:[],mailSeen:[],oppsHidden:[],oppsSeenAt:0,profile:null,companyNotes:{},updatedAt:0});
 
 /* state + persistence */
 const LKEY='parcours-v1', PWKEY='parcours-pw';
@@ -1158,7 +1196,7 @@ async function api(path,opts={}){
 /* Sync with Neon, item by item. `synced` is the copy last confirmed by the server; a save sends only what
    differs from it (changed items, deleted items, changed settings), and the newest edit of each item wins on the
    server, so edits to different items on two devices never overwrite each other. */
-const SYNC_LISTS=['apps','saved','journal','searches','feeds','queue'],SYNC_SET=['profile','status','notes','companyNotes','seen','seenAt','mailSeen','oppsHidden','oppsSeenAt'],SKEY='parcours-synced';
+const SYNC_LISTS=['apps','saved','journal','searches','feeds','queue','contacts'],SYNC_SET=['profile','status','notes','companyNotes','seen','seenAt','mailSeen','oppsHidden','oppsSeenAt','goal'],SKEY='parcours-synced';
 const SEP='\u0001';
 let synced=(()=>{try{return JSON.parse(localStorage.getItem(SKEY)||'null');}catch(e){return null;}})();
 function persistSynced(){try{localStorage.setItem(SKEY,JSON.stringify(synced));}catch(e){}}
@@ -1176,6 +1214,7 @@ function applyPending(s,d){
   for(const x of d.settings)s[x.k]=x.data;
 }
 function save(){
+  updateGoalPill();
   if(demo)return;
   state.updatedAt=Date.now();persistLocal();
   if(!caps.sync){setSync('local');return;}
@@ -1254,17 +1293,17 @@ function overview(){
   const apps=state.apps;
   if(!apps.length){
     $('#view').innerHTML=`<p class="kicker">${esc(new Intl.DateTimeFormat('en',{weekday:'long',day:'numeric',month:'long'}).format(new Date()))}</p><h1 id="ovH">Your search at a glance.</h1>
-    <h2 class="sec">This week</h2><div id="weekBox"><p class="hint">Loading…</p></div><h2 class="sec market">Your applications</h2>
+    ${goalPanelHtml()}<h2 class="sec">This week</h2><div id="weekBox"><p class="hint">Loading…</p></div><h2 class="sec market">Your applications</h2>
     <div class="panel empty"><h2>No applications yet</h2>
     <p>Log applications as you send them, or paste an email and let Claude fill in the details. Your charts appear here.</p>
     <div class="row"><button class="btn primary" data-act="new">Log an application</button><a class="btn" href="#/apps?import=1" style="text-decoration:none">Paste an email</a><button class="btn" data-act="demo">Preview with sample data</button></div></div>
     <div class="panel"><h2>Best matches right now</h2><div id="bestBox"></div></div>`;
-    loadBest();weekPanel();
+    loadBest();weekPanel();wireGoal();
     return;
   }
   const m=metrics(apps);
   $('#view').innerHTML=`<p class="kicker">${esc(new Intl.DateTimeFormat('en',{weekday:'long',day:'numeric',month:'long'}).format(new Date()))}</p><h1 id="ovH">Your search at a glance.</h1><p class="sub">${m.n} application${m.n===1?'':'s'} logged. Everything below updates as you log more.</p>
-  <h2 class="sec">This week</h2><div id="weekBox"><p class="hint">Loading…</p></div><h2 class="sec market">Your search so far</h2>
+  ${goalPanelHtml()}<h2 class="sec">This week</h2><div id="weekBox"><p class="hint">Loading…</p></div><h2 class="sec market">Your search so far</h2>
   <div class="panel"><h2>Best matches right now</h2><div id="bestBox"></div></div>
   <div class="stats">
     <div class="stat"><b>${m.n}</b><span>Applications</span></div>
@@ -1284,7 +1323,7 @@ function overview(){
   <div class="panel" ${caps.ai&&!demo?'':'hidden'}><h2>Read my search</h2><p class="hint">Claude looks at your numbers and points out patterns and next steps.</p>
     <button class="btn" id="insBtn" ${sample?'':'hidden'}>Analyse my search</button>
     <div class="insight" id="insOut" aria-live="polite"></div></div>`;
-  loadBest();weekPanel();
+  loadBest();weekPanel();wireGoal();
 }
 async function loadBest(){
   const b=$('#bestBox');if(!b)return;
@@ -2704,6 +2743,61 @@ async function renderPush(){
   const oB=$('#puOff');if(oB)oB.addEventListener('click',async()=>{try{await api('/api/push',{method:'POST',body:JSON.stringify({action:'unsubscribe',subscription:st.sub.toJSON()})});}catch(e){}await st.sub.unsubscribe();renderPush();});
 }
 
+
+/* ---------- Daily goal: applications (job, PhD, master's) plus contacts, every day ---------- */
+const goalTarget=()=>Math.max(1,Math.min(500,+((state.goal&&state.goal.daily)||60)));
+function dayCounts(d){
+  const a=state.apps.filter(x=>x.date===d),c=(state.contacts||[]).filter(x=>x.date===d);
+  const job=a.filter(x=>x.d==='job').length,phd=a.filter(x=>x.d==='phd').length,master=a.filter(x=>x.d==='master').length;
+  return {job,phd,master,contacts:c.length,total:job+phd+master+c.length};
+}
+const isoDay=n=>{const t=new Date();t.setHours(12,0,0,0);t.setDate(t.getDate()-n);return iso(t.getTime());};
+function goalStreak(){ // days in a row the goal was met, counting today only once it is met
+  const g=goalTarget();let n=0;
+  for(let i=dayCounts(today()).total>=g?0:1;i<400;i++){if(dayCounts(isoDay(i)).total>=g)n++;else break;}
+  return n;
+}
+function updateGoalPill(){
+  const t=dayCounts(today()).total,g=goalTarget(),done=t>=g;
+  document.querySelectorAll('.goalpill').forEach(el=>{el.textContent=`${t}/${g} today`;el.classList.toggle('done',done);el.setAttribute('aria-label',`Daily goal: ${t} of ${g} sent today`);});
+}
+function goalPanelHtml(){
+  const td=today(),c=dayCounts(td),g=goalTarget(),left=Math.max(0,g-c.total),pct=Math.min(100,Math.round(c.total/g*100)),streak=goalStreak();
+  const hour=new Date().getHours(),late=hour>=18&&left>0;
+  const days=Array.from({length:14},(_,i)=>isoDay(13-i)).map(d=>({d,n:dayCounts(d).total}));
+  const mx=Math.max(g,...days.map(x=>x.n));
+  const missed=days.slice(0,13).filter(x=>x.n<g).length;
+  return `<div class="panel goal${c.total>=g?' met':''}${late?' late':''}">
+    <div class="goalhead"><div><span class="kicker" style="margin:0">Today's goal</span>
+      <div class="goalnum"><b>${c.total}</b><span>/ ${g}</span></div>
+      <p class="hint" style="margin:0">${c.total>=g?`Done for today. ${c.total>g?(c.total-g)+' extra.':''}`:late?`<b>${left} left</b> and the day is ending.`:`${left} to go: applications and contacts both count.`}</p></div>
+      <div class="goalside"><div class="goalstreak"><b>${streak}</b><span>day${streak===1?'':'s'} in a row</span></div>
+        <label class="lab" for="goalIn" style="margin:0">Daily target</label><div class="row" style="gap:6px"><input type="number" id="goalIn" min="1" max="500" value="${g}" style="width:84px"><button class="btn sm" type="button" id="goalSet">Set</button></div></div></div>
+    <div class="goalbar" role="progressbar" aria-valuemin="0" aria-valuemax="${g}" aria-valuenow="${c.total}"><i style="width:${pct}%"></i></div>
+    <div class="goalparts"><span><b>${c.job}</b> job${c.job===1?'':'s'}</span><span><b>${c.phd}</b> PhD${c.phd===1?'':'s'}</span><span><b>${c.master}</b> master's</span><span><b>${c.contacts}</b> contact${c.contacts===1?'':'s'}</span></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary" type="button" data-act="new">Log an application</button><button class="btn" type="button" data-act="contact">Log a contact</button>
+      <a class="btn" href="#/queue">Apply queue · ${(state.queue||[]).length}</a><a class="btn" href="#/academia">Professors to email</a><a class="btn" href="#/sponsors/network">People to contact</a></div>
+    <div class="goaldays" aria-label="Last 14 days">${days.map(x=>`<div class="gd${x.n>=g?' ok':x.d===td?' now':' miss'}" title="${esc(x.d)}: ${x.n} of ${g}"><i style="height:${Math.max(4,Math.round(x.n/mx*100))}%"></i><span>${new Date(x.d+'T12:00').toLocaleDateString('en',{weekday:'narrow'})}</span></div>`).join('')}</div>
+    <p class="hint" style="margin:6px 0 0">Last 14 days: goal met on ${days.filter(x=>x.n>=g).length}${missed?`, missed on ${missed}`:''}.</p></div>`;
+}
+function wireGoal(){
+  const b=$('#goalSet');if(!b)return;
+  const set=()=>{const v=Math.round(+$('#goalIn').value);if(!(v>=1&&v<=500))return;state.goal={daily:v};save();overview();};
+  b.addEventListener('click',set);$('#goalIn').addEventListener('keydown',e=>{if(e.key==='Enter')set();});
+}
+// Contacts: people you wrote to (a professor, a recruiter, someone from your network).
+function addContact(c){
+  state.contacts=state.contacts||[];
+  if(c.ref&&state.contacts.some(x=>x.ref===c.ref&&x.date===today()))return;
+  state.contacts.push(Object.assign({id:'ct'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),date:today(),name:'',org:'',channel:'email',kind:'other',note:''},c));
+  save();updateGoalPill();
+}
+function removeContact(ref){const n=(state.contacts||[]).length;state.contacts=(state.contacts||[]).filter(x=>!(x.ref===ref&&x.date===today()));if(state.contacts.length!==n){save();updateGoalPill();}}
+function openContactDlg(){
+  const d=$('#ctDlg');$('#ctName').value='';$('#ctOrg').value='';$('#ctNote').value='';$('#ctChannel').value='email';$('#ctKind').value='professor';$('#ctErr').hidden=true;d.showModal();$('#ctName').focus();
+}
+
 /* ---------- This week (digest) ---------- */
 async function weekPanel(){
   const box=$('#weekBox');if(!box)return;
@@ -2986,7 +3080,8 @@ document.addEventListener('click',async e=>{
   }
   const c=e.target.closest('[data-pcontact]');
   if(c){const p=pn.people.find(x=>x.id===+c.dataset.pcontact);if(!p)return;c.disabled=true;
-    try{await poliApi([{action:'toggleContacted',employeeId:p.id}]);p.isContacted=!p.isContacted;const row=c.closest('.offer');if(row)row.outerHTML=pnRow(p);}
+    try{await poliApi([{action:'toggleContacted',employeeId:p.id}]);p.isContacted=!p.isContacted;
+      if(p.isContacted)addContact({name:p.full_name||'',org:(p.company||{}).trading_name||'',kind:'employee',channel:'linkedin',ref:'poli:'+p.id});else removeContact('poli:'+p.id);const row=c.closest('.offer');if(row)row.outerHTML=pnRow(p);}
     catch(err){c.disabled=false;}
   }
 });
@@ -3121,7 +3216,7 @@ function acPersonRow(p,withSchool=true){
     ${em?`<div class="acems">${em}</div>`:'<p class="hint" style="margin:6px 0 0">No public email found. Try the homepage or LinkedIn.</p>'}
     ${(p.recent||[]).length?`<details class="desc"><summary>Recent papers</summary>${p.recent.map(r=>`<div class="rn"><a href="https://openalex.org/${esc(r.id)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a><span>${esc(r.year||'')}</span></div>`).join('')}</details>`:''}
     <div class="row" style="margin-top:8px">${links.map(([u,l])=>`<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${l}</a>`).join('')}</div></div>
-    <div class="oa"><button class="btn sm primary" type="button" data-aclog="${esc(p.id)}">Log PhD contact</button></div></div>`;
+    <div class="oa"><button class="btn sm" type="button" data-accontact="${esc(p.id)}">${(state.contacts||[]).some(x=>x.ref==='prof:'+p.id)?'Contacted ✓':'Mark contacted'}</button><button class="btn sm primary" type="button" data-aclog="${esc(p.id)}">Log PhD application</button></div></div>`;
 }
 function acCompactRow(p){
   const th=p.theses&&p.theses.count,em=(p.emails||[])[0],sc=p.score>=70?'s-hi':p.score>=50?'s-mid':'s-lo';
@@ -3177,6 +3272,10 @@ document.addEventListener('click',e=>{
   if(s){const sc=acSchool(s.dataset.acschool);if(sc)openDrawer(acSchoolDetail(sc),sc.name);return;}
   const pr=e.target.closest('[data-acperson]');
   if(pr&&!e.target.closest('a,button:not([data-acperson])')){const p=((acData&&acData.people)||[]).find(x=>x.id===pr.dataset.acperson);if(p)openDrawer(acPersonRow(p),p.name);return;}
+  const ct=e.target.closest('[data-accontact]');
+  if(ct){const p=((acData&&acData.people)||[]).find(x=>x.id===ct.dataset.accontact);if(!p)return;const ref='prof:'+p.id;
+    if((state.contacts||[]).some(x=>x.ref===ref&&x.date===today())){removeContact(ref);ct.textContent='Mark contacted';}
+    else{addContact({name:p.name,org:p.instName||'',kind:'professor',channel:(p.emails||[]).length?'email':'other',ref,note:((p.emails||[])[0]||{}).email||''});ct.textContent='Contacted ✓';}return;}
   const l=e.target.closest('[data-aclog]');
   if(l){const p=((acData&&acData.people)||[]).find(x=>x.id===l.dataset.aclog);if(!p)return;
     openDlg({org:p.instName,role:'PhD with '+p.name,c:cById(p.c)?p.c:'fr',d:'phd',p:'Direct email to supervisors',link:safeUrl(p.homepage)||'https://openalex.org/'+p.id,notes:(p.emails||[]).map(x=>x.email).join(', ')});}
@@ -3230,7 +3329,7 @@ function route(){
   else if(t==='company')companyPage(seg[1],qs);
   else if(t==='explore'){location.replace('#/');return;}
   else overview();
-  window.scrollTo(0,0);watchLoading();
+  window.scrollTo(0,0);watchLoading();updateGoalPill();
 }
 
 /* demo data (in memory only) */
@@ -3263,6 +3362,7 @@ document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]');
   if(a){const act=a.dataset.act;
     if(act==='new')openDlg({});
+    else if(act==='contact')openContactDlg();
     else if(act==='newco')openDlg({org:a.dataset.org||''});
     else if(act==='import'){const b=$('#imp');if(b)b.hidden=!b.hidden;}
     else if(act==='gmail'){const b=$('#gm');if(b){b.hidden=!b.hidden;if(!b.hidden)gmStatus();}}
@@ -3338,6 +3438,9 @@ async function boot(){
 $('#loginGo').addEventListener('click',()=>{const v=$('#loginPw').value;if(!v)return;try{localStorage.setItem(PWKEY,v);}catch(e){}$('#loginPw').value='';$('#loginDlg').close();boot();});
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-act="theme"]'))$('#themeBtn').click();});
 document.querySelectorAll('.side-foot [data-act="theme"]').forEach(b=>{b.innerHTML=$('#themeBtn').innerHTML;});
+$('#ctCancel').addEventListener('click',()=>$('#ctDlg').close());
+$('#ctSave').addEventListener('click',()=>{const name=$('#ctName').value.trim(),org=$('#ctOrg').value.trim();if(!name&&!org){$('#ctErr').hidden=false;return;}
+  addContact({name,org,kind:$('#ctKind').value,channel:$('#ctChannel').value,note:$('#ctNote').value.trim()});$('#ctDlg').close();if(/^#?\/?$/.test(location.hash))overview();});
 $('#loginPw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginGo').click();});
 $('#exp').addEventListener('click',()=>downloads.save({filename:'parcours-backup.json',data:JSON.stringify(state,null,2)}));
 $('#bkFile').addEventListener('change',async e=>{
