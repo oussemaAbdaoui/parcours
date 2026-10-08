@@ -936,6 +936,31 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 @media(max-width:900px){.pf-grid{grid-template-columns:1fr;gap:14px}.pf-side{position:static}
   .pf-nav{flex-direction:row;overflow-x:auto;scrollbar-width:none;padding:6px}.pf-nav button{flex:0 0 auto;white-space:nowrap}
   .pf-main>.panel,.pf-main .panel{scroll-margin-top:70px}}
+
+/* search everything */
+.gsbtn{display:none}
+@media(min-width:901px){.gsbtn{display:inline-flex;align-items:center;gap:10px;height:38px;padding:0 10px 0 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2);color:var(--muted);font-size:13.5px;cursor:pointer;white-space:nowrap}
+  .gsbtn:hover{border-color:var(--line-strong);color:var(--ink)}.gsbtn kbd{font:600 11px var(--body);padding:2px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+  .topbar [data-act="search"]{display:none}}
+@media(max-width:1180px) and (min-width:901px){.gsbtn span{display:none}}
+.gs{position:fixed;inset:0;z-index:70;display:flex;justify-content:center;align-items:flex-start;padding:8vh 16px 16px;background:rgba(10,10,10,.38);backdrop-filter:blur(3px)}
+.gs[hidden]{display:none}
+.gs-box{width:min(760px,100%);max-height:84vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 30px 80px -20px rgba(0,0,0,.45);overflow:hidden}
+.gs-top{display:flex;gap:8px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
+.gs-top input{flex:1;height:46px;font-size:16.5px;border:0!important;outline:0!important;background:transparent!important}
+.gs-types{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line-2)}
+.gs-types:empty{display:none}
+.gs-types button{flex:0 0 auto;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.gs-types button[aria-pressed="true"]{background:var(--blue-t);color:var(--blue-ink);border-color:transparent}
+.gs-res{overflow-y:auto;padding:6px}
+.gs-hit{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;padding:10px 10px;border-radius:10px;cursor:pointer;color:var(--ink)}
+.gs-hit:hover,.gs-hit.sel{background:var(--soft)}
+.gs-type{flex:0 0 112px;font-size:11.5px;font-weight:700;color:color-mix(in srgb,var(--accent) 70%,var(--ink-strong));padding-top:2px}
+.gs-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gs-main b{font-weight:600;color:var(--ink-strong)}.gs-main small{color:var(--muted);font-size:12.5px}
+.gs-snip{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}.gs-snip mark,.gs-main mark{background:color-mix(in srgb,var(--warn) 30%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+.gs-foot{margin:0;padding:8px 14px;border-top:1px solid var(--line-2);font-size:11.5px;color:var(--faint)}
+@media(max-width:900px){.gs{padding:0}.gs-box{max-height:100dvh;height:100dvh;border-radius:0;width:100%}.gs-type{flex-basis:84px}.gs-foot{display:none}}
 </style>
 </head>
 <body>
@@ -950,11 +975,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
     <a href="#/notes" data-t="notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>Notes</a>
     <a href="#/profile" data-t="profile"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></svg>Profile</a>
   </nav>
+  <button class="gsbtn" type="button" data-act="search" aria-label="Search everything (Ctrl+K)"><span>Search everything</span><kbd>Ctrl K</kbd></button>
   <div class="side-foot"><a class="goalpill" href="#/">0/60 today</a><span class="syncl" id="sync"></span><button class="iconbtn" type="button" data-act="theme" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button></div>
 </aside>
 <div class="main">
 <header class="topbar"><a class="tb-logo" href="#/" aria-label="Parcours home"><img src="/logo-96.png" width="30" height="30" alt="" style="display:block;border-radius:8px"></a><div class="where"><span class="tb-app">Parcours</span><span class="tb-app">/</span><b id="topSec">Overview</b></div><span class="sp"></span>
   <a class="goalpill" href="#/">0/60 today</a>
+  <button class="iconbtn" type="button" data-act="search" aria-label="Search everything">⌕</button>
   <button class="iconbtn" id="themeBtn" type="button" aria-label="Toggle light and dark theme" title="Toggle theme"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm8,16.37a86.4,86.4,0,0,1,16,3V212.67a86.4,86.4,0,0,1-16,3Zm32,9.26a87.81,87.81,0,0,1,16,10.54V195.83a87.81,87.81,0,0,1-16,10.54ZM40,128a88.11,88.11,0,0,1,80-87.63V215.63A88.11,88.11,0,0,1,40,128Zm160,50.54V77.46a87.82,87.82,0,0,1,0,101.08Z"/></svg></button></header>
 <div class="wrap">
   <div class="demo warn" id="notice" role="status" aria-live="polite" hidden></div>
@@ -3505,6 +3532,131 @@ let loadWatch=0;
 function watchLoading(){clearTimeout(loadWatch);loadWatch=setTimeout(()=>{document.querySelectorAll('#view .hint').forEach(h=>{if(/^Loading/.test(h.textContent.trim())){
   h.innerHTML='This did not load. <button class="linkbtn" type="button" data-act="retry">Try again</button>';}});},15000);}
 document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('[data-act="retry"]');if(r){colData=null;route();}});
+/* ---------- Search everything (Ctrl+K or /): every offer, professor, school, programme, scholarship, Poli company and
+   person, and everything you wrote yourself, in one index searched as you type. ---------- */
+const GS_TYPES={offer:['Offers','job'],phd:['PhD offers','phd'],master:["Master's",'master'],scholarship:['Scholarships','master'],prof:['Professors','phd'],
+  school:['Schools','master'],poliCo:['UK sponsors','job'],poliPerson:['People','job'],poliJob:['Poli jobs','job'],radar:['Radar','phd'],
+  app:['Your applications','job'],queue:['Apply queue','job'],saved:['Saved jobs','job'],contact:['Your contacts','job'],note:['Your notes','job'],coNote:['Company notes','job']};
+let gsIdx=null,gsKey='',gsF={q:'',type:''},gsSel=0,gsHits=[];
+const gsFold=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+// Every dataset becomes {type, id, title, sub, text}; text holds every detail, folded for accent-free matching.
+function gsBuild(){
+  const key=[colData,msData,acData,poliData,radar,pj.jobs.length,state.updatedAt].map(x=>x&&typeof x==='object'?(x.items||x.people||x.companies||[]).length+':'+(x.at||x.updatedAt||''):String(x)).join('|');
+  if(gsIdx&&key===gsKey)return gsIdx;
+  const out=[],add=(type,id,title,sub,parts,extra)=>{const raw=[title,sub,...parts].filter(Boolean).join(' \u2022 ').normalize('NFC');
+    out.push(Object.assign({type,id:String(id),title:title||'(untitled)',sub:sub||'',ft:gsFold(title),raw,text:gsFold(raw)},extra||{}));};
+  ((colData&&colData.items)||[]).forEach(x=>add(x.kind==='phd'?'phd':x.kind==='master'?'master':'offer',x.id,x.title,[x.org,x.location,x.source].filter(Boolean).join(' · '),
+    [x.desc,x.type,x.posted,x.deadline,(x.contacts||[]).map(c=>[c.name,c.email,c.role].join(' ')).join(' '),x.company&&x.company.name,x.poster]));
+  ((msData&&msData.items)||[]).forEach(x=>add(x.type==='scholarship'?'scholarship':'master',x.id,x.title,[x.org,x.city,x.country&&x.country.toUpperCase(),x.source].filter(Boolean).join(' · '),[x.desc,x.lang,x.deadline,x.degree,x.field]));
+  ((acData&&acData.people)||[]).forEach(p=>add('prof',p.id,p.name,[p.instName,(AC_C[p.c]||['',''])[1]].filter(Boolean).join(' · '),
+    [(p.topics||[]).join(' '),(p.fields||[]).join(' '),(p.emails||[]).map(e=>e.email).join(' '),(p.recent||[]).map(r=>r.title).join(' '),p.homepage,p.orcid]));
+  ((acData&&acData.schools)||[]).forEach(s=>add('school',s.id,s.name,[s.city,(AC_C[s.c]||['',''])[1],(s.types||[]).join(', ')].filter(Boolean).join(' · '),[(s.aliases||[]).join(' '),s.acronym,s.website]));
+  ((poliData&&poliData.companies)||[]).forEach(c=>add('poliCo',c.id,c.name,[c.size,c.jobs?c.jobs+' open jobs':'','UK sponsor'].filter(Boolean).join(' · '),[c.legalName,c.policy,c.about,c.url]));
+  ((poliData&&poliData.people)||[]).forEach(p=>add('poliPerson',p.id,p.name,[p.title,p.company].filter(Boolean).join(' · '),[p.sponsorship,p.experience,p.expertise,p.linkedin]));
+  (pj.jobs||[]).forEach(j=>add('poliJob',j.id,pfix(j.title),[pfix((j.company||{}).trading_name),j.location,pfix(j.salary)].filter(Boolean).join(' · '),
+    [(j.sponsorship_mentions||[]).map(m=>pfix(m.text)).join(' '),(j.category||{}).display_name,(j.seniority||{}).display_name,pfix((j.company||{}).policy)]));
+  ((radar&&radar.items)||[]).forEach((x,i)=>add('radar','r'+i,x.title,[x.org,x.deadline&&'deadline '+x.deadline].filter(Boolean).join(' · '),[x.desc,x.note,x.url]));
+  state.apps.forEach(a=>add('app',a.id,[a.role,a.org].filter(Boolean).join(' · '),[(DOM[a.d]||{}).label,STAGE_LABEL[a.stage],RES_LABEL[a.result],a.date].filter(Boolean).join(' · '),[a.notes,a.p,a.link,(cById(a.c)||{}).name]));
+  (state.queue||[]).forEach(q=>add('queue',q.id,q.title,[q.org,q.status].filter(Boolean).join(' · '),[q.letter,q.desc]));
+  (state.saved||[]).forEach(j=>add('saved',j.id,j.title,[j.company,j.location].filter(Boolean).join(' · '),[j.desc,j.source]));
+  (state.contacts||[]).forEach(c=>add('contact',c.id,c.name||c.org,[c.org,c.kind,c.channel,c.date].filter(Boolean).join(' · '),[c.note]));
+  (state.journal||[]).forEach(n=>add('note',n.id,n.title||'Note',new Date(n.t).toLocaleDateString('en',{day:'numeric',month:'short'}),[n.body]));
+  Object.entries(state.companyNotes||{}).forEach(([k,n])=>{if(n&&n.text)add('coNote',k,n.name||k,'Company note',[n.text]);});
+  gsKey=key;gsIdx=out;return out;
+}
+// Every word must appear somewhere; a word in the title counts more, a title starting with the query most.
+function gsSearch(q,type){
+  const words=gsFold(q).split(/\s+/).filter(Boolean);if(!words.length)return [];
+  const res=[];
+  for(const d of gsBuild()){
+    if(type&&d.type!==type)continue;
+    let sc=0,ok=true;
+    for(const w of words){const i=d.text.indexOf(w);if(i<0){ok=false;break;}sc+=d.ft.includes(w)?10:2;if(d.ft.startsWith(w))sc+=5;}
+    if(ok)res.push([sc,d]);
+  }
+  return res.sort((a,b)=>b[0]-a[0]).map(r=>r[1]);
+}
+// The words around the first match in the details, with the matches highlighted.
+function gsSnippet(d,q){
+  const words=gsFold(q).split(/\s+/).filter(w=>w.length>1);if(!words.length)return '';
+  if(words.every(w=>d.ft.includes(w)))return '';
+  // Positions come from the folded text (same length as the original for composed accents); the original is shown.
+  const f=d.text,o=d.raw&&d.raw.length===f.length?d.raw:f,i=Math.max(0,Math.min(...words.map(w=>{const k=f.indexOf(w);return k<0?1e9:k;}))-60);
+  const fs=f.slice(i,i+180),os=o.slice(i,i+180),marks=new Array(fs.length).fill(false);
+  words.forEach(w=>{let k=fs.indexOf(w);while(k>=0){for(let j=k;j<k+w.length;j++)marks[j]=true;k=fs.indexOf(w,k+w.length);}});
+  let out='',on=false;for(let j=0;j<os.length;j++){if(marks[j]!==on){out+=marks[j]?'<mark>':'</mark>';on=marks[j];}out+=esc(os[j]);}if(on)out+='</mark>';
+  return (i>0?'…':'')+out+'…';
+}
+function openSearch(){
+  let o=$('#gs');
+  if(!o){o=document.createElement('div');o.id='gs';o.className='gs';o.setAttribute('role','dialog');o.setAttribute('aria-label','Search everything');
+    o.innerHTML=`<div class="gs-box"><div class="gs-top"><input type="search" id="gsQ" placeholder="Search everything: offers, professors, schools, companies, notes…" aria-label="Search everything" autocomplete="off">
+      <button class="iconbtn" type="button" id="gsX" aria-label="Close">✕</button></div><div class="gs-types" id="gsT"></div><div class="gs-res" id="gsR"></div>
+      <p class="gs-foot">↑ ↓ to move · Enter to open · Esc to close · every word must match, accents ignored</p></div>`;
+    document.body.appendChild(o);
+    o.addEventListener('click',e=>{if(e.target===o)closeSearch();});
+    $('#gsX').addEventListener('click',closeSearch);
+    $('#gsQ').addEventListener('input',e=>{gsF.q=e.target.value;gsSel=0;gsRender();});
+    $('#gsQ').addEventListener('keydown',e=>{if(e.key==='ArrowDown'){gsSel=Math.min(gsHits.length-1,gsSel+1);gsRender(true);e.preventDefault();}
+      else if(e.key==='ArrowUp'){gsSel=Math.max(0,gsSel-1);gsRender(true);e.preventDefault();}else if(e.key==='Enter'&&gsHits[gsSel]){gsOpen(gsHits[gsSel]);}});
+    $('#gsT').addEventListener('click',e=>{const b=e.target.closest('[data-gst]');if(!b)return;gsF.type=gsF.type===b.dataset.gst?'':b.dataset.gst;gsSel=0;gsRender();$('#gsQ').focus();});
+    $('#gsR').addEventListener('click',e=>{const r=e.target.closest('[data-gsi]');if(r&&gsHits[+r.dataset.gsi])gsOpen(gsHits[+r.dataset.gsi]);});
+  }
+  o.hidden=false;document.body.classList.add('has-gs');$('#gsQ').value=gsF.q;$('#gsQ').focus();$('#gsQ').select();gsRender();
+  // Load whatever is not loaded yet (from the browser copy, so it is quick), then search again.
+  if(caps.online)Promise.all([ensureCollected(null),loadMasters().catch(()=>null),loadAcademia().catch(()=>null),loadPoli().catch(()=>null)]).then(()=>{if(!o.hidden)gsRender();});
+}
+function closeSearch(){const o=$('#gs');if(o)o.hidden=true;document.body.classList.remove('has-gs');}
+function gsRender(keepScroll){
+  const box=$('#gsR'),tb=$('#gsT');if(!box)return;
+  const q=gsF.q.trim(),all=q?gsSearch(q,''):[];
+  const counts={};all.forEach(d=>{counts[d.type]=(counts[d.type]||0)+1;});
+  tb.innerHTML=q?`<button type="button" data-gst="" aria-pressed="${!gsF.type}">All · ${all.length}</button>`+Object.keys(GS_TYPES).filter(t=>counts[t]).map(t=>`<button type="button" data-gst="${t}" aria-pressed="${gsF.type===t}">${GS_TYPES[t][0]} · ${counts[t]}</button>`).join(''):'';
+  gsHits=(gsF.type?all.filter(d=>d.type===gsF.type):all).slice(0,80);
+  if(!q){const n=gsBuild().length;box.innerHTML=`<p class="hint" style="padding:14px 4px">${n.toLocaleString('en')} things to search: every offer with its full description, ${((acData&&acData.people)||[]).length} professors, ${((acData&&acData.schools)||[]).length} schools, master's and scholarships, ${((poliData&&poliData.companies)||[]).length} UK sponsors, your applications, letters, contacts and notes.</p>`;return;}
+  box.innerHTML=gsHits.length?gsHits.map((d,i)=>{const [label,dom]=GS_TYPES[d.type]||['',''];const sn=gsSnippet(d,q);
+    return `<button type="button" class="gs-hit${i===gsSel?' sel':''}" data-gsi="${i}"><span class="gs-type" style="--accent:var(--${dom})">${esc(label)}</span>
+      <span class="gs-main"><b>${esc(d.title)}</b>${d.sub?`<small>${esc(d.sub)}</small>`:''}${sn?`<span class="gs-snip">${sn}</span>`:''}</span></button>`;}).join('')
+    :`<p class="hint" style="padding:14px 4px">Nothing matches "${esc(q)}". Try fewer words.</p>`;
+  const sel=box.querySelector('.gs-hit.sel');if(sel&&keepScroll)sel.scrollIntoView({block:'nearest'});
+}
+// Opening a result: a detail panel, or the page that holds it.
+function gsOpen(d){
+  closeSearch();
+  const find=(l,id)=>(l||[]).find(x=>String(x.id)===d.id);
+  if(d.type==='offer'||d.type==='phd'||(d.type==='master'&&find(colData&&colData.items))){const x=find(colData&&colData.items);if(x)return openDrawer(offerDetail(x),x.title);}
+  if(d.type==='master'||d.type==='scholarship'){const x=find(msData&&msData.items);if(x)return openDrawer(`<div class="acline"><span>${esc(x.org||'')}</span><span>${esc(x.city||'')}</span><span>${esc(x.source||'')}</span>${x.deadline?`<span>deadline <b>${esc(x.deadline)}</b></span>`:''}</div>
+    ${x.desc?`<p style="white-space:pre-line;margin-top:12px">${esc(String(x.desc).slice(0,3000))}</p>`:''}${safeUrl(x.url)?`<a class="btn primary" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Open</a>`:''}`,x.title);}
+  if(d.type==='prof'){const p=find(acData&&acData.people);if(p)return openDrawer(acPersonRow(p),p.name);}
+  if(d.type==='school'){const s=acSchool(d.id);if(s)return openDrawer(acSchoolDetail(s),s.name);}
+  if(d.type==='poliCo'){const c=find(poliData&&poliData.companies);if(c){location.hash='#/company/'+encodeURIComponent(coKey(c.name));return;}}
+  if(d.type==='poliPerson'){const p=find(poliData&&poliData.people);if(p)return openDrawer(`<div class="offers compact">${poliPersonRow(p)}</div>`,p.name);}
+  if(d.type==='poliJob'){const j=pj.jobs.find(x=>String(x.id)===d.id);if(j)return openDrawer(pjRow(j)+pjDetails(j),pfix(j.title));}
+  if(d.type==='app')return openDlg({},d.id);
+  if(d.type==='queue'){location.hash='#/queue';return;}
+  if(d.type==='saved'){location.hash='#/opps/saved';return;}
+  if(d.type==='note'){location.hash='#/notes';return;}
+  if(d.type==='coNote'){location.hash='#/company/'+encodeURIComponent(d.id);return;}
+  if(d.type==='radar'){location.hash='#/opps/radar';return;}
+  if(d.type==='contact'){const c=find(state.contacts);if(c)return openDrawer(`<div class="acline"><span>${esc(c.org||'')}</span><span>${esc(c.kind||'')}</span><span>${esc(c.channel||'')}</span><span>${esc(c.date||'')}</span></div>${c.note?`<p style="margin-top:12px">${esc(c.note)}</p>`:''}`,c.name||c.org);}
+}
+// A collected offer in the detail panel: score, facts, the full description and the usual actions.
+function offerDetail(x){
+  const m=matchOf(x),u=safeUrl(x.url),c=cById(x.c)||{flag:''};
+  return `<div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:12px">${scoreBadge(m)}<div><div class="acline" style="margin:0"><span><b>${esc(x.org||'')}</b></span><span>${esc(x.location||'')} ${c.flag}</span><span>${esc(x.source||'')}</span>${x.posted?`<span>${esc(rel(x.posted))}</span>`:''}${x.deadline?`<span>apply by <b>${esc(x.deadline)}</b></span>`:''}</div></div></div>
+    ${m?scoreWhy(m):''}
+    <div class="row" style="margin:14px 0">${u?`<a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open offer</a>`:''}<button class="btn" type="button" data-coqueue="${esc(x.id)}">Queue</button><button class="btn" type="button" data-cosave="${esc(x.id)}">Save</button><button class="btn" type="button" data-colog="${esc(x.id)}">Log</button></div>
+    ${(x.contacts||[]).length?`<div class="pjd" style="margin-bottom:12px"><h4>Contacts named in the offer</h4>${x.contacts.map(c=>`<div class="rn"><b>${esc(c.name||'Contact')}</b><span class="mono">${esc(c.email||'')}</span></div>`).join('')}</div>`:''}
+    <p style="white-space:pre-line;font-size:14px;line-height:1.6">${esc(String(x.desc||'No description collected.').slice(0,6000))}</p>`;
+}
+document.addEventListener('keydown',e=>{
+  const typing=/^(input|textarea|select)$/i.test((e.target.tagName||''))||e.target.isContentEditable;
+  if((e.key==='k'||e.key==='K')&&(e.ctrlKey||e.metaKey)){e.preventDefault();openSearch();return;}
+  if(e.key==='/'&&!typing&&!document.body.classList.contains('has-gs')){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'&&document.body.classList.contains('has-gs'))closeSearch();
+});
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-act="search"]'))openSearch();});
+
 function route(){
   const h=location.hash.replace(/^#\/?/,'');const [path,qs]=h.split('?');const seg=path.split('/').filter(Boolean);
   const t=seg[0]||'overview';
@@ -3516,7 +3668,7 @@ function route(){
   const ts=$('#topSec');if(ts)ts.textContent=SECTION_LABEL[sec]||'Home';
   const tabs=SUBTABS[sec],cur=tabs?tabs.find(x=>x[2](t,seg)):null,sn=$('#subnav');
   if(sn){sn.innerHTML=tabs?tabs.map(([h,l,on])=>`<a href="${h}" ${on(t,seg)?'aria-current="page"':''}>${l}</a>`).join(''):'';sn.hidden=!tabs;}
-  closeDrawer();
+  closeDrawer();closeSearch();
   $('#demoBar').innerHTML=demo?`<div class="demo"><span>Previewing sample data. Nothing here is saved.</span><button class="btn sm" data-act="exitdemo">Exit preview</button></div>`:'';
   if(t==='apps')apps(qs);
   else if(t==='opps')opps(seg.slice(1));
