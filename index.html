@@ -987,7 +987,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 .ls-src small{grid-column:1/-1;color:var(--faint);font-size:11.5px}
 .ls-snip{margin:6px 0 0;font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ls-head select{width:auto;flex:0 0 auto}.ls-profs .offers{border:0;border-radius:0}.ls-profs .offer{grid-template-columns:minmax(0,1fr) auto;padding:12px 0}.ls-local{padding:12px 14px}.ls-local h2{font-size:15px;margin-bottom:6px}
-@media(max-width:900px){.ls-title{font-size:38px}.ls-grid{grid-template-columns:1fr}.ls-side{position:static;order:-1}.ls-bar input,.ls-bar .btn.primary{height:48px}}
+@media(max-width:900px){.ls-title{font-size:38px}.ls-grid{grid-template-columns:1fr}.ls-side{position:static}.ls-bar input,.ls-bar .btn.primary{height:48px}}
+
+.ls-understood{margin:12px 2px 4px;font-size:14px;color:var(--ink);line-height:1.6}
+.ls-srcbox>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:8px}.ls-srcbox>summary::-webkit-details-marker{display:none}
+.ls-srcbox>summary::after{content:'▾';margin-left:auto;color:var(--muted)}.ls-srcbox:not([open])>summary::after{content:'▸'}
+.ls-srcbox #lsSrc{margin-top:10px}
+@media(min-width:901px){.wrap{padding-left:clamp(16px,3vw,40px);padding-right:clamp(16px,3vw,40px)}}
+@media(max-width:900px){.ls-tabs,.ls.on .ls-cs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;justify-content:flex-start;margin-left:-16px;margin-right:-16px;padding:0 16px}
+  .ls-tabs>*,.ls-cs>*{flex:0 0 auto}.ls-side{order:1}.ls-bar .btn.primary{padding:0 18px}}
 </style>
 </head>
 <body>
@@ -3698,68 +3706,125 @@ const LS_LINKS=[['ABG (PhD, France)',q=>'https://www.abg.asso.fr/fr/candidatOffr
   ['Tanitjobs (Tunisia)',q=>'https://www.tanitjobs.com/jobs/?keywords='+q],['Welcome to the Jungle',q=>'https://www.welcometothejungle.com/en/jobs?query='+q],
   ['Google',q=>'https://www.google.com/search?q='+q+'+jobs'],['DAAD (master\'s)',q=>'https://www2.daad.de/deutschland/studienangebote/international-programmes/en/result/?q='+q],
   ['Mon Master',q=>'https://www.monmaster.gouv.fr/formations?q='+q]];
-let ls={q:'',tab:'all',cs:null,sort:'match',run:0,src:{},items:new Map(),profs:[]};
+let ls={q:'',tab:'all',tabSet:false,literal:false,cs:null,sort:'match',run:0,src:{},items:new Map(),profs:[],topic:''};
 function lsCountries(){return ls.cs||(prof().countries||['fr','de']).filter(c=>c!=='gl').slice(0,5);}
+// Reading the query like a search engine: places set the countries and city, kind words set the tab, contract words
+// the job type, filler words go, and what is left is the topic. No topic ("jobs in germany") -> your profile's targets.
+const LS_PLACES=[[/\b(germany|deutschland|allemagne|alemania)\b/,'de',''],[/\bberlin\b/,'de','Berlin'],[/\b(munich|munchen|muenchen)\b/,'de','Munich'],[/\bhamburg\b/,'de','Hamburg'],
+  [/\bfrankfurt\b/,'de','Frankfurt'],[/\b(cologne|koln)\b/,'de','Cologne'],[/\bstuttgart\b/,'de','Stuttgart'],[/\b(dresden|heidelberg|karlsruhe|darmstadt|aachen|tubingen|leipzig)\b/,'de',null],
+  [/\bfrance\b/,'fr',''],[/\bparis\b/,'fr','Paris'],[/\b(lyon|toulouse|grenoble|nantes|bordeaux|lille|marseille|nice|rennes|montpellier|strasbourg|saclay|sophia)\b/,'fr',null],
+  [/\bcanada\b/,'ca',''],[/\bmontreal\b/,'ca','Montréal'],[/\b(toronto|vancouver|quebec|ottawa|calgary|waterloo|edmonton)\b/,'ca',null],
+  [/\b(switzerland|suisse|schweiz|swiss)\b/,'ch',''],[/\bzurich\b/,'ch','Zurich'],[/\b(geneva|geneve)\b/,'ch','Geneva'],[/\b(lausanne|basel|bale|bern|berne|lugano)\b/,'ch',null],
+  [/\b(tunisia|tunisie)\b/,'tn',''],[/\btunis\b/,'tn','Tunis'],[/\b(sfax|sousse|monastir|ariana|nabeul|bizerte)\b/,'tn',null],
+  [/\b(remote|remotely|teletravail|homeoffice|anywhere|worldwide)\b/,'gl','Remote']];
+const LS_KINDS=[[/\b(phd|ph d|these|thesis|theses|doctorat|doctoral|doctorate|doktorand\w*|promotion)\b/,'phd'],[/\b(masters?|msc|m2|mastere)\b/,'masters'],
+  [/\b(scholarships?|bourses?|funding|stipendium|stipendien|grants?)\b/,'masters'],[/\b(professors?|supervisors?|researchers?|encadrants?|labs?|laboratoires?|chercheurs?)\b/,'profs'],
+  [/\b(compan(?:y|ies)|sponsors?|employers?|entreprises?)\b/,'cos'],[/\b(jobs?|emplois?|offres?|positions?|roles?|stellen|work|vacanc(?:y|ies)|postes?|openings?|careers?)\b/,'jobs']];
+const LS_TYPES=[[/\b(internships?|stages?|stagiaires?|interns?|werkstudent\w*|praktik\w*|alternance|apprenti\w*)\b/,'internship'],[/\b(part time|parttime|temps partiel|teilzeit)\b/,'parttime'],
+  [/\b(cdi|full time|fulltime|permanent|festanstellung)\b/,'fulltime'],[/\b(freelance|contract|cdd)\b/,'contract']];
+const LS_STOP=new Set('in at for the a an to of on with near around from me my i find show search looking look want need any some best new latest good top please give list all that are is on a au aux dans pour de des du la le les en sur avec un une chez et ou d l im bei fur der die das und nach auf'.split(' '));
+function lsProfileTopics(kind){
+  const p=prof(),sk=new Set(p.skills||[]),ai=['machine learning','deep learning','llm','nlp','pytorch','computer vision','rag'].some(s=>sk.has(s));
+  if(kind==='phd'||kind==='profs')return [sk.has('explainable ai')?'explainable AI':null,sk.has('nlp')||sk.has('llm')?'natural language processing':null,ai?'machine learning':'computer science'].filter(Boolean).slice(0,2);
+  if(kind==='masters')return [ai?'artificial intelligence':'computer science'];
+  const saved=(state.searches||[]).map(s=>s.search).filter(Boolean),roles=(p.roles||[]).filter(r=>r.split(' ').length>=2);
+  return [...new Set([...saved,...roles,ai?'machine learning engineer':'software engineer',ai?'AI engineer':'backend developer'])].slice(0,2);
+}
+function lsParse(raw){
+  let t=' '+gsFold(raw).replace(/[^\w+#. -]+/g,' ').replace(/\s+/g,' ')+' ';
+  const plan={cs:[],city:'',kind:'',type:'',topics:[],fromProfile:false,raw};
+  LS_PLACES.forEach(([re,c,city])=>{const m=t.match(re);if(m){if(!plan.cs.includes(c))plan.cs.push(c);const nm=city===null?m[1][0].toUpperCase()+m[1].slice(1):city;if(nm&&!plan.city)plan.city=nm;t=t.replace(new RegExp(re.source,'g'),' ');}});
+  LS_TYPES.forEach(([re,v])=>{if(re.test(t)){if(!plan.type)plan.type=v;t=t.replace(new RegExp(re.source,'g'),' ');}});
+  LS_KINDS.forEach(([re,k])=>{if(re.test(t)){if(!plan.kind)plan.kind=k;t=t.replace(new RegExp(re.source,'g'),' ');}});
+  if(plan.type&&!plan.kind)plan.kind='jobs';
+  // The topic in your own spelling (accents and capitals kept), in your order.
+  const keep=new Set(t.split(' ').filter(w=>w&&!LS_STOP.has(w)));
+  const toks=String(raw).split(/[\s,;'’]+/).filter(Boolean),f=w=>gsFold(w).replace(/[^\w+#.-]+/g,''),idx=toks.map((w,i)=>keep.has(f(w))?i:-1).filter(i=>i>=0);
+  // Small words between topic words stay ("traitement du langage naturel"); places and kind words never do.
+  const topic=idx.length?toks.slice(idx[0],idx[idx.length-1]+1).filter(w=>keep.has(f(w))||LS_STOP.has(f(w))).join(' ').trim():'';
+  if(topic)plan.topics=[topic];else{plan.topics=lsProfileTopics(plan.kind||'jobs');plan.fromProfile=true;}
+  return plan;
+}
+function lsEffective(){
+  const plan=ls.literal?{cs:[],city:'',kind:'',type:'',topics:[ls.q.trim()],fromProfile:false}:lsParse(ls.q);
+  const tab=ls.tabSet?ls.tab:(plan.kind||'all'),cs=plan.cs.length?plan.cs:lsCountries();
+  return Object.assign(plan,{tab,cs});
+}
 function searchPage(qs){
   const p=new URLSearchParams(qs||'');
-  if(p.has('q')){ls.q=p.get('q');if(p.get('t'))ls.tab=p.get('t');}
-  const cs=lsCountries(),started=!!ls.q.trim();
+  if(p.has('q')){const nq=p.get('q');if(nq!==ls.q){ls.literal=p.get('x')==='1';ls.tabSet=!!p.get('t');}ls.q=nq;ls.tab=p.get('t')||'all';}
+  const started=!!ls.q.trim(),e=started?lsEffective():{tab:ls.tab,cs:lsCountries()};
+  const go=(q,extra)=>{location.hash='#/search?'+new URLSearchParams(Object.assign({q},extra||{}));};
   $('#view').innerHTML=`<div class="ls${started?' on':''}">
-    ${started?'':`<h1 class="ls-title">Search everywhere</h1><p class="sub" style="margin:0 auto 22px;text-align:center">One search, run live on every job board, research site and directory Parcours knows, merged and scored for you.</p>`}
-    <form class="ls-bar" id="lsF"><input type="search" id="lsQ" value="${esc(ls.q)}" placeholder="e.g. machine learning engineer, thèse NLP, explainable AI…" aria-label="Search everywhere" autocomplete="off"><button class="btn primary" type="submit">Search</button></form>
-    <div class="ls-tabs" id="lsT">${LS_TABS.map(([k,l])=>`<button type="button" data-lst="${k}" aria-pressed="${ls.tab===k}">${l}</button>`).join('')}</div>
-    <div class="ls-cs" id="lsC">${Object.entries(LS_COUNTRY_NAME).map(([k,n])=>`<label class="sc"><input type="checkbox" value="${k}" ${cs.includes(k)?'checked':''}> ${(cById(k)||{}).flag||''} ${n}</label>`).join('')}<label class="sc"><input type="checkbox" value="gl" ${cs.includes('gl')?'checked':''}> 🌍 Remote</label></div>
+    ${started?'':`<h1 class="ls-title">Search everywhere</h1><p class="sub" style="margin:0 auto 22px;text-align:center">Ask in your own words: "jobs in Germany", "PhD explainable AI in France", "stage data science Paris", "scholarships Germany". Every platform is searched live.</p>`}
+    <form class="ls-bar" id="lsF"><input type="search" id="lsQ" value="${esc(ls.q)}" placeholder="e.g. jobs in Germany, PhD NLP France, stage IA Paris…" aria-label="Search everywhere" autocomplete="off"><button class="btn primary" type="submit">Search</button></form>
+    ${started?`<p class="ls-understood">${ls.literal?`Exact search for <b>${esc(ls.q)}</b> · <button class="linkbtn" type="button" id="lsSmart">Understand my query instead</button>`
+      :`Showing <b>${esc((LS_TABS.find(x=>x[0]===e.tab)||['','everything'])[1].toLowerCase())}</b>${e.type?` (${esc(e.type)})`:''} in ${e.cs.map(c=>c==='gl'?'🌍 Remote':`${(cById(c)||{}).flag||''} ${LS_COUNTRY_NAME[c]}`).join(', ')}${e.city&&e.city!=='Remote'?` · ${esc(e.city)}`:''} for ${e.topics.map(t=>`<b>${esc(t)}</b>`).join(', ')}${e.fromProfile?' <span class="hint" style="margin:0">(from your profile)</span>':''}
+        · <button class="linkbtn" type="button" id="lsExact">Search exactly "${esc(ls.q)}"</button>`}</p>`:''}
+    <div class="ls-tabs" id="lsT">${LS_TABS.map(([k,l])=>`<button type="button" data-lst="${k}" aria-pressed="${e.tab===k}">${l}</button>`).join('')}</div>
+    <div class="ls-cs" id="lsC">${Object.entries(LS_COUNTRY_NAME).map(([k,n])=>`<label class="sc"><input type="checkbox" value="${k}" ${e.cs.includes(k)?'checked':''}> ${(cById(k)||{}).flag||''} ${n}</label>`).join('')}<label class="sc"><input type="checkbox" value="gl" ${e.cs.includes('gl')?'checked':''}> 🌍 Remote</label></div>
     ${started?`<div class="ls-grid"><div><div class="ls-head"><span id="lsCount" class="hint" style="margin:0"></span><select id="lsSort" aria-label="Order"><option value="match" ${ls.sort==='match'?'selected':''}>Best match</option><option value="new" ${ls.sort==='new'?'selected':''}>Newest</option></select></div>
       <div id="lsLocal"></div><div id="lsRes"></div></div>
-      <aside class="ls-side"><div class="panel"><h2>Sources</h2><div id="lsSrc"></div></div>
-        <div class="panel"><h2>Also search on</h2><p class="hint">These need a browser of their own: they open with your query.</p><div class="row">${LS_LINKS.map(([l,u])=>`<a class="btn sm" href="${esc(u(encodeURIComponent(ls.q)))}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join('')}</div></div></aside></div>`
-      :`<div class="ls-try">${['machine learning engineer','PhD explainable AI','data scientist Paris','NLP engineer remote','ingénieur IA','Werkstudent machine learning'].map(t=>`<button type="button" class="btn sm" data-lsq="${esc(t)}">${esc(t)}</button>`).join('')}</div>`}
+      <aside class="ls-side"><details class="panel ls-srcbox" ${innerWidth>900?'open':''}><summary><h2 style="display:inline">Sources</h2> <span class="hint" id="lsSrcSum" style="margin:0"></span></summary><div id="lsSrc"></div></details>
+        <div class="panel"><h2>Also search on</h2><p class="hint">These need a browser of their own: they open with your topic.</p><div class="row">${LS_LINKS.map(([l,u])=>`<a class="btn sm" href="${esc(u(encodeURIComponent(e.topics[0]||ls.q)))}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join('')}</div></div></aside></div>`
+      :`<div class="ls-try">${['jobs in Germany','PhD explainable AI in France','stage data science Paris','machine learning engineer remote','scholarships Germany','professors NLP Tunisia'].map(t=>`<button type="button" class="btn sm" data-lsq="${esc(t)}">${esc(t)}</button>`).join('')}</div>`}
   </div>`;
-  $('#lsF').addEventListener('submit',e=>{e.preventDefault();const q=$('#lsQ').value.trim();if(!q)return;ls.q=q;location.hash='#/search?'+new URLSearchParams({q,t:ls.tab});});
-  $('#lsT').addEventListener('click',e=>{const b=e.target.closest('[data-lst]');if(!b)return;ls.tab=b.dataset.lst;if(ls.q.trim())location.hash='#/search?'+new URLSearchParams({q:ls.q,t:ls.tab});else $('#lsT').querySelectorAll('[data-lst]').forEach(x=>x.setAttribute('aria-pressed',x===b));});
-  $('#lsC').addEventListener('change',()=>{ls.cs=[...$('#lsC').querySelectorAll('input:checked')].map(x=>x.value);});
-  document.querySelectorAll('[data-lsq]').forEach(b=>b.addEventListener('click',()=>{ls.q=b.dataset.lsq;location.hash='#/search?'+new URLSearchParams({q:ls.q,t:ls.tab});}));
+  $('#lsF').addEventListener('submit',ev=>{ev.preventDefault();const q=$('#lsQ').value.trim();if(!q)return;ls.cs=null;go(q);});
+  $('#lsT').addEventListener('click',ev=>{const b=ev.target.closest('[data-lst]');if(!b)return;if(ls.q.trim())go(ls.q,Object.assign({t:b.dataset.lst},ls.literal?{x:'1'}:{}));else{ls.tab=b.dataset.lst;$('#lsT').querySelectorAll('[data-lst]').forEach(x=>x.setAttribute('aria-pressed',x===b));}});
+  $('#lsC').addEventListener('change',()=>{ls.cs=[...$('#lsC').querySelectorAll('input:checked')].map(x=>x.value);if(ls.q.trim()){ls.q=ls.q.replace(/\s+(in|à|en)\s+[^,]*$/i,'');}});
+  document.querySelectorAll('[data-lsq]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.lsq)));
   if(!started){$('#lsQ').focus();return;}
-  $('#lsSort').addEventListener('change',e=>{ls.sort=e.target.value;lsRender();});
-  if(!caps.online){$('#lsRes').innerHTML='<p class="hint">Live search runs in the deployed app once you are signed in.</p>';lsLocal();return;}
-  lsRun();
+  const ex=$('#lsExact');if(ex)ex.addEventListener('click',()=>go(ls.q,{x:'1'}));
+  const sm=$('#lsSmart');if(sm)sm.addEventListener('click',()=>go(ls.q));
+  $('#lsSort').addEventListener('change',ev=>{ls.sort=ev.target.value;lsRender();});
+  if(!caps.online){$('#lsRes').innerHTML='<p class="hint">Live search runs in the deployed app once you are signed in.</p>';lsLocal(e);return;}
+  lsRun(e);
 }
-// Everything Parcours already holds that matches, shown at once.
-function lsLocal(){
+// Everything Parcours already holds that matches the topic (and the countries asked for).
+function lsLocal(e){
   const box=$('#lsLocal');if(!box)return;
-  const want={all:null,jobs:['offer','saved','queue','poliJob'],phd:['phd','prof','radar'],masters:['master','scholarship','school'],profs:['prof'],cos:['poliCo','poliPerson','school','coNote']}[ls.tab];
-  const hits=gsSearch(ls.q,'').filter(d=>!want||want.includes(d.type)),show=hits.slice(0,6);
+  const want={all:null,jobs:['offer','saved','queue','poliJob'],phd:['phd','prof','radar'],masters:['master','scholarship','school'],profs:['prof'],cos:['poliCo','poliPerson','school','coNote']}[e.tab];
+  const names=e.cs.filter(c=>c!=='gl').map(c=>gsFold(LS_COUNTRY_NAME[c]));
+  const seen=new Set(),hits=[];
+  e.topics.forEach(t=>gsSearch(t,'').forEach(d=>{if(seen.has(d.type+d.id)||(want&&!want.includes(d.type)))return;
+    if(e.cs.length&&names.length&&!names.some(n=>d.text.includes(n))&&!['app','note','contact','coNote','queue','saved'].includes(d.type)){const x=(colData&&colData.items||[]).find(i=>String(i.id)===d.id);if(!x||!e.cs.includes(x.c))return;}
+    seen.add(d.type+d.id);hits.push(d);}));
+  const show=hits.slice(0,6);
   box.innerHTML=hits.length?`<div class="panel ls-local"><h2>Already in Parcours · ${hits.length}</h2>${show.map((d,i)=>`<button type="button" class="gs-hit" data-lsl="${i}"><span class="gs-type" style="--accent:var(--${(GS_TYPES[d.type]||['',''])[1]})">${esc((GS_TYPES[d.type]||[''])[0])}</span><span class="gs-main"><b>${esc(d.title)}</b>${d.sub?`<small>${esc(d.sub)}</small>`:''}</span></button>`).join('')}
     ${hits.length>6?`<button class="linkbtn" type="button" id="lsAll">See all ${hits.length} in search everything</button>`:''}</div>`:'';
   box.querySelectorAll('[data-lsl]').forEach(b=>b.addEventListener('click',()=>gsOpen(show[+b.dataset.lsl])));
-  const all=$('#lsAll');if(all)all.addEventListener('click',()=>{gsF.q=ls.q;openSearch();});
+  const all=$('#lsAll');if(all)all.addEventListener('click',()=>{gsF.q=e.topics[0];openSearch();});
 }
-// The live fan-out: one request per platform (and country), at most six at a time, results added as they arrive.
-async function lsRun(){
-  const run=++ls.run,q=ls.q.trim(),tab=ls.tab,cs=lsCountries();
-  ls.src={};ls.items=new Map();ls.profs=[];
+// The live fan-out: one request per platform, country and topic, at most six at a time, results added as they arrive.
+async function lsRun(e){
+  const run=++ls.run,tab=e.tab,cs=e.cs;
+  ls.src={};ls.items=new Map();ls.profs=[];ls.topic=e.topics.join(', ');
   const tasks=[],add=(key,label,fn)=>{ls.src[key]={label,state:'wait'};tasks.push([key,fn]);};
   const jobsTab=tab==='all'||tab==='jobs',phdTab=tab==='all'||tab==='phd';
-  if(jobsTab||phdTab){
-    const qq=phdTab&&!jobsTab&&!/\b(phd|thèse|these|doctora)/i.test(q)?q+' PhD':q;
-    cs.filter(c=>c!=='gl').forEach(c=>{
-      const flag=(cById(c)||{}).flag||'',loc=LS_COUNTRY_NAME[c];
-      ['linkedin','indeed','glassdoor'].filter(s=>SRC[s].c.includes(c)).forEach(s=>add(s+':'+c,`${SRC[s].label} ${flag}`,()=>api('/api/boards?'+new URLSearchParams({q:qq,c,loc,sources:s}))));
-      if(jobsTab)Object.keys(SRC).filter(s=>!PY.includes(s)&&SRC[s].c.includes(c)&&caps.sources[s]!==false).forEach(s=>add(s+':'+c,`${SRC[s].label} ${flag}`,()=>api('/api/jobs?'+new URLSearchParams({q,c,loc:LOC[c]||loc,sources:s}))));
-      (LS_SCRAPERS[c]||[]).filter(n=>jobsTab||LS_ACADEMIC.has(n)).forEach(n=>add(n,`${n} ${flag}`,()=>api('/api/boards?'+new URLSearchParams({q,c,scraper:n}))));
-    });
-    if(cs.includes('gl')&&jobsTab){['remotive','remoteok'].forEach(s=>add(s,SRC[s].label+' 🌍',()=>api('/api/jobs?'+new URLSearchParams({q,c:'gl',loc:'Remote',sources:s}))));
-      LS_SCRAPERS.gl.forEach(n=>add(n,n+' 🌍',()=>api('/api/boards?'+new URLSearchParams({q,c:'gl',scraper:n}))));}
-    LS_SCRAPERS.any.forEach(n=>add(n,n+' 🎓',()=>api('/api/boards?'+new URLSearchParams({q,c:'any',scraper:n}))));
-  }
-  if(tab==='all'||tab==='phd'||tab==='profs')cs.filter(c=>c!=='gl').forEach(c=>add('openalex:'+c,`OpenAlex researchers ${(cById(c)||{}).flag||''}`,()=>api('/api/labs?'+new URLSearchParams({q,c,years:3}))));
-  lsLocal();lsRender();
+  e.topics.forEach((topic,ti)=>{
+    const tag=e.topics.length>1?` · ${topic}`:'',main=ti===0;
+    if(jobsTab||phdTab){
+      const qq=phdTab&&!jobsTab&&!/\b(phd|thèse|these|doctora)/i.test(topic)?topic+' PhD':topic,type=e.type&&e.type!=='fulltime'?e.type:'';
+      cs.filter(c=>c!=='gl').forEach(c=>{
+        const flag=(cById(c)||{}).flag||'',loc=e.city&&e.city!=='Remote'&&(LS_PLACES.find(([re,cc])=>cc===c&&re.test(' '+gsFold(e.city)+' ')))?e.city:LS_COUNTRY_NAME[c];
+        ['linkedin','indeed','glassdoor'].filter(s=>SRC[s].c.includes(c)&&(main||s!=='glassdoor')).forEach(s=>add(s+':'+c+':'+ti,`${SRC[s].label} ${flag}${tag}`,()=>api('/api/boards?'+new URLSearchParams(Object.assign({q:qq,c,loc,sources:s},type?{type}:{})))));
+        if(main&&jobsTab)Object.keys(SRC).filter(s=>!PY.includes(s)&&SRC[s].c.includes(c)&&caps.sources[s]!==false).forEach(s=>add(s+':'+c,`${SRC[s].label} ${flag}`,()=>api('/api/jobs?'+new URLSearchParams(Object.assign({q:topic,c,loc:loc===LS_COUNTRY_NAME[c]?(LOC[c]||loc):loc,sources:s},type?{type}:{})))));
+        if(main)(LS_SCRAPERS[c]||[]).filter(n=>jobsTab||LS_ACADEMIC.has(n)).forEach(n=>add(n+':'+c,`${n} ${flag}`,()=>api('/api/boards?'+new URLSearchParams({q:topic,c,scraper:n}))));
+      });
+      if(main&&cs.includes('gl')&&jobsTab){['remotive','remoteok'].forEach(s=>add(s,SRC[s].label+' 🌍',()=>api('/api/jobs?'+new URLSearchParams({q:topic,c:'gl',loc:'Remote',sources:s}))));
+        LS_SCRAPERS.gl.forEach(n=>add(n,n+' 🌍',()=>api('/api/boards?'+new URLSearchParams({q:topic,c:'gl',scraper:n}))));
+        add('linkedin:gl:'+ti,'LinkedIn 🌍'+tag,()=>api('/api/boards?'+new URLSearchParams({q:topic,c:'gl',loc:'Remote',sources:'linkedin'})));}
+      if(main)LS_SCRAPERS.any.forEach(n=>add(n,n+' 🎓',()=>api('/api/boards?'+new URLSearchParams({q:topic,c:'any',scraper:n}))));
+    }
+    if(main&&(tab==='all'||tab==='phd'||tab==='profs'))cs.filter(c=>c!=='gl').forEach(c=>add('openalex:'+c,`OpenAlex researchers ${(cById(c)||{}).flag||''}`,()=>api('/api/labs?'+new URLSearchParams({q:topic,c,years:3}))));
+  });
+  lsLocal(e);lsRender();
   let i=0;
   const worker=async()=>{while(i<tasks.length){const [key,fn]=tasks[i++];if(run!==ls.run)return;ls.src[key].state='run';ls.src[key].t0=Date.now();lsSources();
     try{const r=await fn();if(run!==ls.run)return;
       if(key.startsWith('openalex:')){(r.people||[]).forEach(p=>ls.profs.push(Object.assign({c:key.split(':')[1]},p)));ls.src[key]=Object.assign(ls.src[key],{state:'ok',n:(r.people||[]).length});}
-      else{const st=Object.values(r.sources||{})[0]||{};(r.jobs||[]).forEach(j=>lsAdd(j));ls.src[key]=Object.assign(ls.src[key],st.ok===false?{state:'err',err:st.error}:{state:'ok',n:(r.jobs||[]).length});}}
-    catch(e){if(run!==ls.run)return;ls.src[key]=Object.assign(ls.src[key],{state:'err',err:errText(e,{},'Failed')});}
+      else{const st=Object.values(r.sources||{})[0]||{};(r.jobs||[]).forEach(j=>{if(!j.c||j.c==='any'||j.c==='gl'||cs.includes(j.c)||!cs.length)lsAdd(j);});ls.src[key]=Object.assign(ls.src[key],st.ok===false?{state:'err',err:st.error}:{state:'ok',n:(r.jobs||[]).length});}}
+    catch(err){if(run!==ls.run)return;ls.src[key]=Object.assign(ls.src[key],{state:'err',err:errText(err,{},'Failed')});}
     ls.src[key].ms=Date.now()-ls.src[key].t0;lsRender();}};
   await Promise.all(Array.from({length:6},worker));
 }
@@ -3776,7 +3841,8 @@ const is_phd=t=>/\bph\.?d\b|\bdoctoral|\bdoctorate|\bdoctorant|\bth[eè]se\b/i.t
 function lsSources(){
   const box=$('#lsSrc');if(!box)return;
   const L=Object.values(ls.src),done=L.filter(s=>s.state==='ok'||s.state==='err').length;
-  box.innerHTML=`<p class="hint" style="margin:0 0 8px">${done} of ${L.length} platforms answered</p>`+L.map(s=>`<div class="ls-src ${s.state}"><span>${esc(s.label)}</span><b>${s.state==='ok'?'✓ '+s.n:s.state==='err'?'✗':s.state==='run'?'…':'·'}</b>${s.state==='err'?`<small>${esc(String(s.err||'').slice(0,90))}</small>`:''}</div>`).join('');
+  const sum=$('#lsSrcSum');if(sum)sum.textContent=`${done} of ${L.length} answered${L.filter(s=>s.state==='err').length?` · ${L.filter(s=>s.state==='err').length} failed`:''}`;
+  box.innerHTML=L.map(s=>`<div class="ls-src ${s.state}"><span>${esc(s.label)}</span><b>${s.state==='ok'?'✓ '+s.n:s.state==='err'?'✗':s.state==='run'?'…':'·'}</b>${s.state==='err'?`<small>${esc(String(s.err||'').slice(0,90))}</small>`:''}</div>`).join('');
 }
 function lsRender(){
   lsSources();
@@ -3788,7 +3854,7 @@ function lsRender(){
   const pending=Object.values(ls.src).filter(s=>s.state==='wait'||s.state==='run').length;
   $('#lsCount').textContent=`${L.length} offer${L.length===1?'':'s'}${ls.profs.length?` · ${ls.profs.length} researchers`:''}${pending?` · ${pending} platforms still searching…`:''}`;
   const profs=ls.profs.slice().sort((a,b)=>(b.weight||0)-(a.weight||0)).slice(0,12);
-  box.innerHTML=(profs.length?`<div class="panel ls-profs"><h2>Researchers on "${esc(ls.q)}"</h2><div class="offers">${profs.map(p=>`<div class="offer"><div><h3>${esc(p.name)} <span class="xp">${(cById(p.c)||{}).flag||''}</span></h3>
+  box.innerHTML=(profs.length?`<div class="panel ls-profs"><h2>Researchers on ${esc(ls.topic||ls.q)}</h2><div class="offers">${profs.map(p=>`<div class="offer"><div><h3>${esc(p.name)} <span class="xp">${(cById(p.c)||{}).flag||''}</span></h3>
       <div class="acline"><span>${esc(p.inst||'')}</span><span><b>${p.papers}</b> recent papers</span><span>${p.lastAuthor||0} as last author</span>${p.latest?`<span>latest: ${esc(String(p.latest.title||'').slice(0,70))}</span>`:''}</div></div>
       <div class="oa">${p.openalex?`<a class="btn sm" href="${esc(p.openalex)}" target="_blank" rel="noopener noreferrer">Papers</a>`:''}<a class="btn sm" href="https://scholar.google.com/citations?view_op=search_authors&mauthors=${encodeURIComponent(p.name)}" target="_blank" rel="noopener noreferrer">Scholar</a><a class="btn sm" href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(p.name+' '+(p.inst||''))}" target="_blank" rel="noopener noreferrer">LinkedIn</a></div></div>`).join('')}</div></div>`:'')
     +(L.length?`<div class="offers">${L.slice(0,120).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:''},inQ=inQueue(x.id),sv=state.saved.some(s=>s.id===x.id);
@@ -3796,7 +3862,7 @@ function lsRender(){
         <div class="meta"><b>${esc(x.org)}</b>${x.location?' · '+esc(x.location):''} ${c.flag}${x.posted?' · '+esc(rel(x.posted)):''} · ${x.sources.map(s=>`<span class="xp">${esc((SRC[s]||{}).label||s)}</span>`).join('')}</div>
         ${x.desc?`<p class="ls-snip">${snip(x.desc)}</p>`:''}</div>
         <div class="oa"><button class="btn sm primary" type="button" data-lsqueue="${esc(x.id)}" ${inQ?'disabled':''}>${inQ?'Queued':'Queue'}</button><button class="btn sm" type="button" data-jsave="${esc(x.id)}" ${sv?'disabled':''}>${sv?'Saved':'Save'}</button><button class="btn sm" type="button" data-jlog="${esc(x.id)}">Log</button></div></article>`;}).join('')}</div>`
-      :pending?'<p class="hint">Searching every platform…</p>':(profs.length?'':'<p class="hint">No offer matched every word. Try fewer or broader words, or another tab.</p>'));
+      :pending?'<p class="hint">Searching every platform…</p>':(profs.length?'':'<p class="hint">Nothing found on any platform. Try a broader topic, another country, or "Search exactly".</p>'));
 }
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-lsqueue]');if(!b)return;
   const x=[...ls.items.values()].find(i=>i.id===b.dataset.lsqueue);if(x){queueAdd(x);b.textContent='Queued';b.disabled=true;}});

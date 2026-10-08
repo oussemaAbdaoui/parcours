@@ -102,7 +102,8 @@ def _live_scraper(name, q):
     out = []
     for x in fn([q["q"]]):
         text = (x.get("title", "") + " " + x.get("desc", "")).lower()
-        if words and not all(w in text for w in words):
+        hit = sum(w in text for w in words)
+        if words and hit < (len(words) if len(words) <= 2 else len(words) - 1):  # 3+ words: one may be missing
             continue
         if q["c"] not in ("", "any") and x.get("c") not in (q["c"], "gl", "", None):
             continue
