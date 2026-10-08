@@ -895,6 +895,23 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 .gd span{font-size:10.5px;color:var(--faint);font-weight:600}
 @media(min-width:901px){.topbar .goalpill{display:none}}
 @media(max-width:900px){.side-foot .goalpill{display:none}.goalnum b{font-size:46px}.goalside{align-items:flex-start}.goalstreak{text-align:left}}
+
+/* constant goal reminder */
+.goalbar-top{position:sticky;top:0;z-index:15;margin:0 0 18px;padding:10px 14px 0;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(10px)}
+.goalbar-top[hidden]{display:none}
+.gbt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px}
+.gbt-line b{font-family:var(--display);font-weight:800;font-size:18px;color:var(--ink-strong)}
+.gbt-line span{font-weight:600;color:var(--ink)}
+.gbt-line em{font-style:normal;color:var(--muted);flex:1;min-width:160px}
+.gbt-track{height:4px;margin:10px -14px 0;background:var(--soft);border-radius:0 0 12px 12px;overflow:hidden}
+.gbt-track i{display:block;height:100%;background:var(--grad,var(--blue))}
+.goalbar-top.behind{border-color:color-mix(in srgb,var(--red) 40%,var(--line))}.goalbar-top.behind span{color:var(--red-ink)}
+.goalbar-top.done{border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}.goalbar-top.done .gbt-track i{background:var(--ok)}
+.goalpill.behind{background:color-mix(in srgb,var(--red) 12%,var(--surface));color:var(--red-ink);border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;max-width:min(560px,calc(100vw - 32px));padding:12px 18px;border-radius:12px;background:var(--ink-strong);color:var(--bg);font-weight:600;font-size:14px;box-shadow:0 18px 40px -16px rgba(0,0,0,.45)}
+.toast.ok{background:var(--ok);color:#fff}.toast.warn{background:var(--red);color:#fff}
+@media(min-width:901px){.goalbar-top{top:86px}}
+@media(max-width:900px){.gbt-line .btn:not(.primary){display:none}.gbt-line{flex-wrap:nowrap}.gbt-line .btn.primary{margin-left:auto}.goalbar-top{top:52px;margin:0 -16px 14px;border-radius:0;border-width:0 0 1px}.gbt-line em{display:none}.gbt-track{margin:10px -14px 0;border-radius:0}.toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
 </style>
 </head>
 <body>
@@ -918,7 +935,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 <div class="wrap">
   <div class="demo warn" id="notice" role="status" aria-live="polite" hidden></div>
   <div id="demoBar"></div>
+  <div class="goalbar-top" id="goalTop" role="status" aria-live="polite"></div>
   <nav class="subnav" id="subnav" aria-label="In this section"></nav>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <main id="view" tabindex="-1"></main>
   <p class="foot">Platform lists come from general knowledge, so check each site for current deadlines and eligibility. <button type="button" id="exp">Export backup</button> · <button type="button" id="bkImp">Import backup</button> · <button type="button" id="reset">Reset all data</button> · <button type="button" id="signout">Sign out</button></p><input type="file" id="bkFile" accept="application/json" hidden>
 </div>
@@ -2795,10 +2814,41 @@ function goalStreak(){ // days in a row the goal was met, counting today only on
   for(let i=dayCounts(today()).total>=g?0:1;i<400;i++){if(dayCounts(isoDay(i)).total>=g)n++;else break;}
   return n;
 }
-function updateGoalPill(){
-  const t=dayCounts(today()).total,g=goalTarget(),done=t>=g;
-  document.querySelectorAll('.goalpill').forEach(el=>{el.textContent=`${t}/${g} today`;el.classList.toggle('done',done);el.setAttribute('aria-label',`Daily goal: ${t} of ${g} sent today`);});
+// Where you should be by now: the goal spread evenly from 9:00 to 21:00.
+function goalPace(g){const n=new Date(),h=n.getHours()+n.getMinutes()/60;return Math.round(g*Math.min(1,Math.max(0,(h-9)/12)));}
+const CHEERS=['Every application is a chance you control.','Volume wins: recruiters answer the ones who keep sending.','One more now beats ten tomorrow.',
+  'Small, steady, every day: that is how offers arrive.','You are closer than this morning. Keep going.','Two minutes, one application. Go.'];
+function nextStep(){
+  const q=(state.queue||[]).filter(x=>x.status==='todo').length;
+  return q?['#/queue',`Apply queue · ${q}`]:['#/opps','Find offers'];
 }
+function updateGoalPill(){
+  const t=dayCounts(today()).total,g=goalTarget(),done=t>=g,left=Math.max(0,g-t),should=goalPace(g),behind=!done&&t<should;
+  document.querySelectorAll('.goalpill').forEach(el=>{el.textContent=`${t}/${g} today`;el.classList.toggle('done',done);el.classList.toggle('behind',behind);el.setAttribute('aria-label',`Daily goal: ${t} of ${g} sent today`);});
+  document.title=done?'✓ Parcours':`(${left} left) Parcours`;
+  const bar=$('#goalTop');
+  if(bar){
+    const onHome=document.body.dataset.page==='overview',[href,label]=nextStep(),pct=Math.min(100,Math.round(t/g*100));
+    bar.hidden=onHome;
+    bar.className='goalbar-top'+(done?' done':behind?' behind':'');
+    bar.innerHTML=onHome?'':`<div class="gbt-line"><b>${t}/${g}</b><span>${done?'Goal done for today. Anything more is a bonus.':behind?`${should-t} behind pace · ${left} to go`:`${left} to go · on track`}</span>
+      <em>${done?'':esc(CHEERS[t%CHEERS.length])}</em><a class="btn sm primary" href="${href}">${esc(label)}</a><button class="btn sm" type="button" data-act="contact">+ Contact</button><button class="btn sm" type="button" data-act="new">+ Application</button></div>
+      <div class="gbt-track"><i style="width:${pct}%"></i></div>`;
+  }
+  goalMilestone(t,g);
+}
+// A short celebration when you pass 25 %, 50 %, 75 % and 100 % of the day's goal (once each, per day).
+function goalMilestone(t,g){
+  const day=today(),key='parcours-goal-ms';let seen={};try{seen=JSON.parse(localStorage.getItem(key)||'{}');}catch(e){}
+  if(seen.day!==day)seen={day,at:Math.floor(t/g*4)};
+  const step=Math.min(4,Math.floor(t/g*4));
+  if(step>seen.at){seen.at=step;toast(step>=4?`Goal reached: ${t}/${g}. Great work today.`:`${step*25}% of today's goal: ${t}/${g}. ${CHEERS[(t+step)%CHEERS.length]}`,step>=4?'ok':'');}
+  try{localStorage.setItem(key,JSON.stringify(seen));}catch(e){}
+}
+let toastT=0;
+function toast(msg,kind){const el=$('#toast');if(!el)return;el.textContent=msg;el.className='toast'+(kind?' '+kind:'');el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;},6000);}
+// While the app is open and you are behind pace, a nudge every hour.
+setInterval(()=>{const t=dayCounts(today()).total,g=goalTarget(),h=new Date().getHours();if(h>=9&&h<22&&t<g&&t<goalPace(g))toast(`${goalPace(g)-t} behind pace: ${t}/${g} today. ${CHEERS[h%CHEERS.length]}`,'warn');updateGoalPill();},60*60e3);
 function goalPanelHtml(){
   const td=today(),c=dayCounts(td),g=goalTarget(),left=Math.max(0,g-c.total),pct=Math.min(100,Math.round(c.total/g*100)),streak=goalStreak();
   const hour=new Date().getHours(),late=hour>=18&&left>0;
