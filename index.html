@@ -1670,20 +1670,51 @@ Ce sujet correspond à la recherche que je souhaite mener, et ce serait un plais
 
 Cordialement,
 {name}`};
-const LETTER_KEYS=[['job','Jobs, English'],['jobFr','Jobs, French'],['phd','PhD positions, English'],['phdFr','PhD positions, French']];
+// Replies to a LinkedIn hiring post go to the person who posted, not to a company.
+LETTER_DEFAULT.post=`Dear {first},
+
+I saw your post about the {title} role{place} and would like to apply. I recently completed my {degree}{field}, and my work covers {skills}.
+
+{evidence}
+
+I would be glad to send my CV or to talk about the role whenever suits you.
+
+Kind regards,
+{name}`;
+LETTER_DEFAULT.postFr=`Bonjour {first},
+
+J'ai vu votre publication au sujet du poste de {title}{place} et je souhaite candidater. Je viens d'obtenir mon {degree}, et mon travail porte sur {skills}.
+
+Je serais ravi de vous envoyer mon CV ou d'échanger sur ce poste.
+
+Cordialement,
+{name}`;
+const LETTER_KEYS=[['job','Jobs, English'],['jobFr','Jobs, French'],['phd','PhD positions, English'],['phdFr','PhD positions, French'],['post','LinkedIn hiring posts, English'],['postFr','LinkedIn hiring posts, French']];
+// The role a hiring post announces: "We're hiring a Machine Learning Engineer to join…" -> "Machine Learning Engineer".
+function postRole(q,lang){
+  const t=((q.title||'')+' . '+(q.desc||'')).replace(/\s+/g,' ');
+  const m=t.match(/(?:hiring|recrute|recrutons|recherchons|cherchons|looking for|seeking|wir suchen)\s*:?\s+(?:an?|one|un|une|des|our next|a new|einen?)?\s*((?:[A-ZÀ-Ý(][\w+#&/().'’-]*\s?){1,6})/);
+  const r=m?m[1].replace(/\b(to|for|in|at|who|with|à|pour|en|and|et)\b.*$/i,'').replace(/[\s!.,:;-]+$/,'').trim():'';
+  return r.split(' ').length>=1&&r.length>=3?r:(lang==='fr'?'ce poste':'this');
+}
 const qList=()=>state.queue||(state.queue=[]);
 const inQueue=id=>qList().some(q=>q.id===id);
 function queueAdd(x){
   if(inQueue(x.id))return;
   qList().push({id:x.id,title:x.title||'',org:x.org||'',url:x.url||'',location:x.location||'',c:x.c||'',kind:x.kind||'job',source:x.source||'',
-    desc:(x.desc||'').slice(0,4000),posted:x.posted||'',deadline:x.deadline||'',applicants:x.applicants,status:'todo',letter:'',addedAt:Date.now()});
+    desc:(x.desc||'').slice(0,4000),posted:x.posted||'',deadline:x.deadline||'',applicants:x.applicants,type:x.type||'',poster:x.poster||'',status:'todo',letter:'',addedAt:Date.now()});
   save();
 }
-// Your name: set in the queue's templates, else the capitalised words that open your CV (a PDF paste is one long line).
+// Your name: set in the queue's templates, else the capitalised words that open your CV's first line (a PDF paste
+// is one long line), stopping before a job title such as "AI Engineer".
+const TITLE_WORD=/^(ai|ia|ml|data|software|machine|deep|backend|frontend|full|fullstack|senior|junior|engineer|engineering|ingénieur|ingenieur|developer|développeur|developpeur|student|étudiant|etudiant|researcher|chercheur|scientist|analyst|intern|stagiaire|phd|msc|curriculum|resume|résumé|cv)$/i;
 function cvName(){
   const p=prof();if(p.name)return p.name;
-  const m=String(p.cv||'').trim().match(/^((?:[A-ZÀ-Ý][\p{L}'’-]+\s+){1,3}[A-ZÀ-Ý][\p{L}'’-]+)/u);
-  return m&&!/curriculum|resume|vitae/i.test(m[1])?m[1].trim():'';
+  const first=String(p.cv||'').trim().split(/\n/)[0];
+  const m=first.match(/^((?:[A-ZÀ-Ý][\p{L}'’-]+[ \t]+){0,3}[A-ZÀ-Ý][\p{L}'’-]+)/u);
+  if(!m)return '';
+  const words=[];for(const w of m[1].split(/[ \t]+/)){if(TITLE_WORD.test(w))break;words.push(w);}
+  return words.length>=2?words.join(' '):'';
 }
 // French or English, from the offer's own words.
 function offerLang(q){
@@ -1703,7 +1734,7 @@ function cleanTitle(t,kind,lang){
   }
   return s.replace(/\s{2,}/g,' ').trim()||String(t||'');
 }
-const cityOf=loc=>{const s=String(loc||'').replace(/\(.*?\)/g,'').split(',')[0].replace(/\s*-\s*\d+.*$/,'').trim();return /^(remote|anywhere.*|worldwide|global|super recruteur|)$/i.test(s)?'':s;};
+const cityOf=loc=>{const s=String(loc||'').replace(/\(.*?\)/g,'').split(',')[0].replace(/\s*-\s*\d+.*$/,'').trim();return /^(remote|anywhere.*|worldwide|global|super recruteur|[A-Z]{2}|)$/i.test(s)?'':s;};
 const SKIP_SKILL=new Set(['backend','frontend','monitoring','testing','git','linux','agile','research','api','cloud','agents','optimization','monte carlo']);
 function letterParts(q,p,m,lang){
   const cv=String(p.cv||''),rx=k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -1741,12 +1772,19 @@ function letterParts(q,p,m,lang){
   return {skills:list(skills)||(lang==='fr'?"le logiciel et l'IA":'software and AI'),evidence,degree,field:lang==='fr'||!d.field?'':` in ${d.field.replace(/\s*&\s*/g,' and ')}`};
 }
 function letterFor(q){
-  const p=prof(),m=matchOf(q),lang=offerLang(q),key=(q.kind==='phd'?'phd':'job')+(lang==='fr'?'Fr':'');
-  const tpl=(p.letters&&p.letters[key])||LETTER_DEFAULT[key],lp=letterParts(q,p,m,lang),city=cityOf(q.location);
-  const vals={company:q.org||(lang==='fr'?'votre entreprise':'your team'),title:cleanTitle(q.title,q.kind,lang),place:city?(lang==='fr'?` à ${city}`:` in ${city}`):'',
+  const p=prof(),m=matchOf(q),lang=offerLang(q),post=q.type==='post'||q.source==='LinkedIn posts';
+  const key=(post?'post':q.kind==='phd'?'phd':'job')+(lang==='fr'?'Fr':'');
+  let tpl=(p.letters&&p.letters[key])||LETTER_DEFAULT[key];
+  const lp=letterParts(q,p,m,lang),city=post?cityOf(String(q.title).match(/\b(?:in|à|en)\s+([A-ZÀ-Ý][\p{L}-]+)/u)?.[1]):cityOf(q.location);
+  if(!q.org&&!post)tpl=tpl.replace(/Dear \{company\} team,/,'Dear hiring team,');
+  const first=String(q.poster||q.org||'').trim().split(/\s+/)[0]||'';
+  const vals={company:q.org||(lang==='fr'?'votre entreprise':'your team'),title:post?postRole(q,lang):cleanTitle(q.title,q.kind,lang),
+    place:city?(lang==='fr'?` à ${city}`:` in ${city}`):'',first:first||(lang==='fr'?'Madame, Monsieur':'there'),
     degree:lp.degree,field:lp.field,skills:lp.skills,evidence:lp.evidence,name:cvName()};
-  const out=tpl.replace(/\{(\w+)\}/g,(a,k)=>k in vals?vals[k]:a).replace(/\n{3,}/g,'\n\n').trim();
-  return lang==='fr'?out.replace(/\b([Dd])e ([AEIOUYÉÈaeiouyéè])/g,"$1'$2"):out; // "poste de AI…" -> "poste d'AI…"
+  let out=tpl.replace(/\{(\w+)\}/g,(a,k)=>k in vals?vals[k]:a).replace(/\n{3,}/g,'\n\n').trim();
+  if(lang!=='fr')return out.replace(/\babout the this role\b/,'about this role');
+  out=out.replace(/\bmon licence\b/g,'ma licence').replace(/\bBonjour Madame, Monsieur\b/,'Madame, Monsieur');
+  return out.replace(/\b([Dd])e ([AEIOUYÉÈaeiouyéè])/g,"$1'$2"); // "poste de AI…" -> "poste d'AI…"
 }
 function queuePage(){
   const L=qList(),p=prof();
@@ -1755,7 +1793,7 @@ function queuePage(){
   ${todo.length?todo.map(qCard).join(''):`<div class="panel empty"><p>Nothing queued. In <a href="#/opps">Opportunities</a>, press <b>Queue</b> on the offers you want to apply to.</p></div>`}
   ${done.length?`<details class="panel" style="margin-top:16px"><summary><b>Done (${done.length})</b></summary>${done.map(q=>`<div class="row" style="justify-content:space-between;margin-top:8px"><span>${q.status==='sent'?'Sent':'Skipped'} · ${esc(q.title)} · ${esc(q.org)}</span><button class="btn sm ghost" data-qx="${esc(q.id)}">Remove</button></div>`).join('')}</details>`:''}
   <details class="panel" style="margin-top:16px"><summary><b>Letter templates</b></summary>
-    <p class="hint">Placeholders: {company} {title} {place} {degree} {field} {skills} {evidence} {name}. French offers get the French templates. {skills} are the skills from your CV that the offer asks for, {evidence} the CV line that best supports it.</p>
+    <p class="hint">Placeholders: {company} {title} {place} {degree} {field} {skills} {evidence} {name}, and {first} (the poster's first name) in the LinkedIn post templates. French offers get the French templates. {skills} are the skills from your CV that the offer asks for, {evidence} the CV line that best supports it.</p>
     <label class="lab" for="qName">Your name</label><input type="text" id="qName" value="${esc(p.name||cvName())}">
     ${LETTER_KEYS.map(([k,l])=>`<label class="lab" for="qT-${k}" style="margin-top:12px">${l}</label><textarea id="qT-${k}" rows="12">${esc((p.letters&&p.letters[k])||LETTER_DEFAULT[k])}</textarea>`).join("")}
     <div class="row" style="margin-top:10px"><button class="btn primary" id="qTSave">Save templates</button><button class="btn ghost" id="qTReset">Back to defaults</button><span class="hint" id="qTMsg"></span></div></details>`;
