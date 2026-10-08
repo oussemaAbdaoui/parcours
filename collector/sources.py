@@ -10,6 +10,8 @@ Every scraper returns a list of dicts: id, title, org, location, c, kind, source
 import json
 import re
 import time
+
+import requests
 from datetime import date, datetime, timezone
 
 from scrapling.fetchers import Fetcher
@@ -466,6 +468,62 @@ def we_work_remotely(keywords):
     return out
 
 
+# LinkedIn posts: people announcing they hire ("we're hiring", "je recrute"...), found through Google results bought
+# from Serper (serper.dev; SERPER_API_KEY). LinkedIn's own post search needs a logged-in account, which its terms
+# forbid automating. Once a day (the run after midnight UTC): two searches x your countries, one credit each.
+POST_PLACES = {"fr": ("fr", "(France OR Paris OR Lyon OR Toulouse)"), "de": ("de", "(Germany OR Deutschland OR Berlin OR München)"),
+               "ca": ("ca", "(Canada OR Montréal OR Montreal OR Toronto)"), "ch": ("ch", "(Switzerland OR Suisse OR Schweiz OR Zürich OR Genève)"),
+               "tn": ("tn", "(Tunisie OR Tunisia OR Tunis OR Sfax)")}
+POST_COUNTRIES, POST_QUERIES = list(POST_PLACES), ["machine learning engineer", "AI engineer"]
+HIRING = '("hiring" OR "we\'re hiring" OR "je recrute" OR "nous recrutons" OR "on recrute" OR "wir suchen" OR "join our team")'
+
+
+def _ago(s):
+    """'3 days ago' / '5 hours ago' / 'Oct 2, 2026' -> ISO date, or ''."""
+    m = re.match(r"(\d+)\s+(minute|hour|day|week)s?\s+ago", s or "")
+    if m:
+        days = {"minute": 0, "hour": 0, "day": 1, "week": 7}[m.group(2)] * int(m.group(1))
+        return date.fromordinal(date.today().toordinal() - days).isoformat()
+    try:
+        return datetime.strptime((s or "").strip(), "%b %d, %Y").date().isoformat()
+    except ValueError:
+        return _long_date(s or "")
+
+
+def linkedin_posts(keywords):
+    """LinkedIn posts from the past week announcing a hire, for your top searches in each of your countries."""
+    import os
+    key = os.environ.get("SERPER_API_KEY")
+    if not key:
+        raise RuntimeError("add a SERPER_API_KEY secret (free at serper.dev) to search LinkedIn posts")
+    if time.gmtime().tm_hour >= 6 and os.environ.get("POSTS_ANY_HOUR") != "1":
+        return []  # once a day is enough, and keeps the free credits for months
+    out, seen = [], set()
+    for c in POST_COUNTRIES:
+        gl, place = POST_PLACES[c]
+        for kw in POST_QUERIES:
+            r = requests.post("https://google.serper.dev/search", timeout=30, headers={"X-API-KEY": key, "Content-Type": "application/json"},
+                              json={"q": f'site:linkedin.com/posts {HIRING} "{kw}" {place}', "gl": gl, "num": 10, "tbs": "qdr:w"})
+            if r.status_code != 200:
+                raise RuntimeError(f"Serper HTTP {r.status_code}: {r.text[:120]}")
+            for o in r.json().get("organic") or []:
+                link = (o.get("link") or "").split("?")[0]
+                if "linkedin.com/posts/" not in link or link in seen:
+                    continue
+                seen.add(link)
+                head = _t(o.get("title"))
+                m = re.match(r"(.+?) (?:on|sur|auf) LinkedIn\s*:\s*(.+)", head)
+                who, text = (m.group(1), m.group(2)) if m else ("", head)
+                text = re.sub(r"\s*[|·-]\s*\d+\s+comments?.*$", "", text)
+                out.append({
+                    "id": "lipost:" + link, "title": text[:140] or "Hiring post", "org": who, "location": c.upper(), "c": c,
+                    "kind": "job", "source": "LinkedIn posts", "url": link, "posted": _ago(o.get("date")), "deadline": "", "type": "post",
+                    "desc": _t(o.get("snippet"))[:600], "poster": who,
+                })
+            time.sleep(0.5)
+    return out
+
+
 # Poli category ids: Engineering (Software), Data, Research (Technical). Seniority ids: entry-level, junior, mid-level.
 POLI_CATEGORIES, POLI_SENIORITIES = (6, 8, 3), (1, 2, 3)
 
@@ -498,7 +556,7 @@ def poli(keywords):
 SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
             "jobs.ch": jobs_ch, "Job Bank": jobbank, "CNRS": cnrs, "Max Planck": max_planck, "jobRxiv": jobrxiv,
             "Farojob": farojob, "Himalayas": himalayas, "Jobicy": jobicy, "Working Nomads": working_nomads,
-            "We Work Remotely": we_work_remotely, "Poli": poli}
+            "We Work Remotely": we_work_remotely, "Poli": poli, "LinkedIn posts": linkedin_posts}
 COUNTRY_WORDS = (("france", "fr"), ("germany", "de"), ("deutschland", "de"), ("switzerland", "ch"), ("schweiz", "ch"),
                  ("suisse", "ch"), ("canada", "ca"), ("tunisia", "tn"), ("tunisie", "tn"))
 

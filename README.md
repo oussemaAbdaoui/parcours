@@ -68,7 +68,8 @@ Your saved searches drive the job boards (4 defaults until you save your own); a
 
 | Area | Platforms | How |
 |---|---|---|
-| Job boards | LinkedIn, Indeed | JobSpy |
+| Job boards | LinkedIn (whole country, 50 per search), Indeed | JobSpy |
+| Hiring posts | LinkedIn posts ("we're hiring", "je recrute"...) from the past week | Google results via Serper (`SERPER_API_KEY`, free at serper.dev), once a day |
 | France | HelloWork, CNRS, Inria, ABG | Scrapling (ABG in stealth mode) |
 | Germany | StepStone, Max Planck | Scrapling (StepStone in stealth mode) |
 | Switzerland, Canada | jobs.ch, Job Bank | Scrapling |

@@ -97,14 +97,16 @@ def matches_search(job, search):
 
 
 def run_jobspy(searches, status):
-    from boards import _search as jobspy_search  # same JobSpy code as the app's live search
+    from boards import COUNTRY_NAME, REMOTE, _search as jobspy_search  # same JobSpy code as the app's live search
     items = []
     for s in searches:
         q = {"q": s["search"], "c": s["c"], "loc": s.get("location", ""), "type": s.get("type", "")}
         for site in SITES.get(s["c"], ["linkedin"]):
             name = LABEL[site]
+            # LinkedIn searches the whole country (a city search misses every other city) and goes deeper.
+            qs = dict(q, loc=COUNTRY_NAME[s["c"]]) if site == "linkedin" and s["c"] in COUNTRY_NAME and not REMOTE.search(q["loc"]) else q
             try:
-                found = [j for j in jobspy_search(site, q, results=25, hours=24 * 7) if matches_search(j, s["search"])]
+                found = [j for j in jobspy_search(site, qs, results=50 if site == "linkedin" else 25, hours=24 * 7) if matches_search(j, s["search"])]
                 st = status.setdefault(name, {"ok": True, "count": 0})
                 st["count"] += len(found)
                 for j in found:
@@ -324,6 +326,9 @@ def main():
     print(f"{origin} run, {len(searches)} searches, keywords: {keywords}, profile terms: {len(pwords)}, exclusions: {exclude}")
 
     status, now = {}, int(time.time() * 1000)
+    import sources  # countries the LinkedIn posts search covers (sources.linkedin_posts)
+    sources.POST_COUNTRIES = list(dict.fromkeys(s.get("c") for s in searches if s.get("c") in sources.POST_PLACES)) or list(sources.POST_PLACES)
+    sources.POST_QUERIES = keywords[:2]
     if home:
         found = run_scrapers(keywords + pwords, status, HOME_SCRAPERS)
     else:
