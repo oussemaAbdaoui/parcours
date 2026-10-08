@@ -1025,6 +1025,31 @@ const hasData=s=>s.apps.length||s.journal.length||Object.keys(s.status).length||
 const getPw=()=>{try{return localStorage.getItem(PWKEY)||'';}catch(e){return '';}};
 function setSync(m){setTimeout(()=>{const a=$('#sync'),b=$('#sync2');if(a&&b){b.className=a.className;b.textContent=a.textContent;}},0);const el=$('#sync');if(!el)return;el.className='syncl'+(m==='saved'?' on':m==='error'?' err':'');el.textContent={saving:'Saving…',saved:'Synced',local:'Saved on this device only',error:'Sync failed, saved on this device'}[m]||'';}
 function persistLocal(){try{localStorage.setItem(LKEY,JSON.stringify(state));}catch(e){}}
+/* Browser copy of the big datasets (IndexedDB): pages open from it at once, then refresh in the background,
+   and the server answers 304 when nothing changed. Scores are remembered per offer and per profile. */
+const idb=(()=>{let dbp=null;
+  const db=()=>dbp||(dbp=new Promise((ok,ko)=>{try{const r=indexedDB.open('parcours',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);}catch(e){ko(e);}}));
+  return {get:k=>db().then(d=>new Promise(ok=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>ok(q.result);q.onerror=()=>ok(undefined);})).catch(()=>undefined),
+    set:(k,v)=>db().then(d=>new Promise(ok=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>ok();t.onerror=()=>ok();})).catch(()=>{})};})();
+async function freshApi(path,etag){
+  let r;
+  try{r=await fetch(path,{headers:Object.assign({'x-app-password':getPw()},etag?{'if-none-match':etag}:{})});}
+  catch(e){throw {code:'network',message:'Could not reach the server.'};}
+  if(r.status===304)return null;
+  let j=null;try{j=await r.json();}catch(e){}
+  if(r.status===401){showLogin();throw {code:'unauthorized',message:'Sign in to continue.'};}
+  if(!r.ok)throw {code:'http_'+r.status,message:(j&&j.error)||('Request failed ('+r.status+')')};
+  idb.set('api:'+path,{etag:r.headers.get('etag')||'',data:j,at:Date.now()});
+  return j;
+}
+// The stored copy now (and a background refresh that calls onFresh if the data changed), or the network.
+async function cachedApi(path,onFresh){
+  const c=await idb.get('api:'+path);
+  if(c&&c.data){freshApi(path,c.etag).then(j=>{if(j&&onFresh)onFresh(j);}).catch(()=>{});return c.data;}
+  return freshApi(path,'');
+}
+// Re-draws the page with refreshed data, unless a detail panel is open.
+const refreshView=()=>{if(!document.body.classList.contains('has-drawer'))route();};
 async function api(path,opts={}){
   let r;
   try{r=await fetch(path,Object.assign({},opts,{headers:Object.assign({'content-type':'application/json','x-app-password':getPw()},opts.headers||{})}));}
@@ -1168,13 +1193,9 @@ function overview(){
 async function loadBest(){
   const b=$('#bestBox');if(!b)return;
   if(!caps.online||demo){const pn=b.closest('.panel');if(pn)pn.remove();return;}
-  if(!colData){b.innerHTML='<p class="hint" style="margin:0">Loading…</p>';try{colData=await api('/api/opps');}catch(e){b.innerHTML='<p class="hint" style="margin:0">Could not load collected offers.</p>';return;}}
+  if(!colData){b.innerHTML='<p class="hint" style="margin:0">Loading…</p>';if(!await ensureCollected(null)){b.innerHTML='<p class="hint" style="margin:0">Could not load collected offers.</p>';return;}}
   if(!$('#bestBox'))return;
-  const hidden=new Set(state.oppsHidden||[]);
-  scoreProf=scoringProfile();
-  const top=colData.items.filter(x=>!hidden.has(x.id)&&!isApplied(x)).map(x=>Object.assign({},x,{m:matchOf(x)})).filter(x=>x.m&&!x.m.blockers.length)
-    .sort((a,b)=>b.m.rank-a.m.rank).slice(0,5);
-  scoreProf=null;
+  const top=visibleOffers().filter(x=>x.m).sort((a,b)=>b.m.rank-a.m.rank).slice(0,5);
   b.innerHTML=(!hasCv()?`<p class="nudge">These use default skills. <a href="#/profile">Add your CV</a> for real matches.</p>`:'')
     +(top.length?'<div class="offers compact">'+top.map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:''};
       return `<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
@@ -1733,17 +1754,28 @@ function expOk(e,f){if(!f)return true;if(f==='none')return !e;if(!e)return false
 const KIND_LABEL={job:'Jobs',phd:'PhD positions',master:"Master's programmes"};
 const crumbs=(trail,cur)=>`<div class="crumbs">${trail.map(([l,h])=>`<a href="${h}">${esc(l)}</a><span>/</span>`).join('')}<b>${esc(cur)}</b></div>`;
 // Offers worth showing: not hidden, not a dealbreaker, not already applied. Scores computed once per call.
+// Scores depend on the offer and your profile only: computed once per offer and per profile version, kept in the browser.
+let scoreMemo={sig:'',map:new Map(),loaded:false},memoSave=0;
+idb.get('scores').then(v=>{if(v&&!scoreMemo.map.size){scoreMemo={sig:v.sig,map:new Map(v.entries),loaded:true};}}).catch(()=>{});
 function visibleOffers(){
   if(!colData)return [];
   const hidden=new Set(state.oppsHidden||[]);scoreProf=scoringProfile();
-  const l=colData.items.filter(x=>!hidden.has(x.id)).map(x=>Object.assign({},x,{m:matchOf(x),applied:isApplied(x)})).filter(x=>!(x.m&&x.m.blockers.length)&&!x.applied);
-  scoreProf=null;return l;
+  const sig=JSON.stringify(scoreProf)+'|'+(SC&&SC.VERSION||'')+'|'+today();
+  if(scoreMemo.sig!==sig)scoreMemo={sig,map:new Map(),loaded:true};
+  let added=0;
+  const l=colData.items.filter(x=>!hidden.has(x.id)).map(x=>{const k=x.id+'|'+(x.foundAt||'')+'|'+(x.desc||'').length+'|'+(x.applicants||'')+'|'+((x.exp&&x.exp.min)||'');
+    let m=scoreMemo.map.get(k);if(m===undefined){m=matchOf(x);scoreMemo.map.set(k,m);added++;}
+    return Object.assign({},x,{m,applied:isApplied(x)});}).filter(x=>!(x.m&&x.m.blockers.length)&&!x.applied);
+  scoreProf=null;
+  if(added){clearTimeout(memoSave);memoSave=setTimeout(()=>{const keep=new Set(colData.items.map(x=>x.id));
+    idb.set('scores',{sig:scoreMemo.sig,entries:[...scoreMemo.map].filter(([k])=>keep.has(k.split('|')[0]))});},1500);}
+  return l;
 }
 async function ensureCollected(box){
   if(colData&&!Array.isArray(colData.items))colData=null;
   if(colData)return true;
   if(!caps.online){if(box)box.innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return false;}
-  try{colData=await api('/api/opps');if(!Array.isArray(colData.items))throw {code:'bad',message:'Collected offers came back empty.'};}catch(e){colData=null;if(box)box.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load collected offers.'))}</p>`;return false;}
+  try{colData=await cachedApi('/api/opps',j=>{if(Array.isArray(j.items)){colData=j;refreshView();}});if(!Array.isArray(colData.items))throw {code:'bad',message:'Collected offers came back empty.'};}catch(e){colData=null;if(box)box.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load collected offers.'))}</p>`;return false;}
   if(colPrev===null){colPrev=state.oppsSeenAt||0;const mx=Math.max(0,...colData.items.map(x=>x.foundAt||0));if(mx>(state.oppsSeenAt||0)&&!demo){state.oppsSeenAt=mx;save();}}
   return true;
 }
@@ -1925,7 +1957,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 /* master's programmes and scholarships (Germany, France, Italy, Erasmus Mundus), collected once a day */
 let msData=null,msF={t:'',c:'',lang:'',q:'',sort:'fit',closed:false},msMax=40;
 const MS_C={de:['🇩🇪','Germany'],fr:['🇫🇷','France'],it:['🇮🇹','Italy'],eu:['🇪🇺','Several countries (Erasmus Mundus)']};
-async function loadMasters(){if(!msData)msData=await api('/api/opps?set=masters');return msData;}
+async function loadMasters(){if(!msData)msData=await cachedApi('/api/opps?set=masters',j=>{msData=j;if(/masters/.test(location.hash))refreshView();});return msData;}
 const msDays=x=>x.deadline?Math.round((tms(x.deadline)-tms(today()))/864e5):null;
 const MS_AI=/artificial intelligence|machine learning|ai|data|comput|informati|software|robot|cyber/i,MS_ON=/digital|engineering|technolog|mathemat|stem/i,MS_OFF=/architecture|music|arts?|medic|drug|pharma|clinical|health|nursing|theolog|law|journalis|film|dance|agricult/i;
 const msFit=x=>(x.terms||[]).length*2+(MS_AI.test(x.title)?6:MS_AI.test(x.desc)?3:0)+(MS_ON.test(`${x.title} ${x.desc}`)?1:0)-(MS_OFF.test(x.title)?8:0)+(x.scholarship?2:0)+(x.type==='scholarship'&&/tunis/i.test(x.eligible||'')?2:0)+(msDays(x)!==null&&msDays(x)>=0&&msDays(x)<=90?1:0);
@@ -2614,7 +2646,7 @@ let poliData=null,poliAt=0,poliIdx=null,poliF={tab:'jobs',q:'',filter:'jobs',siz
 async function loadPoli(){
   if(!caps.online)return null;
   if(!poliData||Date.now()-poliAt>10*60e3){
-    try{poliData=await api('/api/opps?set=poli');poliAt=Date.now();poliIdx=null;}catch(e){if(!poliData)throw e;}
+    try{poliData=await cachedApi('/api/opps?set=poli',j=>{poliData=j;poliIdx=null;if(/sponsors\/(companies|people)/.test(location.hash))refreshView();});poliAt=Date.now();poliIdx=null;}catch(e){if(!poliData)throw e;}
   }
   return poliData;
 }
@@ -2929,7 +2961,7 @@ function poliPanelHtml(name){
 let acData=null,acAt=0,acF={tab:'professors',c:'',q:'',kind:'',sort:'score',offer:'research',open:null},acMax=40;
 const AC_C={fr:['🇫🇷','France'],de:['🇩🇪','Germany'],ca:['🇨🇦','Canada'],ch:['🇨🇭','Switzerland'],tn:['🇹🇳','Tunisia']};
 async function loadAcademia(){
-  if(!acData||Date.now()-acAt>10*60e3){acData=await api('/api/opps?set=academia');acAt=Date.now();acIdx=null;}
+  if(!acData||Date.now()-acAt>10*60e3){acData=await cachedApi('/api/opps?set=academia',j=>{acData=j;acIdx=null;if(/academia/.test(location.hash))refreshView();});acAt=Date.now();acIdx=null;}
   return acData;
 }
 // Master's programmes and scholarships (masters.py) attached to each school by name.

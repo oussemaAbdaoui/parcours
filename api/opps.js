@@ -1,4 +1,15 @@
+const crypto = require('crypto');
 const { auth, upstash, redis } = require('./_lib');
+
+// The app keeps a copy of each dataset and sends back the version tag it got; when nothing changed since, a 304
+// replaces the whole payload (offers are over a megabyte).
+function notModified(req, res, parts) {
+  const tag = 'W/"' + crypto.createHash('md5').update(parts.map(String).join('|')).digest('hex').slice(0, 20) + '"';
+  res.setHeader('ETag', tag);
+  if ((req.headers['if-none-match'] || '') === tag) { res.status(304).end(); return true; }
+  return false;
+}
+const version = async (u, cmds) => (await Promise.all(cmds.map((c) => redis(u, c).catch(() => null)))).map((r) => (r && r.result) || '');
 
 // Offers saved by the collectors (GitHub Actions and the optional PC collector) in the hash
 // parcours:opps:items (id -> offer JSON), plus run reports in parcours:opps:meta.
@@ -8,7 +19,10 @@ module.exports = async (req, res) => {
   const u = upstash();
   if (!u) return res.status(501).json({ error: 'Storage is not configured. Add Upstash Redis in Vercel.' });
   res.setHeader('Cache-Control', 'no-store');
-  if ((req.query || {}).set === 'masters') return masters(u, res);
+  if ((req.query || {}).set === 'masters') {
+    if (notModified(req, res, ['m', ...await version(u, [['GET', 'parcours:masters:meta'], ['HLEN', 'parcours:masters:items']])])) return;
+    return masters(u, res);
+  }
   if ((req.query || {}).set === 'history') {
     // Hiring log (collector/history.py): per company, the date and kind of every offer seen. Sent compact:
     // [[key, name, [[day, kind], ...]], ...]
@@ -27,6 +41,7 @@ module.exports = async (req, res) => {
   if ((req.query || {}).set === 'academia') {
     // Schools and professors (collector/academia.py), refreshed weekly.
     try {
+      if (notModified(req, res, ['a', ...await version(u, [['GET', 'parcours:academia:meta']])])) return;
       const [sc, pe, meta] = await Promise.all([redis(u, ['HVALS', 'parcours:academia:schools']), redis(u, ['HVALS', 'parcours:academia:people']),
         redis(u, ['GET', 'parcours:academia:meta'])]);
       const parse = (r) => ((r && r.result) || []).map((v) => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
@@ -38,6 +53,7 @@ module.exports = async (req, res) => {
   if ((req.query || {}).set === 'poli') {
     // Poli (collector/poli.py): UK sponsor directory, employees likely sponsored there, and the run report with Poli's totals.
     try {
+      if (notModified(req, res, ['p', ...await version(u, [['GET', 'parcours:poli:meta']])])) return;
       const [co, pe, meta] = await Promise.all([redis(u, ['HVALS', 'parcours:poli:companies']), redis(u, ['HVALS', 'parcours:poli:people']),
         redis(u, ['GET', 'parcours:poli:meta'])]);
       const parse = (r) => ((r && r.result) || []).map((v) => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
@@ -56,6 +72,7 @@ module.exports = async (req, res) => {
     }
   }
   try {
+    if (notModified(req, res, ['o', ...await version(u, [['GET', 'parcours:opps:meta'], ['HLEN', 'parcours:opps:items']])])) return;
     const [flat, metaRaw] = await Promise.all([redis(u, ['HGETALL', 'parcours:opps:items']), redis(u, ['GET', 'parcours:opps:meta'])]);
     const arr = (flat && flat.result) || [];
     let items = [];
