@@ -14,11 +14,11 @@
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Parcours">
-<meta name="theme-color" content="#f3f5fa" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0a1022" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 /* Visual language after Notion's workspace (awesome-design-md/notion): warm neutrals, flat pages,
    pastel property tags, one blue accent. Shape rule: controls 6px, cards and panels 10px, tags 4px. */
@@ -773,6 +773,102 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
   .empty{padding:22px 18px}
 }
 @media(max-width:420px){.grid{grid-template-columns:1fr}}
+
+/* ---------- clean look: white page, floating top bar, flat bordered cards (last, so it wins) ---------- */
+:root{--canvas:#ffffff;--bg:#ffffff;--surface:#ffffff;--surface-2:#fafafa;--soft:#f4f4f5;--side-h:#f4f4f5;
+  --ink:#262626;--ink-strong:#171717;--muted:#525252;--faint:#a3a3a3;
+  --line:#e5e5e5;--line-2:#f0f0f0;--line-strong:#d4d4d4;--ring:#3457e6;
+  --blue:#3457e6;--blue-h:#2a47c4;--blue-t:#eef2ff;--blue-ink:#2c48c9;--grad:linear-gradient(90deg,#3457e6 0%,#6d4cf0 100%);
+  --tag:#f4f4f5;--tag-ink:#3f3f46;--card-sh:none;--card-sh-h:0 10px 28px -16px rgba(0,0,0,.18);
+  --display:'Plus Jakarta Sans','Twemoji Country Flags',Inter,ui-sans-serif,system-ui,sans-serif;
+  --body:'Inter','Twemoji Country Flags',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif}
+:root[data-theme="dark"]{color-scheme:dark;--canvas:#0a0a0a;--bg:#0a0a0a;--surface:#141414;--surface-2:#191919;--soft:#202020;--side-h:#202020;
+  --ink:#e5e5e5;--ink-strong:#fafafa;--muted:#a3a3a3;--faint:#737373;
+  --line:#262626;--line-2:#1f1f1f;--line-strong:#333333;--ring:#7b93ff;
+  --blue:#6f87ff;--blue-h:#8a9dff;--blue-t:#1a1f3d;--blue-ink:#b7c3ff;--grad:linear-gradient(90deg,#4a67f0 0%,#7d5cf5 100%);
+  --tag:#202020;--tag-ink:#e5e5e5;--card-sh:none;--card-sh-h:0 0 0 1px #333}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--canvas:#0a0a0a;--bg:#0a0a0a;--surface:#141414;--surface-2:#191919;--soft:#202020;--side-h:#202020;
+  --ink:#e5e5e5;--ink-strong:#fafafa;--muted:#a3a3a3;--faint:#737373;
+  --line:#262626;--line-2:#1f1f1f;--line-strong:#333333;--ring:#7b93ff;
+  --blue:#6f87ff;--blue-h:#8a9dff;--blue-t:#1a1f3d;--blue-ink:#b7c3ff;--grad:linear-gradient(90deg,#4a67f0 0%,#7d5cf5 100%);
+  --tag:#202020;--tag-ink:#e5e5e5;--card-sh:none;--card-sh-h:0 0 0 1px #333}}
+body{background:var(--bg);font-family:var(--body);font-weight:400;color:var(--ink)}
+h1{font-family:var(--display);font-weight:800;font-size:46px;line-height:1.08;letter-spacing:-.035em;color:var(--ink-strong);max-width:24ch}
+h2,h2.sec{font-family:var(--display);font-weight:700;letter-spacing:-.02em}
+h2.sec{font-size:24px;margin:40px 0 14px}
+.kicker{font-weight:600;color:var(--muted)}
+.sub{font-size:16.5px;line-height:1.6;color:var(--muted)}
+/* surfaces */
+.panel,.stat,.stat:first-child,.card,.offers,.plist,.kcol{background:var(--surface);border:1px solid var(--line);box-shadow:none}
+.panel{border-radius:14px;padding:22px 24px}
+.stat,.stat:first-child{border-radius:14px}
+.stat span{font-weight:600;color:var(--muted)}
+.stat b{font-family:var(--display);font-weight:800;letter-spacing:-.03em}
+.card{border-radius:14px}
+.card:hover{box-shadow:var(--card-sh-h);border-color:var(--line-strong);transform:none}
+.card .big{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.015em}
+.card.dom{background:var(--surface)}
+/* lists as tables */
+.offers{border-radius:14px;overflow:hidden}
+.offers .thead{text-transform:uppercase;font-size:11.5px;font-weight:600;letter-spacing:.06em;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--line)}
+.offer{border-bottom:1px solid var(--line)}
+.offer:hover{background:var(--surface-2)}
+.offer h3{font-weight:600;font-size:15px;color:var(--ink-strong)}
+.offers.compact{border:0;border-radius:0}
+/* buttons and fields */
+.btn{border-radius:8px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink-strong);box-shadow:none}
+.btn:hover{background:var(--surface-2);border-color:var(--line-strong)}
+.btn.primary,.oa .btn.primary{background:var(--grad);color:#fff;border:0;border-radius:999px;box-shadow:0 8px 20px -10px rgba(52,87,230,.65)}
+.btn.primary:hover{filter:brightness(1.06);background:var(--grad)}
+.btn.sm{border-radius:8px}
+.oa .btn.primary{border-radius:8px;box-shadow:none}
+input:not([type=checkbox]):not([type=radio]),select,textarea{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);box-shadow:none}
+input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px solid color-mix(in srgb,var(--ring) 18%,transparent);outline-offset:0}
+.xp,.chip{border-radius:6px;background:var(--tag);color:var(--tag-ink);font-weight:600}
+.seg{background:var(--soft);border:1px solid var(--line);border-radius:10px;box-shadow:none}
+.seg button{border-radius:7px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink-strong);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+/* section tabs, like the top bar */
+.subnav a{font-weight:500;color:var(--ink)}
+.subnav a:hover{background:var(--soft)}
+.subnav a[aria-current="page"]{background:var(--blue-t);color:var(--blue-ink)}
+/* Home hero */
+#weekBox .stat:first-child{background:var(--grad);border:0;box-shadow:0 18px 40px -22px rgba(52,87,230,.7)}
+#weekBox .stat:first-child b{font-family:var(--display)}
+#weekBox .stat:first-child .hero-cta{background:#fff;color:#2c48c9}
+.demo{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);box-shadow:none}
+.kcol{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;box-shadow:none}
+.kcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:none}
+.kcard:hover{border-color:var(--line-strong);box-shadow:var(--card-sh-h)}
+.drawer{border-left:1px solid var(--line);box-shadow:0 0 40px -10px rgba(0,0,0,.25)}
+/* floating top bar on wide screens */
+@media(min-width:901px){
+  .shell{display:block}
+  .side{position:sticky;top:14px;z-index:30;height:auto;max-width:1280px;margin:14px auto 0;padding:8px 10px 8px 18px;flex-direction:row;align-items:center;gap:8px;
+    background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:999px;box-shadow:0 6px 24px -14px rgba(0,0,0,.18);overflow:visible}
+  .brand,.brand:hover{width:auto;height:auto;margin:0;gap:10px;box-shadow:none;transform:none;background:transparent}
+  .brand .logo-mark{width:34px;height:34px;border-radius:9px}
+  .brand span{display:inline;font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.03em;color:var(--ink-strong)}
+  .brand small{display:none}
+  .tabs{flex-direction:row;gap:4px;margin:0 auto}
+  .tabs a,:root[data-theme="dark"] .tabs a{flex-direction:row;width:auto;height:38px;padding:0 16px;border-radius:999px;font-size:14.5px;font-weight:500;color:var(--ink);gap:0}
+  .tabs a svg{display:none}
+  .tabs a:hover{background:var(--soft);color:var(--ink-strong)}
+  .tabs a[aria-current="page"]{background:var(--blue-t);color:var(--blue-ink);box-shadow:none}
+  .side-foot{display:flex;flex-direction:row;align-items:center;gap:10px;padding:0;margin:0}
+  .side-foot .iconbtn{width:38px;height:38px;border:1px solid var(--line);background:var(--surface);flex:0 0 auto}
+  .side .syncl{font-size:12.5px;white-space:nowrap}
+  .topbar{display:none}
+  .main{max-width:1280px;margin:0 auto}
+  .wrap{padding:44px 0 60px;max-width:1280px}
+}
+@media(max-width:900px){
+  h1,#view>h1{font-size:34px}
+  .topbar{background:color-mix(in srgb,var(--bg) 92%,transparent);box-shadow:0 1px 0 var(--line)}
+  .bottombar{background:color-mix(in srgb,var(--bg) 94%,transparent);box-shadow:0 -1px 0 var(--line)}
+  .bottombar [aria-current="page"]{color:var(--blue-ink)}
+  .side-foot [data-act="theme"]{display:none}
+}
 </style>
 </head>
 <body>
@@ -787,7 +883,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
     <a href="#/notes" data-t="notes"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>Notes</a>
     <a href="#/profile" data-t="profile"><svg class="ic" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></svg>Profile</a>
   </nav>
-  <div class="side-foot"><span class="syncl" id="sync"></span></div>
+  <div class="side-foot"><span class="syncl" id="sync"></span><button class="iconbtn" type="button" data-act="theme" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button></div>
 </aside>
 <div class="main">
 <header class="topbar"><a class="tb-logo" href="#/" aria-label="Parcours home"><img src="/logo-96.png" width="30" height="30" alt="" style="display:block;border-radius:8px"></a><div class="where"><span class="tb-app">Parcours</span><span class="tb-app">/</span><b id="topSec">Overview</b></div><span class="sp"></span>
@@ -3240,6 +3336,8 @@ async function boot(){
   if(caps.sync)await pull();else setSync('local');
 }
 $('#loginGo').addEventListener('click',()=>{const v=$('#loginPw').value;if(!v)return;try{localStorage.setItem(PWKEY,v);}catch(e){}$('#loginPw').value='';$('#loginDlg').close();boot();});
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-act="theme"]'))$('#themeBtn').click();});
+document.querySelectorAll('.side-foot [data-act="theme"]').forEach(b=>{b.innerHTML=$('#themeBtn').innerHTML;});
 $('#loginPw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginGo').click();});
 $('#exp').addEventListener('click',()=>downloads.save({filename:'parcours-backup.json',data:JSON.stringify(state,null,2)}));
 $('#bkFile').addEventListener('change',async e=>{
