@@ -913,6 +913,29 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 @media(min-width:901px){.goalbar-top{top:86px}}
 @media(max-width:900px){.gbt-line .btn:not(.primary){display:none}.gbt-line{flex-wrap:nowrap}.gbt-line .btn.primary{margin-left:auto}.goalbar-top{top:52px;margin:0 -16px 14px;border-radius:0;border-width:0 0 1px}.gbt-line em{display:none}.gbt-track{margin:10px -14px 0;border-radius:0}.toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
 .qtodo{margin:6px 0 0;font-size:13px;font-weight:600;color:var(--red-ink)}.qtodo:empty{display:none}
+
+/* profile layout */
+.pf-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:24px;align-items:start}
+.pf-side{position:sticky;top:96px;display:flex;flex-direction:column;gap:14px}
+.pf-grid>*{min-width:0}.pf-card{min-width:0;overflow-wrap:anywhere}.pf-facts{max-width:100%}.pf-strength .row{flex-wrap:nowrap}
+.pf-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:0}
+.pf-avatar{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--grad,var(--blue));color:#fff;font-family:var(--display);font-weight:800;font-size:22px;margin-bottom:8px}
+.pf-name{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--ink-strong)}
+.pf-head{color:var(--muted);font-size:14px}
+.pf-facts{display:flex;flex-direction:column;gap:4px;margin:12px 0 4px;font-size:13.5px;color:var(--ink)}
+.pf-strength{width:100%;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.pf-miss{display:block;width:100%;text-align:left;border:0;background:none;padding:4px 0;font-size:13.5px;color:var(--blue-ink);cursor:pointer}
+.pf-miss:hover{text-decoration:underline}
+.pf-nav{display:flex;flex-direction:column;gap:2px;padding:8px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.pf-nav button{text-align:left;border:0;background:none;padding:9px 12px;border-radius:9px;font-size:14px;font-weight:500;color:var(--ink);cursor:pointer}
+.pf-nav button:hover{background:var(--soft);color:var(--ink-strong)}
+.pf-main>.panel,.pf-main .panel{scroll-margin-top:100px}
+.pf-two{grid-template-columns:1fr}
+@media(min-width:1400px){.pf-two{grid-template-columns:1fr 1fr}}
+.pf-flash{box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 35%,transparent)!important;transition:box-shadow .3s}
+@media(max-width:900px){.pf-grid{grid-template-columns:1fr;gap:14px}.pf-side{position:static}
+  .pf-nav{flex-direction:row;overflow-x:auto;scrollbar-width:none;padding:6px}.pf-nav button{flex:0 0 auto;white-space:nowrap}
+  .pf-main>.panel,.pf-main .panel{scroll-margin-top:70px}}
 </style>
 </head>
 <body>
@@ -2565,24 +2588,44 @@ async function fileText(f){
 }
 function setProfile(patch){state.profile=Object.assign(prof(),patch);save();}
 const listVal=v=>String(v||'').split(/[,;\n]/).map(s=>s.trim()).filter(Boolean);
+// How complete the profile is, and what is missing (each item jumps to its section).
+function profStrength(p){
+  const checks=[[!!String(p.cv||'').trim(),'Add your CV','pf-cv'],[(p.skills||[]).length>=5,'Pick at least 5 skills','pf-skills'],[(p.roles||[]).length>0,'Add the roles you target','pf-bg'],
+    [+(p.degree||{}).level>0,'Set your highest degree','pf-bg'],[!!(p.degree||{}).year,'Set your graduation year','pf-bg'],[Object.values(p.languages||{}).some(Boolean),'Set your languages','pf-bg'],
+    [(p.countries||[]).length>0,'Order your countries','pf-where'],[!!(state.goal&&state.goal.daily),'Set a daily goal','pf-goal']];
+  return {pct:Math.round(checks.filter(c=>c[0]).length/checks.length*100),missing:checks.filter(c=>!c[0])};
+}
 function profilePage(){
   const p=prof(),names=SC?SC.SKILL_NAMES:[],fam=SC?SC.FAMILY:{};
   const groups={};names.forEach(n=>{(groups[fam[n]]=groups[fam[n]]||[]).push(n);});
+  const nm=cvName()||'Your name',ini=nm.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(),st=profStrength(p);
+  const DEG=['','Two-year degree',"Bachelor's","Master's or engineering degree",'PhD'][+(p.degree||{}).level||0];
+  const SECTIONS=[['pf-cv','CV'],['pf-skills','Skills'],['pf-bg','Background'],['pf-where','Where'],['pf-goal','Daily goal'],['pf-notif','Notifications']];
   $('#view').innerHTML=`<h1>Profile</h1><p class="sub">The match score compares every offer with this. It stays in your data and syncs with your other devices.</p>
-  <div class="panel"><h2>Your CV</h2><p class="hint">Paste your CV or upload it as PDF or text, then read it. Everything below is filled from it and stays editable.</p>
+  <div class="pf-grid"><aside class="pf-side">
+    <div class="panel pf-card"><div class="pf-avatar" aria-hidden="true">${esc(ini||'?')}</div>
+      <b class="pf-name">${esc(nm)}</b><span class="pf-head">${esc((p.roles||[])[0]||'Add the roles you target')}</span>
+      <div class="pf-facts">${DEG?`<span>🎓 ${esc(DEG)}${p.degree.field?' · '+esc(p.degree.field):''}${p.degree.year?' · '+esc(p.degree.year):''}</span>`:''}
+        <span>${(p.countries||[]).map(id=>(cById(id)||{}).flag||'').join(' ')}</span><span><b>${(p.skills||[]).length}</b> skills · goal <b>${goalTarget()}</b>/day</span></div>
+      <div class="pf-strength"><div class="row" style="justify-content:space-between"><span class="lab" style="margin:0">Profile strength</span><b>${st.pct}%</b></div>
+        <div class="goalbar" style="margin:8px 0 10px"><i style="width:${st.pct}%"></i></div>
+        ${st.missing.length?st.missing.map(([,l,id])=>`<button type="button" class="pf-miss" data-jump="${id}">○ ${esc(l)}</button>`).join(''):'<p class="hint" style="margin:0">Complete. Matches use everything.</p>'}</div></div>
+    <nav class="pf-nav" aria-label="Profile sections">${SECTIONS.map(([id,l])=>`<button type="button" data-jump="${id}">${l}</button>`).join('')}</nav>
+  </aside><div class="pf-main">
+  <div class="panel" id="pf-cv"><h2>Your CV</h2><p class="hint">Paste your CV or upload it as PDF or text, then read it. Everything below is filled from it and stays editable.</p>
     <textarea id="pfCv" aria-label="Your CV text" rows="8" placeholder="Paste your CV here…">${esc(p.cv)}</textarea>
     <div class="row" style="margin-top:10px"><label class="btn" for="pfFile" style="cursor:pointer">Upload PDF or text</label><input type="file" id="pfFile" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden>
     <button class="btn primary" id="pfRead">Read everything from CV</button></div>
     <div id="pfMsg" class="found" aria-live="polite"></div>
     <div id="pfAts"></div></div>
-  <div class="panel"><h2>Skills</h2><p class="hint">${p.skills.length} selected. Offers asking for a skill in the same family as yours get half credit.</p>
+  <div class="panel" id="pf-skills"><h2>Skills</h2><p class="hint">${p.skills.length} selected. Offers asking for a skill in the same family as yours get half credit.</p>
     ${p.skills.length?`<div class="skills" style="margin:4px 0 12px">${p.skills.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="true">${esc(n)}</button>`).join('')}</div>`:''}
     <details class="skfold" ${p.skills.length?'':'open'}><summary>${p.skills.length?'Add or remove skills':'Pick your skills'} · ${Object.keys(groups).length} families</summary>
     <div class="fams">${Object.entries(groups).map(([f,l])=>`<div class="fam"><span class="lab">${esc(FAMILY_LABEL[f]||f)}</span><div class="skills">${l.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="${p.skills.includes(n)}">${esc(n)}</button>`).join('')}</div></div>`).join('')}</div></details>
     <label class="lab" for="pfExtra" style="margin-top:16px">Other terms from your CV <span class="hint" style="font-weight:400">(matched word for word in offers, comma separated)</span></label>
     <textarea id="pfExtra" rows="2">${esc(p.extra.join(', '))}</textarea></div>
-  <div class="two">
-    <div class="panel"><h2>Background</h2>
+  <div class="two pf-two">
+    <div class="panel" id="pf-bg"><h2>Background</h2>
       <label class="lab" for="pfRoles">Roles you held or target <span class="hint" style="font-weight:400">(comma separated)</span></label><textarea id="pfRoles" rows="2">${esc(p.roles.join(', '))}</textarea>
       <div class="g3" style="margin-top:12px">
         <div><label class="lab" for="pfYears">Years of experience</label><input type="number" id="pfYears" min="0" max="40" step="0.5" value="${esc(p.years??0)}"></div>
@@ -2590,7 +2633,7 @@ function profilePage(){
         <div><label class="lab" for="pfDegY">Graduation year</label><input type="number" id="pfDegY" min="1990" max="2040" value="${esc(p.degree.year||'')}"></div></div>
       <label class="lab" for="pfDegF" style="margin-top:12px">Field of study</label><input type="text" id="pfDegF" value="${esc(p.degree.field||'')}">
       <div class="g4" style="margin-top:12px">${LANG_NAMES.map(([k,l])=>`<div><label class="lab" for="pfL${k}">${l}</label><select id="pfL${k}" data-lang="${k}">${LEVELS.map(v=>`<option value="${v}" ${p.languages[k]===v?'selected':''}>${v||'None'}</option>`).join('')}</select></div>`).join('')}</div></div>
-    <div class="panel"><h2>Where, in order</h2><p class="hint">Your first country scores highest. Tick where you need a visa or work permit.</p>
+    <div class="panel" id="pf-where"><h2>Where, in order</h2><p class="hint">Your first country scores highest. Tick where you need a visa or work permit.</p>
       <ol class="order" id="pfOrder">${p.countries.map((id,i)=>{const c=cById(id);return c?`<li><span>${c.flag} ${esc(c.name)}</span><label class="sc"><input type="checkbox" data-visa="${id}" ${p.visa[id]?'checked':''}> Visa</label><span class="row"><button class="btn sm" data-up="${i}" ${i?'':'disabled'} aria-label="Move ${esc(c.name)} up">↑</button><button class="btn sm" data-down="${i}" ${i<p.countries.length-1?'':'disabled'} aria-label="Move ${esc(c.name)} down">↓</button></span></li>`:'';}).join('')}</ol>
       <label class="lab" for="pfIntern" style="margin-top:14px">Internships and work-study</label><select id="pfIntern"><option value="auto" ${(p.internships||'auto')==='auto'?'selected':''}>Only until I graduate (${p.degree.year||'set your graduation year'})</option><option value="yes" ${p.internships==='yes'?'selected':''}>I can still take them</option><option value="no" ${p.internships==='no'?'selected':''}>Not interested</option></select>
       <label class="lab" for="pfRemote" style="margin-top:14px">Remote work</label><select id="pfRemote"><option value="yes" ${p.remote==='yes'?'selected':''}>I want remote</option><option value="ok" ${p.remote==='ok'?'selected':''}>Either is fine</option><option value="no" ${p.remote==='no'?'selected':''}>I prefer on-site</option></select>
@@ -2598,8 +2641,13 @@ function profilePage(){
       <input type="text" id="pfExcl" placeholder="e.g. senior, lead, commercial, SAP…" value="${esc(p.exclude.join(', '))}">
       <p class="hint" style="margin:6px 0 0">The collector also skips these on its next run.</p></div>
   </div>
-  <div class="panel"><h2>Notifications</h2><p class="hint">Get a notification on this phone or computer when strong new matches arrive, and a short summary every Monday.</p><div id="pushBox"><p class="hint">Checking…</p></div></div>`;
+  <div class="panel" id="pf-goal"><h2>Daily goal and reminders</h2><p class="hint">Applications (jobs, PhDs, master's) and contacts you send each day. Reminders arrive every two hours from 9:00 to 21:00 until you reach it, on the devices where notifications are on.</p>
+    <div class="row"><label class="lab" for="pfGoal" style="margin:0">Daily target</label><input type="number" id="pfGoal" min="1" max="500" value="${goalTarget()}" style="width:96px"><span class="hint" style="margin:0">Today: ${dayCounts(today()).total} sent · best streak keeps growing on Home.</span></div></div>
+  <div class="panel" id="pf-notif"><h2>Notifications</h2><p class="hint">Strong new matches, the Monday summary and your daily goal reminders, on this phone or computer.</p><div id="pushBox"><p class="hint">Checking…</p></div></div>
+  </div></div>`;
   renderPush();
+  $('#view').querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>{const t=document.getElementById(b.dataset.jump);if(t){t.scrollIntoView({behavior:'smooth',block:'start'});t.classList.add('pf-flash');setTimeout(()=>t.classList.remove('pf-flash'),1200);}}));
+  $('#pfGoal').addEventListener('change',e=>{const v=Math.round(+e.target.value);if(v>=1&&v<=500){state.goal={daily:v};save();}});
   const msg=$('#pfMsg');
   const readCv=()=>{const t=$('#pfCv').value;if(!SC||!t.trim()){msg.textContent='Paste or upload your CV first.';return;}
     const r=SC.parseCv(t);
