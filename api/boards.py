@@ -41,7 +41,8 @@ REMOTE = re.compile(r"remote|télétravail|teletravail|homeoffice|home office", 
 
 # Collector scrapers the Search page can run live: plain HTTP ones only (the browser-based and home-IP ones cannot run here).
 LIVE_SCRAPERS = {"HelloWork", "jobs.ch", "Job Bank", "Keejob", "Farojob", "jobs.ac.uk", "CNRS", "Inria", "Max Planck", "ELLIS",
-                 "jobRxiv", "Himalayas", "Jobicy", "Working Nomads", "We Work Remotely", "LinkedIn posts"}
+                 "jobRxiv", "Himalayas", "Jobicy", "Working Nomads", "We Work Remotely", "LinkedIn posts", "Company boards",
+                 "HN Who is hiring", "Free-Work", "Berlin Startup Jobs", "Remote First Jobs", "ETH Zurich", "academics.de"}
 STOP = {"and", "or", "the", "of", "in", "for", "de", "des", "du", "la", "le", "les", "et", "en", "a", "an", "job", "jobs", "offre", "poste"}
 
 

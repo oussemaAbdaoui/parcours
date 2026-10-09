@@ -2,7 +2,7 @@ name: Collect opportunities
 
 on:
   schedule:
-    - cron: "17 */6 * * *" # every 6 hours
+    - cron: "17 */3 * * *" # every 3 hours
   workflow_dispatch:
     inputs:
       dry_run:

@@ -54,7 +54,16 @@ class Store:
             sys.exit("Missing UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN (or use --dry-run).")
 
     def cmd(self, *args):
-        r = requests.post(self.url, headers={"Authorization": "Bearer " + self.token}, json=list(args), timeout=30)
+        # The home connection drops now and then (DNS failures): retry for about 5 minutes before giving up,
+        # so a long scraping run is not lost at the save.
+        for attempt in range(8):
+            try:
+                r = requests.post(self.url, headers={"Authorization": "Bearer " + self.token}, json=list(args), timeout=30)
+                break
+            except requests.ConnectionError:
+                if attempt == 7:
+                    raise
+                time.sleep(min(10 * 2 ** attempt, 60))
         r.raise_for_status()
         return r.json().get("result")
 
@@ -320,7 +329,8 @@ def main():
     searches = [s for s in state.get("searches", []) if s.get("search")] or profile_searches(state)
     pwords, exclude = profile_terms(state)
     if home:
-        keywords = list(dict.fromkeys([s["search"] for s in searches if s.get("c") == "tn"] + HOME_KEYWORDS))[:4]
+        # Your Tunisia searches plus the French defaults: Tanitjobs offers are mostly in French.
+        keywords = list(dict.fromkeys([s["search"] for s in searches if s.get("c") == "tn"][:4] + HOME_KEYWORDS))
     else:
         keywords = list(dict.fromkeys([s["search"] for s in searches] + DEFAULT_KEYWORDS))[:6]
     print(f"{origin} run, {len(searches)} searches, keywords: {keywords}, profile terms: {len(pwords)}, exclusions: {exclude}")

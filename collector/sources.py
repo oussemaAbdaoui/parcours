@@ -345,23 +345,17 @@ def cnrs(keywords):
 
 
 def max_planck(keywords):
-    """Max Planck Society job board (Germany): PhD, postdoc and research positions across institutes."""
+    """Max Planck Society job board (Germany): PhD, postdoc and research positions across institutes, from its
+    official RSS feed (the job board page itself only shows a few teasers)."""
     out = []
-    page = _get("https://www.mpg.de/stellenboerse")
-    for li in page.css("li.teaser"):
-        a = li.css("h3 a")
-        href = a[0].attrib.get("href", "") if a else ""
-        if "/job-" not in href:
-            continue
-        box = li.css(".text-box")
-        texts = [_t(x) for x in (box[0].css("div::text").getall() if box else []) if _t(x)]
-        inst = texts[-1] if texts else ""
-        title = _t(a[0].get_all_text())
+    for item in _rss_items("https://www.mpg.de/feeds/stellenangebote.rss"):
+        title, link, desc = _rss_field(item, "title"), _rss_field(item, "link"), _rss_field(item, "description")
+        inst = re.match(r"(?:Das|Die|Der)\s+(.+?)\s+(?:in|sucht|bietet)\s", desc)
+        city = re.search(r"\bin ([A-ZÄÖÜ][\wäöüß.-]+(?: [A-ZÄÖÜ][\wäöüß.-]+)?)", desc)
         out.append({
-            "id": "mpg:" + href.split("job-")[-1], "title": title, "org": inst.split(",")[0],
-            "location": inst.split(",")[-1].strip() if "," in inst else "", "c": "de",
-            "kind": "phd" if is_phd(title) else "job", "source": "Max Planck",
-            "url": page.urljoin(href), "posted": _long_date(li.css(".date::text").get()), "deadline": "", "desc": "",
+            "id": "mpg:" + link.rstrip("/").split("/")[-2], "title": title, "org": inst.group(1) if inst else "Max Planck Society",
+            "location": city.group(1) if city else "Germany", "c": "de", "kind": "phd" if is_phd(title) else "job",
+            "source": "Max Planck", "url": link, "posted": _rss_date(item), "deadline": "", "desc": desc[:600],
         })
     return out
 
@@ -446,6 +440,19 @@ def working_nomads(keywords):
 def _rss_field(item, tag):
     m = re.search(rf"<{tag}>(.*?)</{tag}>", item, re.S)
     return _t(re.sub(r"<!\[CDATA\[|\]\]>", "", m.group(1))) if m else ""
+
+
+def _rss_items(url):
+    page = _get(url)
+    xml = page.body.decode("utf8", "replace") if isinstance(page.body, bytes) else str(page.body)
+    return re.findall(r"<item>(.*?)</item>", xml, re.S)
+
+
+def _rss_date(item):
+    try:
+        return datetime.strptime(_rss_field(item, "pubDate")[:25].strip(), "%a, %d %b %Y %H:%M:%S").date().isoformat()
+    except ValueError:
+        return ""
 
 
 def we_work_remotely(keywords):
@@ -553,10 +560,241 @@ def poli(keywords):
     return out
 
 
+# Places in your countries, for sources that list jobs worldwide (company boards, Hacker News): an offer is kept
+# only if it is in one of them, or remote without being tied to another country.
+PLACES = {
+    "fr": ("france", "paris", "lyon", "toulouse", "nantes", "bordeaux", "lille", "marseille", "montpellier", "grenoble",
+           "rennes", "sophia antipolis", "nice", "strasbourg"),
+    "de": ("germany", "deutschland", "berlin", "munich", "münchen", "hamburg", "frankfurt", "cologne", "köln", "stuttgart",
+           "heidelberg", "freiburg", "leonberg", "karlsruhe", "dresden", "leipzig", "düsseldorf", "tübingen", "darmstadt"),
+    "ch": ("switzerland", "schweiz", "suisse", "zurich", "zürich", "geneva", "genève", "lausanne", "basel", "bern"),
+    "ca": ("canada", "toronto", "montreal", "montréal", "vancouver", "ottawa", "québec", "quebec", "calgary", "waterloo", "ontario"),
+    "tn": ("tunisia", "tunisie", "tunis", "sfax", "sousse"),
+}
+_REMOTE = re.compile(r"\b(remote|anywhere|worldwide|global|télétravail)\b", re.I)
+_ELSEWHERE = re.compile(r"\b(us|usa|u\.s\.|united states|uk|united kingdom|london|india|brazil|latam|apac|asia|australia|"
+                        r"singapore|japan|new york|san francisco|americas?|seattle|austin|boston|chicago|belgium|spain|"
+                        r"barcelona|madrid|netherlands|amsterdam|italy|portugal|lisbon|poland|warsaw|ireland|dublin|"
+                        r"sweden|denmark|austria|vienna|bulgaria|israel|mexico|argentina|colombia|china|korea|dubai|uae|"
+                        r"nyc|bay area|sf)\b", re.I)
+# Roles worth showing from sources that list every job a company has (sales, legal, HR... are left out).
+TECH_TITLE = re.compile(r"engineer|developer|scientist|research|machine learning|\bml\b|\bai\b|\bia\b|\bllm|data|software|"
+                        r"devops|\bsre\b|architect|ingénieur|développeur|entwickler|informatik|ph\.?d|doctor|intern|stagiaire|"
+                        r"werkstudent|backend|frontend|full.?stack|platform|infrastructure|security|mlops|nlp|vision", re.I)
+
+
+def _where(text):
+    """'Paris, France' -> 'fr'; 'Remote (EMEA)' -> 'gl'; 'New York' or 'US - Remote' -> None (not one of your places)."""
+    low = (text or "").lower()
+    for c, words in PLACES.items():
+        if any(re.search(r"(?<![a-zà-ÿ])" + re.escape(w) + r"(?![a-zà-ÿ])", low) for w in words):
+            return c
+    return "gl" if _REMOTE.search(low) and not _ELSEWHERE.search(low) else None
+
+
+# Company career boards on Greenhouse, Lever, Ashby and Workable: their public job-board APIs, made for career sites
+# to embed. AI and tech employers hiring in France, Germany, Switzerland, Canada or remotely; add a board by its
+# name in the board URL (boards.greenhouse.io/<name>, jobs.lever.co/<name>, jobs.ashbyhq.com/<name>).
+COMPANY_BOARDS = {
+    "greenhouse": ["anthropic", "helsing", "dataiku", "doctolib", "datadog", "mirakl", "celonis", "algolia", "getyourguide",
+                   "n26", "sumup", "parloa", "proton", "dialpad"],
+    "lever": ["contentsquare", "blablacar", "qonto", "pigment", "swile", "sonarsource", "waabi"],
+    "ashby": ["cohere", "deepl", "alephalpha", "photoroom", "alan", "owkin", "backmarket", "poolside", "n8n", "wealthsimple",
+              "openai", "dust", "nabla", "ledger", "sorare", "langdock", "black-forest-labs", "elevenlabs", "synthesia",
+              "wayve", "hopper"],
+    "workable": ["huggingface"],
+}
+
+
+def _board(ats, name):
+    """One company's open jobs as (title, org, location text, url, posted, desc)."""
+    if ats == "greenhouse":
+        r = requests.get(f"https://boards-api.greenhouse.io/v1/boards/{name}/jobs", timeout=30).json()
+        return [(j["title"], j.get("company_name") or name, (j.get("location") or {}).get("name", ""), j["absolute_url"],
+                 (j.get("first_published") or j.get("updated_at") or "")[:10], "") for j in r.get("jobs", [])]
+    if ats == "lever":
+        r = requests.get(f"https://api.lever.co/v0/postings/{name}?mode=json", timeout=30).json()
+        return [(j["text"], name.title(), " / ".join((j.get("categories") or {}).get("allLocations") or [(j.get("categories") or {}).get("location", "")])
+                 + (" remote" if j.get("workplaceType") == "remote" else ""), j["hostedUrl"],
+                 datetime.fromtimestamp(j["createdAt"] / 1000, timezone.utc).date().isoformat() if j.get("createdAt") else "",
+                 j.get("descriptionPlain") or "") for j in r if isinstance(j, dict)]
+    if ats == "ashby":
+        r = requests.get(f"https://api.ashbyhq.com/posting-api/job-board/{name}", timeout=30).json()
+        return [(j["title"], name.replace("-", " ").title(),
+                 " / ".join([j.get("location") or ""] + [s.get("location", "") for s in j.get("secondaryLocations") or []])
+                 + (" remote" if j.get("isRemote") and not j.get("secondaryLocations") else ""),
+                 j["jobUrl"], (j.get("publishedAt") or "")[:10], j.get("descriptionPlain") or "")
+                for j in r.get("jobs", []) if j.get("isListed", True)]
+    r = requests.get(f"https://apply.workable.com/api/v1/widget/accounts/{name}", timeout=30).json()
+    return [(j["title"], r.get("name") or name, f'{j.get("city", "")} {j.get("country", "")}' + (" remote" if j.get("telecommuting") else ""),
+             j.get("url") or j.get("application_url", ""), j.get("published_on", ""), "") for j in r.get("jobs", [])]
+
+
+def company_boards(keywords):
+    """Open jobs at the companies in COMPANY_BOARDS, kept when they are in your countries or remote."""
+    from concurrent.futures import ThreadPoolExecutor
+    tasks = [(ats, name) for ats, names in COMPANY_BOARDS.items() for name in names]
+
+    def one(t):
+        try:
+            return t, _board(*t), None
+        except Exception as e:
+            return t, [], e
+    out, failed = [], []
+    with ThreadPoolExecutor(8) as pool:
+        for (ats, name), jobs, err in pool.map(one, tasks):
+            if err:
+                failed.append(name)
+            for title, org, loc, url, posted, desc in jobs:
+                c = _where(loc)
+                if c and url and TECH_TITLE.search(title):
+                    out.append({"id": f"{ats}:{name}:{url.rstrip('/').split('/')[-1]}", "title": _t(title), "org": org,
+                                "location": _t(loc.replace(" remote", " (remote)")) or "Remote", "c": c,
+                                "kind": "phd" if is_phd(title) else "job", "source": "Company boards", "url": url,
+                                "posted": posted, "deadline": "", "desc": _t(desc)[:600]})
+    if failed and len(failed) == len(tasks):
+        raise RuntimeError("no company board answered")
+    return out
+
+
+def hn_hiring(keywords):
+    """Hacker News "Ask HN: Who is hiring?", the monthly thread (through the official Algolia HN API): each top-level
+    comment is one company, "Company | Role | Place | ...". Kept when the place is one of yours or remote."""
+    from html import unescape
+    hits = requests.get("https://hn.algolia.com/api/v1/search_by_date?tags=story,author_whoishiring&hitsPerPage=6", timeout=30).json()["hits"]
+    story = next((h for h in hits if "who is hiring" in h["title"].lower()), None)
+    if not story:
+        return []
+    thread = requests.get(f"https://hn.algolia.com/api/v1/items/{story['objectID']}", timeout=60).json()
+    out = []
+    for c in thread.get("children") or []:
+        text = unescape(c.get("text") or "")
+        head = _strip_html(text.split("<p>")[0])
+        parts = [p.strip() for p in re.split(r"\s+[|•–-]\s+", head) if p.strip()]
+        where = _where(head)
+        if len(parts) < 2 or not where:
+            continue
+        role = next((p for p in parts[1:] if re.search(r"engineer|developer|scientist|research|ml|ai\b|data|software|founding", p, re.I)), parts[1])
+        out.append({
+            "id": f"hn:{c['id']}", "title": role[:140], "org": parts[0][:80], "location": next((p for p in parts if _where(p)), where.upper()),
+            "c": where, "kind": "job", "source": "HN Who is hiring", "url": f"https://news.ycombinator.com/item?id={c['id']}",
+            "posted": (c.get("created_at") or "")[:10], "deadline": "", "desc": _strip_html(text)[:600],
+        })
+    return out
+
+
+FREEWORK_COUNTRIES = {"FR": "fr", "DE": "de", "CH": "ch", "CA": "ca", "TN": "tn"}
+
+
+def free_work(keywords):
+    """Free-Work, French IT job board (permanent jobs and freelance missions), through the JSON API its site uses."""
+    out, seen = [], set()
+    for kw in keywords[:3]:
+        resp = requests.get("https://www.free-work.com/api/job_postings?itemsPerPage=40&searchKeywords=" + requests.utils.quote(kw),
+                            headers={"Accept": "application/ld+json"}, timeout=30)
+        resp.raise_for_status()
+        time.sleep(UA_PAUSE)
+        for m in resp.json().get("hydra:member", []):
+            loc = m.get("location") or {}
+            c = FREEWORK_COUNTRIES.get(loc.get("countryCode") or "") or ("gl" if m.get("remoteMode") == "full" else None)
+            if not c or m["id"] in seen:
+                continue
+            seen.add(m["id"])
+            contracts = {"permanent": "CDI", "fixed-term": "CDD", "contractor": "Freelance", "internship": "Stage",
+                         "apprenticeship": "Alternance"}
+            out.append({
+                "id": f"freework:{m['id']}", "title": _t(m.get("title")), "org": (m.get("company") or {}).get("name", ""),
+                "location": loc.get("label") or "France", "c": c, "kind": "job", "source": "Free-Work",
+                "url": f"https://www.free-work.com/fr/tech-it/job-mission/{(m.get('job') or {}).get('slug', 'job')}/{m['slug']}",
+                "posted": (m.get("publishedAt") or "")[:10], "deadline": "",
+                "type": " · ".join(contracts.get(x, x) for x in m.get("contracts") or []), "desc": _strip_html(m.get("description"))[:600],
+            })
+    return out
+
+
+def berlin_startup_jobs(keywords):
+    """Berlin Startup Jobs, engineering jobs at Berlin startups (official RSS feed). Titles read "Role // Company"."""
+    from html import unescape
+    out = []
+    for item in _rss_items("https://berlinstartupjobs.com/engineering/feed/"):
+        full, link = unescape(_rss_field(item, "title")), _rss_field(item, "link")
+        title, _, org = full.rpartition(" // ")
+        out.append({
+            "id": "bsj:" + link.rstrip("/").split("/")[-1], "title": _t(title or full), "org": _t(org) if title else "",
+            "location": "Berlin", "c": "de", "kind": "job", "source": "Berlin Startup Jobs", "url": link,
+            "posted": _rss_date(item), "deadline": "", "desc": _strip_html(unescape(_rss_field(item, "description")))[:600],
+        })
+    return out
+
+
+def remote_first_jobs(keywords):
+    """Remote First Jobs, remote-only jobs (official RSS feed of the newest 100). Titles read "Role at Company"."""
+    from html import unescape
+    out = []
+    for item in _rss_items("https://remotefirstjobs.com/rss/jobs.rss"):
+        full, link = unescape(_rss_field(item, "title")), _rss_field(item, "link")
+        title, _, org = full.rpartition(" at ")
+        if not TECH_TITLE.search(title or full) or _ELSEWHERE.search(title or full):
+            continue
+        out.append({
+            "id": "rfj:" + link.rstrip("/").split("-")[-1], "title": _t(title or full), "org": _t(org) if title else "",
+            "location": "Remote", "c": "gl", "kind": "job", "source": "Remote First Jobs", "url": link,
+            "posted": _rss_date(item), "deadline": "", "desc": _strip_html(unescape(_rss_field(item, "description")))[:600],
+        })
+    return out
+
+
+def eth_zurich(keywords):
+    """ETH Zurich job board: PhD, postdoc, research and engineering positions."""
+    page = _get("https://jobs.ethz.ch/?lang=en")
+    out = []
+    for li in page.css("li.job-ad__item__wrapper"):
+        a = li.css("a.job-ad__item__link")
+        if not a:
+            continue
+        href = a[0].attrib.get("href", "")
+        title = _t(li.css(".job-ad__item__title::text").get())
+        meta = _t(li.css(".job-ad__item__company::text").get())
+        posted, _, dept = meta.partition("|")
+        d = re.match(r"(\d{2})\.(\d{2})\.(\d{4})", posted.strip())
+        out.append({
+            "id": "eth:" + href.rstrip("/").split("/")[-1], "title": title, "org": "ETH Zurich" + (" · " + _t(dept) if dept.strip() else ""),
+            "location": "Zürich", "c": "ch", "kind": "phd" if is_phd(title) else "job", "source": "ETH Zurich",
+            "url": page.urljoin(href), "posted": f"{d.group(3)}-{d.group(2)}-{d.group(1)}" if d else "", "deadline": "",
+            "type": _t(li.css(".job-ad__item__details::text").get()), "desc": "",
+        })
+    return out
+
+
+def academics_de(keywords):
+    """academics.de, German academic and research job board (professorships, PhD, postdoc, research staff)."""
+    out, seen = [], set()
+    for kw in keywords[:3]:
+        page = _get("https://www.academics.de/jobs?q=" + kw.replace(" ", "+"))
+        for a in page.css('a[id^="job-"]'):
+            href = a.attrib.get("href", "")
+            jid = re.search(r"-(\d+)$", href)
+            if not jid or jid.group(1) in seen:
+                continue
+            seen.add(jid.group(1))
+            title = _t(a.attrib.get("title") or a.css("h2::text").get())
+            logo = a.css("img")
+            org = re.sub(r"\s*-\s*Logo$", "", logo[0].attrib.get("alt", "")) if logo else ""
+            out.append({
+                "id": "academics:" + jid.group(1), "title": title, "org": org, "location": "Germany", "c": "de",
+                "kind": "phd" if is_phd(title) else "job", "source": "academics.de", "url": page.urljoin(href),
+                "posted": "", "deadline": "", "desc": _t(" ".join(a.css("p::text").getall()))[:600],
+            })
+    return out
+
+
 SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
             "jobs.ch": jobs_ch, "Job Bank": jobbank, "CNRS": cnrs, "Max Planck": max_planck, "jobRxiv": jobrxiv,
             "Farojob": farojob, "Himalayas": himalayas, "Jobicy": jobicy, "Working Nomads": working_nomads,
-            "We Work Remotely": we_work_remotely, "Poli": poli, "LinkedIn posts": linkedin_posts}
+            "We Work Remotely": we_work_remotely, "Poli": poli, "LinkedIn posts": linkedin_posts,
+            "Company boards": company_boards, "HN Who is hiring": hn_hiring, "Free-Work": free_work,
+            "Berlin Startup Jobs": berlin_startup_jobs, "Remote First Jobs": remote_first_jobs, "ETH Zurich": eth_zurich,
+            "academics.de": academics_de}
 COUNTRY_WORDS = (("france", "fr"), ("germany", "de"), ("deutschland", "de"), ("switzerland", "ch"), ("schweiz", "ch"),
                  ("suisse", "ch"), ("canada", "ca"), ("tunisia", "tn"), ("tunisie", "tn"))
 
@@ -566,14 +804,17 @@ def _country(text):
     return next((c for w, c in COUNTRY_WORDS if w in low), "gl")
 
 
-def _stealth_pages(urls):
-    """Loads pages in one stealth browser session (passes Cloudflare challenges)."""
+def _stealth_pages(urls, strict=True):
+    """Loads pages in one stealth browser session (passes Cloudflare challenges). strict=False skips a page that
+    fails instead of losing the whole run."""
     from scrapling.fetchers import StealthySession  # needs `scrapling install` (browser) on the runner
     pages = []
     with StealthySession(headless=True, solve_cloudflare=True, timeout=90000) as session:
         for url in urls:
             page = session.fetch(url, network_idle=True)
             if page.status != 200:
+                if not strict and pages:
+                    continue
                 raise RuntimeError(f"HTTP {page.status} from {url.split('/')[2]}")
             pages.append(page)
             time.sleep(UA_PAUSE)
@@ -652,11 +893,14 @@ def stepstone(keywords):
     return out
 
 
-def tanitjobs(keywords):
+def tanitjobs(keywords, pages=2):
     """Tanitjobs, main Tunisian job board. Cloudflare blocks datacenter IPs, so this only works from a home
-    connection: it runs in the PC collector (collect.py --home), not on GitHub."""
+    connection: it runs in the PC collector (collect.py --home), not on GitHub. Reads the first pages of each
+    keyword (20 offers a page), not just the first, so the stored count keeps up with what ages out."""
     out = []
-    for page in _stealth_pages(["https://www.tanitjobs.com/jobs/?keywords=" + kw.replace(" ", "+") for kw in keywords[:3]]):
+    urls = ["https://www.tanitjobs.com/jobs/?keywords=" + kw.replace(" ", "+") + (f"&page={n}" if n > 1 else "")
+            for kw in keywords[:8] for n in range(1, pages + 1)]
+    for page in _stealth_pages(urls, strict=False):
         for card in page.css("div.sj-job-card"):
             a = card.css(".sj-card-title a")
             if not a:
@@ -702,7 +946,52 @@ def tunisietravail(keywords, pages=8):
     return out
 
 
+def emploitunisie(keywords, pages=5):
+    """EmploiTunisie, Tunisian job board (behind Cloudflare: PC collector only). Its search is a posted form, so this
+    reads the newest pages (25 offers each) and lets the relevance and field filters keep the IT ones."""
+    out, seen = [], set()
+    urls = ["https://www.emploitunisie.com/recherche-jobs-tunisie" + (f"?page={n}" if n else "") for n in range(pages)]
+    for page in _stealth_pages(urls, strict=False):
+        for card in page.css("div.card-job"):
+            a = card.css("h3 a")
+            href = a[0].attrib.get("href", "") if a else ""
+            jid = re.search(r"-(\d+)$", href)
+            if not jid or jid.group(1) in seen:
+                continue
+            seen.add(jid.group(1))
+            facts = [_t(x.get_all_text()) for x in card.css("ul li")]
+            region = next((f.split(":", 1)[1].strip() for f in facts if f.lower().startswith("région")), "")
+            out.append({
+                "id": "emploitunisie:" + jid.group(1), "title": _t(a[0].attrib.get("title") or a[0].get_all_text()),
+                "org": _t(card.css(".card-job-company::text").get()), "location": region or "Tunisie", "c": "tn",
+                "kind": "job", "source": "EmploiTunisie", "url": page.urljoin(href), "posted": "", "deadline": "",
+                "type": " · ".join(f.split(":", 1)[1].strip() for f in facts if ":" in f and f.lower().startswith(("type", "contrat"))),
+                "desc": _t(card.css(".card-job-description p::text").get())[:600],
+            })
+    return out
+
+
+def bayt_tunisia(keywords):
+    """Bayt, Middle East and North Africa job board, Tunisia listings (behind Cloudflare: PC collector only)."""
+    out, seen = [], set()
+    slugs = list(dict.fromkeys(re.sub(r"[^a-z0-9]+", "-", kw.lower()).strip("-") for kw in keywords[:6]))
+    for page in _stealth_pages([f"https://www.bayt.com/en/tunisia/jobs/{s}-jobs/" for s in slugs if s], strict=False):
+        for li in page.css("li[data-js-job]"):
+            a = li.css("h2 a")
+            jid = li.attrib.get("data-job-id", "")
+            if not a or not jid or jid in seen:
+                continue
+            seen.add(jid)
+            out.append({
+                "id": "bayt:" + jid, "title": _t(a[0].attrib.get("title") or a[0].get_all_text()),
+                "org": _t(li.css(".job-company-location-wrapper a::text").get()), "location": "Tunisie", "c": "tn",
+                "kind": "job", "source": "Bayt", "url": page.urljoin(a[0].attrib.get("href", "")), "posted": "", "deadline": "",
+                "desc": _t(" ".join(li.css(".jb-descr::text").getall()))[:600],
+            })
+    return out
+
+
 # Browser-based (StealthyFetcher). Only run where a browser is installed (STEALTH=1 in the workflow).
 STEALTH_SCRAPERS = {"ABG": abg, "Academic Positions": academic_positions, "ScholarshipDB": scholarshipdb, "StepStone": stepstone}
 # Need a home IP (blocked from datacenters). Run by the PC collector: collect.py --home.
-HOME_SCRAPERS = {"Tanitjobs": tanitjobs, "TunisieTravail": tunisietravail}
+HOME_SCRAPERS = {"Tanitjobs": tanitjobs, "TunisieTravail": tunisietravail, "EmploiTunisie": emploitunisie, "Bayt": bayt_tunisia}

@@ -2,7 +2,7 @@ name: Refresh companies
 
 on:
   schedule:
-    - cron: "40 4 * * *" # daily, 05:40 in Tunis
+    - cron: "40 4,16 * * *" # twice a day, 05:40 and 17:40 in Tunis
   workflow_dispatch:
     inputs:
       dry_run:

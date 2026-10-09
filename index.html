@@ -1171,6 +1171,8 @@ const COUNTRIES = [
     ['LinkedIn','https://www.linkedin.com/jobs','Network',3,'Includes companies working for European clients.'],
     ['Tanitjobs','https://www.tanitjobs.com','Job board',2,'Common Tunisian board.'],
     ['Keejob','https://www.keejob.com','Job board',2,'Common Tunisian board.'],
+    ['EmploiTunisie','https://www.emploitunisie.com','Job board',2,'Many offers from established companies.'],
+    ['Bayt','https://www.bayt.com/en/tunisia/jobs/','Job board',1,'Regional board, also lists Gulf jobs open to Tunisians.'],
     ['ANETI','https://www.emploi.nat.tn','Official portal',1,'National employment agency.'],
     ['Your network (ENICarthage, IEEE RAS)','https://linkedin.com/in/oussema-abdaoui','Network',3,'Alumni and IEEE contacts often beat job boards.']],
    master:[
@@ -1195,6 +1197,7 @@ const COUNTRIES = [
     ['ETH Zürich admissions','https://ethz.ch','Direct contact',3,'MSc in CS and Data Science.'],
     ['EPFL admissions','https://www.epfl.ch','Direct contact',3,'MSc in CS and Data Science.']],
    phd:[
+    ['ETH Zurich job board','https://jobs.ethz.ch','Research board',3,'Every ETH PhD, postdoc and research opening in one list.'],
     ['ETH / EPFL PhD openings','https://www.epfl.ch','Direct contact',3,'Listed on each school and lab page.'],
     ['Euraxess Switzerland','https://www.euraxess.ch','Research board',2,'Research positions and mobility.']]
   }},
@@ -1984,7 +1987,7 @@ function qCard(q){
     <textarea id="ql-${id}" data-qletter="${id}" rows="12">${esc(q.letter||letterFor(q))}</textarea>
     <p class="qtodo" data-qtodo="${id}">${(()=>{const u=unfilled(q.letter||letterFor(q));return u.length?`Still to fill before sending: ${u.map(esc).join(', ')}`:'';})()}</p>
     <div class="row" style="margin-top:10px">${u?`<a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open offer</a>`:''}
-      <button class="btn" data-qcopy="${id}">Copy letter</button><button class="btn" data-qai="${id}" title="${caps.ai?'Claude rewrites the letter for this offer':'Copies a ready prompt and opens claude.ai'}">Improve with AI</button>${q.letter?`<button class="btn ghost" data-qreset="${id}">Regenerate</button>`:''}
+      <button class="btn" data-qcopy="${id}">Copy letter</button><button class="btn" data-qai="${id}" title="${caps.ai?'Claude rewrites the letter for this offer':'Needs ANTHROPIC_API_KEY in Vercel'}">Improve with AI</button>${q.letter?`<button class="btn ghost" data-qreset="${id}">Regenerate</button>`:''}
       <button class="btn" data-qsent="${id}">Sent</button><button class="btn ghost" data-qskip="${id}">Skip</button><span class="hint" data-qmsg="${id}"></span></div></article>`;
 }
 async function qImprove(q,btn,msg){
@@ -2001,10 +2004,7 @@ ${String(p.cv||'').slice(0,5000)}
 
 DRAFT:
 ${ta.value}`;
-  if(!sample){ // no API key on the server: hand the same prompt to claude.ai
-    navigator.clipboard.writeText(prompt).then(()=>{msg.textContent='Prompt copied. Paste it in Claude (opening now), then paste the answer back here.';},()=>{msg.textContent='Could not copy the prompt.';});
-    window.open('https://claude.ai/new','_blank','noopener');return;
-  }
+  if(!sample){msg.textContent='Claude is off on the server: add ANTHROPIC_API_KEY in Vercel and redeploy.';return;}
   btn.disabled=true;msg.textContent='Writing…';
   try{const t=((await sample(prompt,{modelTier:'quick'})).text||'').trim();if(!t)throw {};ta.value=t;q.letter=t;save();msg.textContent='Done. Read it before sending.';}
   catch(e){msg.textContent=errText(e,{},'Could not reach Claude. Try again.');}
@@ -3697,9 +3697,9 @@ document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[da
 const LS_TABS=[['all','All'],['jobs','Jobs'],['phd','PhDs'],['masters',"Master's & scholarships"],['profs','Professors'],['cos','Companies']];
 const LS_COUNTRY_NAME={fr:'France',de:'Germany',ca:'Canada',ch:'Switzerland',tn:'Tunisia'};
 // Collector scrapers by market (api/boards.py ?scraper=); the "any" ones cover every country.
-const LS_SCRAPERS={fr:['HelloWork','CNRS','Inria'],de:['Max Planck'],ch:['jobs.ch'],ca:['Job Bank'],tn:['Keejob','Farojob'],gl:['Himalayas','Jobicy','Working Nomads','We Work Remotely'],
-  any:['jobs.ac.uk','ELLIS','jobRxiv']};
-const LS_ACADEMIC=new Set(['CNRS','Inria','Max Planck','jobs.ac.uk','ELLIS','jobRxiv']);
+const LS_SCRAPERS={fr:['HelloWork','Free-Work','CNRS','Inria'],de:['Berlin Startup Jobs','academics.de','Max Planck'],ch:['jobs.ch','ETH Zurich'],ca:['Job Bank'],tn:['Keejob','Farojob'],
+  gl:['Himalayas','Jobicy','Working Nomads','We Work Remotely','Remote First Jobs'],any:['jobs.ac.uk','ELLIS','jobRxiv','Company boards','HN Who is hiring']};
+const LS_ACADEMIC=new Set(['CNRS','Inria','Max Planck','jobs.ac.uk','ELLIS','jobRxiv','ETH Zurich','academics.de']);
 // Sites that need a real browser or a home connection: searched in a new tab instead.
 const LS_LINKS=[['ABG (PhD, France)',q=>'https://www.abg.asso.fr/fr/candidatOffres/index?keywords='+q],['StepStone (Germany)',q=>'https://www.stepstone.de/jobs/'+q],
   ['Academic Positions',q=>'https://academicpositions.com/find-jobs?keywords='+q],['Euraxess',q=>'https://euraxess.ec.europa.eu/jobs/search?keywords='+q],

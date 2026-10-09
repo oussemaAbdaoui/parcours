@@ -70,13 +70,15 @@ Your saved searches drive the job boards (4 defaults until you save your own); a
 |---|---|---|
 | Job boards | LinkedIn (whole country, 50 per search), Indeed | JobSpy |
 | Hiring posts | LinkedIn posts ("we're hiring", "je recrute"...) from the past week | Google results via Serper (`SERPER_API_KEY`, free at serper.dev), once a day |
-| France | HelloWork, CNRS, Inria, ABG | Scrapling (ABG in stealth mode) |
-| Germany | StepStone, Max Planck | Scrapling (StepStone in stealth mode) |
-| Switzerland, Canada | jobs.ch, Job Bank | Scrapling |
-| Tunisia | Keejob, Farojob | Scrapling |
+| France | HelloWork, Free-Work, CNRS, Inria, ABG | Scrapling (ABG in stealth mode), Free-Work's JSON API |
+| Germany | StepStone, Berlin Startup Jobs, academics.de, Max Planck | Scrapling (StepStone in stealth mode), RSS feeds |
+| Switzerland, Canada | jobs.ch, ETH Zurich, Job Bank | Scrapling |
+| Tunisia | Keejob, Farojob; from the PC: Tanitjobs, TunisieTravail, EmploiTunisie, Bayt | Scrapling (the PC ones in stealth mode) |
+| Company career pages | About 40 AI and tech employers (Anthropic, OpenAI, Cohere, DeepL, Hugging Face, Doctolib, Helsing...): jobs in your countries or remote | Greenhouse, Lever, Ashby and Workable public job-board APIs |
+| Hacker News | The monthly "Who is hiring?" thread: companies in your countries or remote | Official HN Algolia API |
 | PhD and research | jobs.ac.uk, ELLIS, jobRxiv, Academic Positions, ScholarshipDB | Scrapling (the last two in stealth mode) |
 | UK visa sponsorship | Poli (withpoli.com) | Its JSON API: the signed-in feed with a Poli account, else the visitor feed (10 offers per category and level) |
-| Remote | We Work Remotely (RSS), Himalayas, Jobicy, Working Nomads (APIs) | Public feeds |
+| Remote | We Work Remotely, Remote First Jobs (RSS), Himalayas, Jobicy, Working Nomads (APIs) | Public feeds |
 
 **Stealth mode.** ABG, Academic Positions, ScholarshipDB and StepStone sit behind Cloudflare or similar bot protection, so they are read with Scrapling's `StealthyFetcher`, a real browser that passes those challenges (the workflow installs it with `scrapling install`). This goes against those sites' terms; it reads a few listing pages per run and a failure only marks that source as failed.
 
