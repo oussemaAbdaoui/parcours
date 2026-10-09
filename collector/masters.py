@@ -307,10 +307,16 @@ SOURCES = [
 ]
 
 
-def collect(profile):
+# DAAD answers 403 to GitHub's servers: the PC refreshes these two (masters.py --home), the cloud the rest.
+HOME_SOURCES = {"DAAD programmes", "DAAD scholarships"}
+
+
+def collect(profile, only=None):
     fams, langs = profile_fields(profile), languages(profile)
     items, status = [], {}
     for name, fn in SOURCES:
+        if only and name not in only:
+            continue
         try:
             found = fn(fams, langs)
             status[name] = {"ok": True, "count": len(found)}
@@ -321,13 +327,14 @@ def collect(profile):
     return items, status, fams
 
 
-def run(store, state, dry=False, force=False):
-    """Refreshes the master's store at most once a day. Returns a status line for the run report."""
+def run(store, state, dry=False, force=False, only=None):
+    """Refreshes the master's store at most once a day (only: just those sources, whenever asked, leaving the daily
+    refresh to the cloud). Returns a status line for the run report."""
     now = int(time.time() * 1000)
     meta = (store.get_json(META_KEY) if store else None) or {}
-    if not force and now - meta.get("at", 0) < 20 * 3600 * 1000:
+    if not force and not only and now - meta.get("at", 0) < 20 * 3600 * 1000:
         return {"ok": True, "count": meta.get("count", 0), "error": "fresh, next refresh within a day"}
-    items, status, fams = collect(state.get("profile"))
+    items, status, fams = collect(state.get("profile"), only or {n for n, _ in SOURCES} - HOME_SOURCES)
     for name, st in status.items():
         print(f"  {name:18} {'ok ' if st['ok'] else 'ERR'} {st['count']:4}  {st.get('error', '')}")
     if dry or not store:
@@ -352,7 +359,10 @@ def run(store, state, dry=False, force=False):
     gone = [i for i, x in old.items() if i not in fresh and x.get("source") in ok_sources]
     for i in range(0, len(gone), 100):
         store.cmd("HDEL", ITEMS_KEY, *gone[i:i + 100])
-    store.cmd("SET", META_KEY, json.dumps({"at": now, "count": len(items), "fields": fams, "sources": status}))
+    meta["sources"] = {**meta.get("sources", {}), **status}
+    if not only:
+        meta.update({"at": now, "count": len(items), "fields": fams})
+    store.cmd("SET", META_KEY, json.dumps(meta))
     return {"ok": all(s["ok"] for s in status.values()), "count": len(items),
             **({"error": ", ".join(n for n, s in status.items() if not s["ok"]) + " failed"} if not all(s["ok"] for s in status.values()) else {})}
 
@@ -360,6 +370,14 @@ def run(store, state, dry=False, force=False):
 if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding="utf-8")
+    if "--home" in sys.argv:  # PC task "Parcours masters": the sources that block the cloud, into the shared store
+        from collect import STATE_KEY, Store, load_env
+        env = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--env=")), "")
+        if env:
+            load_env(env)
+        st = Store()
+        print(time.strftime("%Y-%m-%d %H:%M"), run(st, st.get_json(STATE_KEY) or {}, only=HOME_SOURCES))
+        sys.exit(0)
     prof = {"skills": ["machine learning", "python", "deep learning", "llm"], "languages": ["en", "fr"]}
     its, st, f = collect(prof)
     print("fields:", f)
