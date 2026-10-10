@@ -808,9 +808,11 @@
     const d = new Date(now), gy = p.degree && p.degree.year;
     const graduated = !!gy && (d.getFullYear() > gy || (d.getFullYear() === gy && d.getMonth() >= 8));
     const canIntern = p.internships === 'yes' || (p.internships !== 'no' && !graduated);
-    // Offers for students currently enrolled at a given level ("pursuing a PhD"), from Claude's reading.
-    if (R && R.enrollment === 'phd' && !p.phdStudent) blockers.push('For current PhD students');
-    else if (R && R.enrollment !== 'none' && !canIntern) blockers.push('Reserved for current students');
+    // Offers for students currently enrolled at a given level ("pursuing a PhD"), from Claude's reading. A PhD
+    // position is what you apply to become a doctoral student, so enrollment only counts for PhD internships.
+    const enrollApplies = R && R.enrollment !== 'none' && (offer.kind !== 'phd' || /\b(intern\w*|stagiaire|stage|praktik\w*)\b/.test(title));
+    if (enrollApplies && R.enrollment === 'phd' && !p.phdStudent) blockers.push('For current PhD students');
+    else if (enrollApplies && !canIntern) blockers.push('Reserved for current students');
     else if (lv.lvl === 0 && offer.kind !== 'phd' && !canIntern) blockers.push('Internship needs student status');
     // Jobs reserved for current students (student assistant, Werkstudent, "currently enrolled"), same rule.
     else if (offer.kind !== 'phd' && !canIntern && /\b(currently enrolled|must be (?:a |an )?(?:current |enrolled )?students?|enrolled (?:in|at) (?:a |an )?(?:university|bachelor|master)|student assistant|working student|werkstudent\w*|studentische (?:hilfskraft|mitarbeiter)|job etudiant|etudiant\w* en (?:cours|derniere annee)|en cours de (?:formation|cursus)|immatrikuliert)\b/.test(body)) blockers.push('Reserved for current students');
