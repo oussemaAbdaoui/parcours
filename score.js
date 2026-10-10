@@ -359,8 +359,25 @@
   const DEGREE_WORD = /\b(master\w*|msc|m\.sc|meng|diplome|degree|titulaire|bachelor\w*|licence|bsc|abschluss|studium|graduated? (?:in|from)|formation (?:superieure |universitaire )?(?:en|in|d))\b/g;
   const OPEN_FIELD = /\b(related|connexe|similaire|similar|equivalent\w*|proche|comparable|verwandt\w*|vergleichbar\w*|e\.g\.|such as|par exemple|tel(?:le)?s? que|quantitative|stem|or any|ou tout)\b/;
   function disciplinesIn(text) { return Object.keys(DISCIPLINES).filter((k) => DISCIPLINES[k].test(text)); }
+  // A field named after the degree that is not in the list above: "transportation engineering", "génie civil et
+  // urbain", "sciences économiques". Generic words ("engineering", "a technical field") name no field.
+  const NAMED_FIELD = /\b([a-z][a-z-]{3,})\s+(engineering|sciences?|studies|technolog\w*|planning|management|design)\b|\b(genie|ingenierie|sciences?|etudes)\s+(?:de la |de l.|des |du |de |d.)?([a-z][a-z-]{3,})/;
+  const GENERIC_QUALIFIER = /^(a|an|the|technical|technique|relevant|related|applied|appliquee?s?|scientific|scientifique|quantitative|similar|any|appropriate|engineering|science|sciences|natural|exact|exactes|hard|computer|computing|data|informatique|donnees|information|software|logiciel|mathematical|mathematiques|statistical|ingenieur|engineer|mention)$/;
+  function namedFields(clause) {
+    const out = [];
+    const body = clause.replace(/^\S+\s*(?:'s\s+)?(?:degree|diplome)?\s*/, '');
+    for (const part of body.split(/\s(?:or|ou|oder|and|et|und)\s|,|\/|\(/)) {
+      if (disciplinesIn(part).length) continue;
+      const m = part.match(NAMED_FIELD);
+      if (!m) continue;
+      const q = m[1] || m[4];
+      if (GENERIC_QUALIFIER.test(q)) continue;
+      out.push(m[0].trim());
+    }
+    return out;
+  }
   function degreeFieldAsked(t) {
-    const discs = new Set();
+    const discs = new Set(), others = new Set();
     let open = false, m;
     DEGREE_WORD.lastIndex = 0;
     while ((m = DEGREE_WORD.exec(t))) {
@@ -368,14 +385,16 @@
       end = end < 0 ? t.length : m.index + end;
       const clause = t.slice(m.index, Math.min(end, m.index + 170));
       // "Master's thesis", "stage de master", "master students": the job's form, not a degree asked for.
-      if (/^\S+\s*(?:'s\s+)?(?:thesis|these|students?|etudiants?|stage|internship|level|niveau|programm?e?s?|arbeit)\b/.test(clause)) continue;
+      if (/^\S+\s*(?:.s\s+)?(?:thesis|these|students?|etudiants?|stage|internship|level|niveau|programm?e?s?|arbeit)\b/.test(clause)) continue;
       // "This is not a position in biomedical engineering": a field ruled out, not asked for.
-      const found = disciplinesIn(clause.replace(/\b(?:not|pas|non|kein\w*|no)\b[^,;]{0,40}/g, ' '));
-      if (!found.length) continue;
+      const kept = clause.replace(/\b(?:not|pas|non|kein\w*|no)\b[^,;]{0,40}/g, ' ');
+      const found = disciplinesIn(kept), named = namedFields(kept);
+      if (!found.length && !named.length) continue;
       found.forEach((d) => discs.add(d));
+      named.forEach((n) => others.add(n));
       if (OPEN_FIELD.test(clause)) open = true;
     }
-    return { discs: [...discs], open };
+    return { discs: [...discs], others: [...others], open };
   }
   function myDisciplines(p) {
     const own = disciplinesIn(norm((p.degree && p.degree.field) || ''));
@@ -681,8 +700,9 @@
     // The degree's discipline: a degree in another field rules the offer out unless it accepts related fields.
     let wrongDegree = false;
     const fieldAsked = degreeFieldAsked(body), mineF = myDisciplines(p);
-    if (fieldAsked.discs.length && mineF.length && !fieldAsked.discs.some((d) => mineF.some((m) => (NEAR[m] || [m]).includes(d)))) {
-      const names = fieldAsked.discs.map((d) => DISC_NAME[d]).join(', ');
+    if ((fieldAsked.discs.length || fieldAsked.others.length) && mineF.length
+        && !fieldAsked.discs.some((d) => mineF.some((m) => (NEAR[m] || [m]).includes(d)))) {
+      const names = [...fieldAsked.discs.map((d) => DISC_NAME[d]), ...fieldAsked.others].join(', ');
       if (fieldAsked.open) parts.education = { v: Math.min(parts.education.v, 0.35), known: true, note: `Asks a degree in ${names} or a related field` };
       else { parts.education = { v: 0.05, known: true, note: `Asks a degree in ${names}, not your field` }; wrongDegree = true; }
     }

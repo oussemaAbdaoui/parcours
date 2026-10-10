@@ -113,7 +113,10 @@ def _salary(bs):
 DESC_MAX, OLD_DESC_MAX = 4000, 2500
 REQ_HEAD = re.compile(r"(profil (?:du |de la )?candidat\w*|profil recherch\w*|votre profil|candidate profile|your profile|requirements|"
                       r"qualifications|what we.re looking for|who you are|you (?:have|bring)|ihr profil|anforderungen|was du mitbringst|"
-                      r"comp[ée]tences (?:requises|attendues)|le candidat ou la candidate|the (?:ideal )?candidate)", re.I)
+                      r"comp[ée]tences (?:requises|attendues)|le candidat ou la candidate|the (?:ideal )?candidate|"
+                      r"(?:we are|we.re) looking for|looking for a candidate|nous recherchons|requested profile|profile sought|"
+                      r"skills and qualifications|eligibility|conditions d.admission|pr[ée]requis)", re.I)
+HEAD_KEEP = DESC_MAX - 1800
 
 
 def _keep(text):
@@ -121,10 +124,10 @@ def _keep(text):
     listings put after the topic (the degree asked for, the skills) and a plain cut would lose."""
     if len(text) <= DESC_MAX:
         return text
-    m = REQ_HEAD.search(text, 600)
-    if not m or m.start() < DESC_MAX - 1500:
+    m = REQ_HEAD.search(text, HEAD_KEEP)  # the requirements past the part a plain cut keeps anyway
+    if not m:
         return text[:DESC_MAX]
-    return text[:DESC_MAX - 1800].rstrip() + " … " + text[m.start():m.start() + 1750]
+    return text[:HEAD_KEEP].rstrip() + " … " + text[m.start():m.start() + 1750]
 
 
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
