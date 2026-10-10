@@ -56,7 +56,7 @@ def linkedin_details(items, limit=40):
             x["applicants"] = None
         desc = page.css(".show-more-less-html__markup")
         if desc:
-            x["desc"] = _t(desc[0].get_all_text())[:2500]
+            x["desc"] = _keep(_t(desc[0].get_all_text()))
         level = re.search(r"Seniority level\s+([A-Za-z -]+?)\s+Employment type", text)
         if level:
             x["type"] = (x.get("type") or "") + (" · " if x.get("type") else "") + level.group(1)
@@ -110,6 +110,23 @@ def _salary(bs):
     return f"{lo or ''}{'-' + str(hi) if hi else ''} {bs.get('currency', '')} {unit.lower()}".strip()
 
 
+DESC_MAX, OLD_DESC_MAX = 4000, 2500
+REQ_HEAD = re.compile(r"(profil (?:du |de la )?candidat\w*|profil recherch\w*|votre profil|candidate profile|your profile|requirements|"
+                      r"qualifications|what we.re looking for|who you are|you (?:have|bring)|ihr profil|anforderungen|was du mitbringst|"
+                      r"comp[ée]tences (?:requises|attendues)|le candidat ou la candidate|the (?:ideal )?candidate)", re.I)
+
+
+def _keep(text):
+    """The description to store: whole if short; else its start plus the candidate requirements, which long academic
+    listings put after the topic (the degree asked for, the skills) and a plain cut would lose."""
+    if len(text) <= DESC_MAX:
+        return text
+    m = REQ_HEAD.search(text, 600)
+    if not m or m.start() < DESC_MAX - 1500:
+        return text[:DESC_MAX]
+    return text[:DESC_MAX - 1800].rstrip() + " … " + text[m.start():m.start() + 1750]
+
+
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
 SKIP_EMAIL = re.compile(r"^(no-?reply|noreply|donotreply|privacy|dpo|gdpr|rgpd|webmaster|abuse|support|unsubscribe|newsletter)@|\.(png|jpg|gif|svg)$", re.I)
 CONTACT_WORD = re.compile(r"(contact(?: person)?|supervisors?|encadrant(?:e|s)?|directeur|directrice|co-?directeur|responsable|ansprechpartner(?:in)?|betreuer(?:in)?|hiring manager|recruiter|recruteur|recruteuse|advisor|principal investigator|PI)\b", re.I)
@@ -150,7 +167,7 @@ def _apply_page(x, page):
     if jp:
         text = _html_text(jp.get("description"))
         if len(text) > len(x.get("desc") or ""):
-            x["desc"] = text[:2500]
+            x["desc"] = _keep(text)
         if jp.get("validThrough") and not x.get("deadline"):
             x["deadline"] = str(jp["validThrough"])[:10]
         if jp.get("datePosted") and not x.get("posted"):
@@ -171,7 +188,7 @@ def _apply_page(x, page):
             text = _t(el[0].get_all_text())
             if len(text) > 400:
                 if len(text) > len(x.get("desc") or ""):
-                    x["desc"] = text[:2500]
+                    x["desc"] = _keep(text)
                 return True
     return False
 
@@ -180,10 +197,15 @@ def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, 
     """Opens offer pages whose stored description is short and fills desc, deadline, salary, type.
     Stops when the time budget (seconds) runs out; the rest is picked up on later runs."""
     t0 = time.time()
-    # Short descriptions, plus academic offers read once more for the contact they usually name at the bottom.
+    # Short descriptions, academic offers read once more for the contact they usually name at the bottom, and
+    # descriptions cut at the old 2500-character limit (read again once, to get their candidate requirements).
     todo = [x for x in items if x.get("source") != "LinkedIn" and x.get("url", "").startswith("http")
             and (only_sources is None or x.get("source") in only_sources)
-            and ((not x.get("detailed") and len(x.get("desc") or "") < 400) or (x.get("source") in ACADEMIC and not x.get("contactsChecked")))]
+            and ((not x.get("detailed") and len(x.get("desc") or "") < 400) or (x.get("source") in ACADEMIC and not x.get("contactsChecked"))
+                 or (len(x.get("desc") or "") == OLD_DESC_MAX and not x.get("recut")))]
+    for x in todo:
+        if len(x.get("desc") or "") == OLD_DESC_MAX:
+            x["recut"] = True  # one more attempt only
     plain = [x for x in todo if x.get("source") not in STEALTH_SOURCES][:limit]
     hard = [x for x in todo if x.get("source") in STEALTH_SOURCES][:stealth_limit] if stealth else []
     done = failed = 0

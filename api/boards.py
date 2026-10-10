@@ -109,7 +109,7 @@ def _live_scraper(name, q):
         if q["c"] not in ("", "any") and x.get("c") not in (q["c"], "gl", "", None):
             continue
         out.append({"id": x["id"], "title": x["title"], "company": x.get("org", ""), "location": x.get("location", ""), "posted": x.get("posted", ""),
-                    "type": x.get("type", ""), "url": x.get("url", ""), "source": name, "desc": (x.get("desc") or "")[:2500], "kind": x.get("kind", "job"),
+                    "type": x.get("type", ""), "url": x.get("url", ""), "source": name, "desc": (x.get("desc") or "")[:4000], "kind": x.get("kind", "job"),
                     "deadline": x.get("deadline", ""), "c": x.get("c") or q["c"]})
     return out
 
@@ -151,7 +151,7 @@ def _search(site, q, results=20, hours=24 * 30):
             "id": f"{site}:{_val(r.get('id')) or url}", "title": title, "company": _val(r.get("company")),
             "location": where + (" (remote)" if r.get("is_remote") is True else ""),
             "posted": _val(r.get("date_posted"))[:10], "type": _val(r.get("job_type")).replace("_", "-"),
-            "url": url, "source": site, "desc": _val(r.get("description"))[:2500],
+            "url": url, "source": site, "desc": _val(r.get("description"))[:4000],
         })
     return out
 

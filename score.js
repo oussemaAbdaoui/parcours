@@ -339,6 +339,51 @@
     if (/\b(bachelor.?s?|licence|bac\s*\+\s*3|bsc)\b/.test(t)) return 2;
     return 0;
   }
+  /* The discipline of the degree an offer asks for ("master ou diplôme d'ingénieur en mécanique ou science des
+     matériaux"), compared with yours: a computer science graduate does not qualify for a mechanics degree, however
+     many of the skills (Python, AI) match. Read from the clause that follows a degree word. */
+  const DISCIPLINES = {
+    cs: /\b(informatique|computer science|computer engineering|informatics|informatik|software|logiciel|genie logiciel|intelligence artificielle|artificial intelligence|machine learning|apprentissage automatique|data science|science des donnees|sciences? de l.information|information (?:systems?|technology)|systemes d.information|telecom\w*|reseaux|computer networks?|wirtschaftsinformatik)\b/,
+    math: /\b(mathemati\w*|maths?|statisti\w*|probabilit\w*|operations research|recherche operationnelle|actuari\w*)\b/,
+    ee: /\b(electri\w*|electroni\w*|elektrotechnik|genie automatique|automatique et|automatic control|control engineering|signal processing|traitement du signal|robotique|robotics|mecatronique|mechatronics|systemes embarques|embedded systems)\b/,
+    mech: /\b(mecanique|mechanical|mechanics|maschinenbau|materiaux|materials? science|science des materiaux|werkstoff\w*|thermique|thermomecani\w*|thermodynami\w*|genie civil|civil engineering|structural engineering|aerospace|aeronauti\w*|aerospatial\w*|calcul scientifique|scientific computing|calcul des structures|fluid mechanics|mecanique des fluides|energetique|nuclear|nucleaire|naval)\b/,
+    phys: /\b(physi(?:que|cs|k)|physical sciences|optique|optics|photoni\w*)\b/,
+    chem: /\b(chimie|chemistry|chemical|chemie|genie des procedes|process engineering)\b/,
+    bio: /\b(biolog\w*|biomedical|biomedic\w*|life sciences|sciences de la vie|medecine|medicine|pharma\w*|agronom\w*|neuroscien\w*)\b/,
+    biz: /\b(econom\w*|finance|gestion|management|business|commerce|marketing|droit|law|sciences politiques|political science)\b/,
+  };
+  const DISC_NAME = { cs: 'computer science', math: 'mathematics', ee: 'electrical engineering', mech: 'mechanics or materials', phys: 'physics',
+    chem: 'chemistry', bio: 'life sciences', biz: 'business or law' };
+  // Close enough to apply with: computer science and mathematics accept each other's graduates.
+  const NEAR = { cs: ['cs', 'math'], math: ['math', 'cs'] };
+  const DEGREE_WORD = /\b(master\w*|msc|m\.sc|meng|diplome|degree|titulaire|bachelor\w*|licence|bsc|abschluss|studium|graduated? (?:in|from)|formation (?:superieure |universitaire )?(?:en|in|d))\b/g;
+  const OPEN_FIELD = /\b(related|connexe|similaire|similar|equivalent\w*|proche|comparable|verwandt\w*|vergleichbar\w*|e\.g\.|such as|par exemple|tel(?:le)?s? que|quantitative|stem|or any|ou tout)\b/;
+  function disciplinesIn(text) { return Object.keys(DISCIPLINES).filter((k) => DISCIPLINES[k].test(text)); }
+  function degreeFieldAsked(t) {
+    const discs = new Set();
+    let open = false, m;
+    DEGREE_WORD.lastIndex = 0;
+    while ((m = DEGREE_WORD.exec(t))) {
+      let end = t.slice(m.index).search(/[.;•\n]/);
+      end = end < 0 ? t.length : m.index + end;
+      const clause = t.slice(m.index, Math.min(end, m.index + 170));
+      // "Master's thesis", "stage de master", "master students": the job's form, not a degree asked for.
+      if (/^\S+\s*(?:'s\s+)?(?:thesis|these|students?|etudiants?|stage|internship|level|niveau|programm?e?s?|arbeit)\b/.test(clause)) continue;
+      // "This is not a position in biomedical engineering": a field ruled out, not asked for.
+      const found = disciplinesIn(clause.replace(/\b(?:not|pas|non|kein\w*|no)\b[^,;]{0,40}/g, ' '));
+      if (!found.length) continue;
+      found.forEach((d) => discs.add(d));
+      if (OPEN_FIELD.test(clause)) open = true;
+    }
+    return { discs: [...discs], open };
+  }
+  function myDisciplines(p) {
+    const own = disciplinesIn(norm((p.degree && p.degree.field) || ''));
+    if (own.length) return own;
+    // No field in the CV's education line: your skill areas say which degrees you can apply with.
+    return myFields(p).some((f) => ['ai', 'software', 'data'].includes(f)) && (p.skills || []).length ? ['cs'] : [];
+  }
+
   function daysSince(iso, now) { const t = Date.parse(iso || ''); return isNaN(t) ? null : Math.floor((now - t) / 864e5); }
 
   // Families where knowing one member says little about another (Python does not make you a Java developer).
@@ -633,6 +678,14 @@
     else if (!mineD) parts.education = { v: 0.5, known: false, note: `Asks ${needName}, add your degree in Profile` };
     else if (need === 3.5) parts.education = { v: mineD >= 4 ? 1 : mineD === 3 ? 0.4 : 0.15, known: true, note: `Prefers ${needName}, you have ${DEGREE_NAME[mineD]}` };
     else parts.education = { v: mineD >= need ? 1 : need === 4 ? 0.05 : mineD === need - 1 ? 0.45 : 0.1, known: true, note: `${need === 4 ? 'Requires' : 'Asks'} ${needName}, you have ${DEGREE_NAME[mineD]}` };
+    // The degree's discipline: a degree in another field rules the offer out unless it accepts related fields.
+    let wrongDegree = false;
+    const fieldAsked = degreeFieldAsked(body), mineF = myDisciplines(p);
+    if (fieldAsked.discs.length && mineF.length && !fieldAsked.discs.some((d) => mineF.some((m) => (NEAR[m] || [m]).includes(d)))) {
+      const names = fieldAsked.discs.map((d) => DISC_NAME[d]).join(', ');
+      if (fieldAsked.open) parts.education = { v: Math.min(parts.education.v, 0.35), known: true, note: `Asks a degree in ${names} or a related field` };
+      else { parts.education = { v: 0.05, known: true, note: `Asks a degree in ${names}, not your field` }; wrongDegree = true; }
+    }
 
     // 5. Languages
     const needL = offerLanguages(body), langs = p.languages || {};
@@ -691,7 +744,8 @@
     if (parts.languages.known && parts.languages.v < 0.5) blockers.push('Required language missing');
     if (visaNote === ', work permit restriction') blockers.push('Work permit restriction');
     if (parts.timing.v === 0) blockers.push('Deadline passed');
-    if (parts.education.known && parts.education.v <= 0.1) blockers.push('Degree too low');
+    if (wrongDegree) blockers.push('Degree in another field');
+    else if (parts.education.known && parts.education.v <= 0.1) blockers.push('Degree too low');
     if (tooSenior) blockers.push('Too senior for your experience');
     if (typeof offer.applicants === 'number' && offer.applicants > 150) blockers.push('Over 150 applicants');
     // Jobs abroad (or remote for another region only) are out; PhDs abroad stay, ranked lower, since many are funded with a visa.
