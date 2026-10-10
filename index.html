@@ -2127,6 +2127,19 @@ function queuePage(){
         notes:`Sent by email to ${to} from the apply queue${r.attached&&r.attached.length?' with '+r.attached.join(', '):''}.`});
       q.status='sent';q.doneAt=Date.now();q.sentBy='email';q.letter=text;save();queuePage();}
     catch(e){b.disabled=false;msg.textContent=errText(e,{},'Could not send it.');if(e&&(e.code==='need_send'||e.code==='not_connected'))gmailInfo=null;}}));
+  // Assisted: one click copies the letter and opens the offer's site (job boards forbid sending it for you).
+  document.querySelectorAll('[data-qgo]').forEach(b=>b.addEventListener('click',()=>{const q=find(b.dataset.qgo);if(!q)return;
+    const text=$(`[data-qletter="${CSS.escape(q.id)}"]`).value.trim();
+    if(unfilled(text).length){msgOf(q.id).textContent='Fill the parts in [square brackets] first.';return;}
+    const w=window.open(safeUrl(q.url),'_blank','noopener');
+    navigator.clipboard.writeText(text).then(()=>{msgOf(q.id).textContent='Letter copied: paste it on the site, send, then press Sent here.';},()=>{msgOf(q.id).textContent='Opened. Copy the letter with Copy letter.';});
+    if(!w)msgOf(q.id).textContent='Your browser blocked the new tab: use Open offer.';}));
+  // Company forms: keep the letter exactly as reviewed and mark the offer for the PC form filler.
+  document.querySelectorAll('[data-qfill]').forEach(b=>b.addEventListener('click',()=>{const q=find(b.dataset.qfill);if(!q)return;
+    const text=$(`[data-qletter="${CSS.escape(q.id)}"]`).value.trim();
+    if(unfilled(text).length){msgOf(q.id).textContent='Fill the parts in [square brackets] first.';return;}
+    const miss=applyReady('form');if(miss.length){msgOf(q.id).textContent='Still needed: '+miss.join(', ')+'.';return;}
+    q.letter=text;q.fillAt=Date.now();save();queuePage();}));
   document.querySelectorAll('[data-srcon]').forEach(c=>c.addEventListener('change',()=>{const all=Object.assign({},prof().applySources||{});
     all[c.dataset.srcon]=Object.assign({},all[c.dataset.srcon]||{},{enabled:c.checked});setProfile({applySources:all});}));
   let tq=null;
@@ -2170,7 +2183,11 @@ function qCard(q){
       <div class="row" style="margin-top:8px;gap:14px">${docs.length?docs.map(d=>`<label class="sc"><input type="checkbox" data-qatt="${id}" value="${esc(d.id)}" ${att.includes(d.id)?'checked':''}> 📎 ${esc(d.name)}</label>`).join(''):'<span class="hint" style="margin:0">No documents to attach: upload your CV file and letters in Profile.</span>'}</div>
       <div class="row" style="margin-top:8px"><button class="btn primary" data-qsend="${id}" ${canEmail()?'':'disabled'} title="${canEmail()?'Send this application from your Gmail':'Connect Gmail with send permission first (Applications, Scan Gmail)'}">Send email</button>
         ${canEmail()?'':`<a class="hint" href="#/apps" style="margin:0">Connect Gmail to send →</a>`}</div></div>`;})()}
-    <div class="row" style="margin-top:10px">${u?`<a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open offer</a>`:''}
+    ${(()=>{const am=applyMethod(q);if(am.kind!=='form')return '';
+      return `<div class="panel" style="margin:10px 0 0;padding:12px 14px"><b>📝 ${esc(am.ats)} form</b> <span class="hint" style="margin:0">filled on your PC with your answers, CV and this letter; you check it and press Submit yourself</span>
+      <div class="row" style="margin-top:8px"><button class="btn primary" data-qfill="${id}">${q.fillAt?'Fill again on my PC':'Fill on my PC'}</button>
+      <span class="hint" style="margin:0">${q.fillAt?'Marked '+new Date(q.fillAt).toLocaleString()+'. On your PC, run "Parcours: fill applications".':'Then run "Parcours: fill applications" on your PC.'}</span></div></div>`;})()}
+    <div class="row" style="margin-top:10px">${u&&applyMethod(q).kind==='assisted'?`<button class="btn primary" data-qgo="${id}" title="Copies your letter, then opens the offer: paste it there and send, then press Sent">Copy letter &amp; open offer</button>`:''}${u?`<a class="btn${applyMethod(q).kind==='assisted'?'':' primary'}" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open offer</a>`:''}
       <button class="btn" data-qcopy="${id}">Copy letter</button><button class="btn" data-qai="${id}" title="${caps.ai?'Claude rewrites the letter for this offer':'Needs ANTHROPIC_API_KEY in Vercel'}">Improve with AI</button>${q.letter?`<button class="btn ghost" data-qreset="${id}">Regenerate</button>`:''}
       <button class="btn" data-qsent="${id}">Sent</button><button class="btn ghost" data-qskip="${id}">Skip</button><span class="hint" data-qmsg="${id}"></span></div></article>`;
 }
