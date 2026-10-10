@@ -2736,6 +2736,19 @@ function loadPdf(){
     s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';ok(window.pdfjsLib);};s.onerror=()=>{pdfLib=null;ko(new Error('Could not load the PDF reader.'));};document.head.appendChild(s);});
   return pdfLib;
 }
+// A file as base64, and stored in your documents (api/state.js ?doc=): what gets attached when you apply.
+function fileB64(f){return new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]||'');r.onerror=()=>ko(new Error('Could not read '+f.name+'.'));r.readAsDataURL(f);});}
+async function saveDoc(id,f){
+  if(f.size>3*1024*1024)throw new Error(f.name+' is over 3 MB.');
+  const type=/\.pdf$/i.test(f.name)||f.type==='application/pdf'?'application/pdf':/\.md$/i.test(f.name)?'text/markdown':'text/plain';
+  return api('/api/state?doc='+encodeURIComponent(id),{method:'PUT',body:JSON.stringify({name:f.name,type,data:await fileB64(f)})});
+}
+// Who wrote a recommendation letter: the titled name near its signature, else the first titled name in it.
+function refereeOf(text){
+  const re=/\b(?:Prof(?:essor|esseur)?\.?|Dr\.?|Pr\.?|Mme|M\.|Mr\.?|Ms\.?)\s+[A-ZÀ-Ý][\w'-]+(?:\s+[A-ZÀ-Ý][\w'-]+){0,2}/g;
+  const all=[...text.matchAll(re)].map(m=>m[0]);
+  return (all.length?all[all.length-1]:'').slice(0,80);
+}
 async function fileText(f){
   if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){
     const lib=await loadPdf();const doc=await lib.getDocument({data:await f.arrayBuffer()}).promise;let out='';
@@ -2761,7 +2774,7 @@ function profilePage(){
   const groups={};names.forEach(n=>{(groups[fam[n]]=groups[fam[n]]||[]).push(n);});
   const nm=cvName()||'Your name',ini=nm.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(),st=profStrength(p);
   const DEG=['','Two-year degree',"Bachelor's","Master's or engineering degree",'PhD'][+(p.degree||{}).level||0];
-  const SECTIONS=[['pf-cv','CV'],['pf-skills','Skills'],['pf-bg','Background'],['pf-where','Where'],['pf-goal','Daily goal'],['pf-notif','Notifications']];
+  const SECTIONS=[['pf-cv','CV'],['pf-recs','Letters'],['pf-skills','Skills'],['pf-bg','Background'],['pf-where','Where'],['pf-goal','Daily goal'],['pf-notif','Notifications']];
   $('#view').innerHTML=`<h1>Profile</h1><p class="sub">The match score compares every offer with this. It stays in your data and syncs with your other devices.</p>
   <div class="pf-grid"><aside class="pf-side">
     <div class="panel pf-card"><div class="pf-avatar" aria-hidden="true">${esc(ini||'?')}</div>
@@ -2778,7 +2791,15 @@ function profilePage(){
     <div class="row" style="margin-top:10px"><label class="btn" for="pfFile" style="cursor:pointer">Upload PDF or text</label><input type="file" id="pfFile" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden>
     <button class="btn primary" id="pfRead">Read everything from CV</button></div>
     <div id="pfMsg" class="found" aria-live="polite"></div>
+    ${p.cvDoc?`<p class="hint" style="margin:8px 0 0">Original file kept for your applications: ${esc(p.cvDoc.name)} (${Math.round(p.cvDoc.size/1024)} KB)</p>`:''}
     <div id="pfAts"></div></div>
+  <div class="panel" id="pf-recs"><h2>Recommendation letters</h2><p class="hint">Upload the letters your referees wrote, as PDF or text. Claude uses what they say about you in your cover letters, and the files are attached when you apply.</p>
+    ${(p.recs||[]).length?`<ul class="list" style="margin:0 0 10px">${p.recs.map(r=>`<li style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>${esc(r.name)}</b><span class="hint" style="margin:0">${Math.round((r.size||0)/1024)} KB · ${(r.text||'').split(/\s+/).length} words</span>
+      <label class="sc" style="margin-left:auto">From <input type="text" data-recfrom="${esc(r.id)}" value="${esc(r.from||'')}" placeholder="Referee name and title" style="width:220px"></label>
+      <button class="btn sm" data-recview="${esc(r.id)}">Text</button><button class="btn sm" data-recrm="${esc(r.id)}" aria-label="Remove ${esc(r.name)}">✕</button>
+      <pre data-rectext="${esc(r.id)}" hidden style="flex-basis:100%;white-space:pre-wrap;max-height:240px;overflow:auto;font-size:13px">${esc(r.text||'')}</pre></li>`).join('')}</ul>`:''}
+    <label class="btn" for="pfRecFile" style="cursor:pointer">Upload a letter</label><input type="file" id="pfRecFile" accept=".pdf,.txt,.md,application/pdf,text/plain" multiple hidden>
+    <div id="pfRecMsg" class="found" aria-live="polite"></div></div>
   <div class="panel" id="pf-skills"><h2>Skills</h2><p class="hint">${p.skills.length} selected. Offers asking for a skill in the same family as yours get half credit.</p>
     ${p.skills.length?`<div class="skills" style="margin:4px 0 12px">${p.skills.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="true">${esc(n)}</button>`).join('')}</div>`:''}
     <details class="skfold" ${p.skills.length?'':'open'}><summary>${p.skills.length?'Add or remove skills':'Pick your skills'} · ${Object.keys(groups).length} families</summary>
@@ -2823,7 +2844,27 @@ function profilePage(){
   renderAts();$('#pfCv').addEventListener('input',()=>{clearTimeout(window._atsT);window._atsT=setTimeout(renderAts,600);});
   $('#pfCv').addEventListener('change',()=>setProfile({cv:$('#pfCv').value}));
   $('#pfFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;msg.textContent='Reading '+f.name+'…';
-    try{$('#pfCv').value=(await fileText(f)).replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();readCv();}catch(x){msg.textContent=x.message||'Could not read that file.';}e.target.value='';});
+    try{$('#pfCv').value=(await fileText(f)).replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();readCv();
+      // Keep the original file too: it is what gets attached when you apply.
+      try{await saveDoc('cv',f);setProfile({cvDoc:{name:f.name,size:f.size}});}catch(x){}
+    }catch(x){msg.textContent=x.message||'Could not read that file.';}e.target.value='';});
+  // Recommendation letters: text into the profile (for the cover letters), the file into your documents (to attach).
+  const recMsg=$('#pfRecMsg');
+  $('#pfRecFile').addEventListener('change',async e=>{const files=[...e.target.files];e.target.value='';
+    for(const f of files){recMsg.textContent='Reading '+f.name+'…';
+      try{const text=(await fileText(f)).replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+        if(text.split(/\s+/).length<40)throw new Error(f.name+': no readable text (a scanned PDF needs OCR first).');
+        const id='rec-'+uid();await saveDoc(id,f);
+        setProfile({recs:[...(prof().recs||[]),{id,name:f.name,from:refereeOf(text),text:text.slice(0,15000),size:f.size,added:Date.now()}]});
+        recMsg.textContent='Added '+f.name+'.';}
+      catch(x){recMsg.textContent=x.message||'Could not read '+f.name+'.';}}
+    profilePage();});
+  $('#pf-recs').addEventListener('click',async e=>{const v=e.target.closest('[data-recview]');if(v){const pre=$(`[data-rectext="${v.dataset.recview}"]`);pre.hidden=!pre.hidden;return;}
+    const rm=e.target.closest('[data-recrm]');if(!rm)return;const r=(prof().recs||[]).find(x=>x.id===rm.dataset.recrm);if(!r||!confirm('Remove '+r.name+'?'))return;
+    try{await api('/api/state?doc='+encodeURIComponent(r.id),{method:'DELETE'});}catch(x){}
+    setProfile({recs:prof().recs.filter(x=>x.id!==r.id)});profilePage();});
+  $('#pf-recs').addEventListener('change',e=>{const i=e.target.closest('[data-recfrom]');if(!i)return;
+    setProfile({recs:prof().recs.map(r=>r.id===i.dataset.recfrom?Object.assign({},r,{from:i.value.trim()}):r)});});
   $('#view').querySelector('.fams').addEventListener('click',e=>{const b=e.target.closest('[data-skill]');if(!b)return;const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);
     const s=new Set(prof().skills);on?s.add(b.dataset.skill):s.delete(b.dataset.skill);setProfile({skills:[...s]});});
   $('#pfExtra').addEventListener('change',e=>setProfile({extra:listVal(e.target.value).map(x=>x.toLowerCase())}));
