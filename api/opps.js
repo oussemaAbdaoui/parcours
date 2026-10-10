@@ -19,6 +19,14 @@ module.exports = async (req, res) => {
   const u = upstash();
   if (!u) return res.status(501).json({ error: 'Storage is not configured. Add Upstash Redis in Vercel.' });
   res.setHeader('Cache-Control', 'no-store');
+  // One-click applications: what the PC apply worker (collector/apply_worker.py) did with each offer you sent it,
+  // in the hash parcours:applylog (offer id -> {status: applied|needs_you|failed, at, missing, note}).
+  if ((req.query || {}).set === 'applylog') {
+    const out = await redis(u, ['HGETALL', 'parcours:applylog']).catch(() => null);
+    const flat = (out && out.result) || [], log = {};
+    for (let i = 0; i < flat.length; i += 2) { try { log[flat[i]] = JSON.parse(flat[i + 1]); } catch (e) { /* skip */ } }
+    return res.status(200).json({ log });
+  }
   if ((req.query || {}).set === 'masters') {
     if (notModified(req, res, ['m', ...await version(u, [['GET', 'parcours:masters:meta'], ['HLEN', 'parcours:masters:items']])])) return;
     return masters(u, res);
