@@ -37,5 +37,6 @@ jobs:
           POLI_EMAIL: ${{ secrets.POLI_EMAIL }}
           POLI_PASSWORD: ${{ secrets.POLI_PASSWORD }}
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PYTHONUNBUFFERED: "1"
         run: python collector/collect.py ${{ (inputs.dry_run || secrets.UPSTASH_REDIS_REST_URL == '') && '--dry-run' || '' }}

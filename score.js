@@ -396,6 +396,16 @@
     }
     return { discs: [...discs], others: [...others], open };
   }
+  // Requirements read by Claude at collection (collector/requirements.py, stored as offer.req): exact matching.
+  const REQ_FIELD = { cs: ['computer_science', 'data_ai'], math: ['mathematics_statistics', 'data_ai'], ee: ['electrical_electronics'],
+    mech: ['mechanical_materials'], phys: ['physics'], chem: ['chemistry'], bio: ['life_sciences'], biz: ['business_economics_law'] };
+  const REQ_FIELD_NAME = { computer_science: 'computer science', data_ai: 'AI or data science', mathematics_statistics: 'mathematics or statistics',
+    electrical_electronics: 'electrical engineering', mechanical_materials: 'mechanics or materials', civil_transport: 'civil or transport engineering',
+    physics: 'physics', chemistry: 'chemistry', life_sciences: 'life sciences', business_economics_law: 'business, economics or law', other: 'another field' };
+  const REQ_LEVEL = { none: 0, bachelor: 2, master: 3, phd: 4 };
+  const REQ_LANG = { basic: 2, good: 3, fluent: 4, native: 5 };
+  const REQ_SENIORITY = { entry: 1, mid: 2, senior: 3, lead: 4 };
+  const quote = (R) => (R && R.evidence ? ` ("${R.evidence.slice(0, 140)}")` : '');
   function myDisciplines(p) {
     const own = disciplinesIn(norm((p.degree && p.degree.field) || ''));
     if (own.length) return own;
@@ -665,10 +675,15 @@
       parts.role = { v: clamp(0.15 + 0.85 * v), known: tw.length > 0, note: hitW.length || hitS.length ? `Title matches: ${[...new Set([...hitW, ...hitS])].slice(0, 4).join(', ')}` : 'Title outside your roles and fields' };
     }
 
-    // 3. Seniority
-    const lv = offerLevel(body, offer.title || "");
+    // 3. Seniority (years and level from Claude's reading when the offer has one, else from the text)
+    const R = offer.req && offer.req.v ? offer.req : null;
+    let lv = offerLevel(body, offer.title || "");
     let tooSenior = false;
-    const asked = offerYears(body), mineY = p.years ?? 0;
+    let asked = offerYears(body);
+    const mineY = p.years ?? 0;
+    if (R && R.min_years >= 0) asked = R.min_years === 0 ? { min: 0, max: null, label: 'Entry level' } : { min: R.min_years, max: null, label: `${R.min_years}+ years` };
+    if (R && R.seniority === 'intern') lv = { ...lv, lvl: 0, label: 'Internship' };
+    else if (R && REQ_SENIORITY[R.seniority] && lv.lvl == null) lv = { ...lv, lvl: REQ_SENIORITY[R.seniority], label: R.seniority === 'entry' ? 'Entry level' : R.seniority };
     if (offer.kind === 'phd' || offer.kind === 'master') parts.seniority = { v: mineY <= 4 ? 1 : 0.7, known: true, note: offer.kind === 'phd' ? 'PhD position' : "Master's programme" };
     else if (asked && lv.lvl !== 0) {
       // Years stated in the offer: compare them exactly with yours (the strongest signal of what the job expects).
@@ -691,7 +706,12 @@
     // 4. Education
     // Postdocs, professorships and lecturer posts need a PhD even when the collector filed them with PhD offers;
     // PhD positions themselves ask for a master's (their texts say "PhD in ..." about the job, not the candidate).
-    const need = NEEDS_PHD_TITLE.test(title) ? 4 : offer.kind === 'phd' ? 3 : offerDegree(body, offer.title), mineD = (p.degree && p.degree.level) || 0;
+    let need = NEEDS_PHD_TITLE.test(title) ? 4 : offer.kind === 'phd' ? 3 : offerDegree(body, offer.title);
+    const mineD = (p.degree && p.degree.level) || 0;
+    if (R && !NEEDS_PHD_TITLE.test(title)) {
+      const n = R.degree_level === 'phd' ? (R.degree_strict ? 4 : 3.5) : REQ_LEVEL[R.degree_level] || 0;
+      if (offer.kind !== 'phd' || n >= 3.5) need = n || (offer.kind === 'phd' ? 3 : 0);
+    }
     const needName = need === 3.5 ? 'a PhD (or equivalent experience)' : DEGREE_NAME[need];
     if (!need) parts.education = { v: 0.5, known: false, note: 'No degree stated' };
     else if (!mineD) parts.education = { v: 0.5, known: false, note: `Asks ${needName}, add your degree in Profile` };
@@ -700,7 +720,16 @@
     // The degree's discipline: a degree in another field rules the offer out unless it accepts related fields.
     let wrongDegree = false;
     const fieldAsked = degreeFieldAsked(body), mineF = myDisciplines(p);
-    if ((fieldAsked.discs.length || fieldAsked.others.length) && mineF.length
+    if (R) {
+      // Claude's reading: the fields the degree must be in, compared exactly with yours (no neighbouring field counts).
+      const ok = new Set(mineF.flatMap((d) => REQ_FIELD[d] || []));
+      const fields = R.degree_fields || [];
+      if (fields.length && ok.size && !fields.some((f) => ok.has(f))) {
+        const names = [...new Set(fields.map((f) => REQ_FIELD_NAME[f] || f))].join(', ');
+        if (R.degree_fields_open) parts.education = { v: Math.min(parts.education.v, 0.35), known: true, note: `Asks a degree in ${names} or a related field${quote(R)}` };
+        else { parts.education = { v: 0.05, known: true, note: `Asks a degree in ${names}, not your field${quote(R)}` }; wrongDegree = true; }
+      }
+    } else if ((fieldAsked.discs.length || fieldAsked.others.length) && mineF.length
         && !fieldAsked.discs.some((d) => mineF.some((m) => (NEAR[m] || [m]).includes(d)))) {
       const names = [...fieldAsked.discs.map((d) => DISC_NAME[d]), ...fieldAsked.others].join(', ');
       if (fieldAsked.open) parts.education = { v: Math.min(parts.education.v, 0.35), known: true, note: `Asks a degree in ${names} or a related field` };
@@ -708,7 +737,8 @@
     }
 
     // 5. Languages
-    const needL = offerLanguages(body), langs = p.languages || {};
+    const needL = R ? Object.fromEntries((R.languages || []).filter((l) => l.required && ['en', 'fr', 'de'].includes(l.lang)).map((l) => [l.lang, REQ_LANG[l.level] || 3]))
+      : offerLanguages(body), langs = p.languages || {};
     const needs = Object.entries(needL);
     const names = { en: 'English', fr: 'French', de: 'German' };
     if (!needs.length) parts.languages = { v: 0.5, known: false, note: 'No language requirement found' };
@@ -726,7 +756,10 @@
     if (!remote && p.remote === 'yes') place -= 0.2;
     const needVisa = p.visa && p.visa[at.c];
     let visaNote = '';
-    if (needVisa) {
+    if (needVisa && R && R.work_auth !== 'none') {
+      if (R.work_auth === 'sponsorship_available') { place = Math.min(1, place + 0.2); visaNote = ', visa or relocation offered'; }
+      else { place -= 0.45; visaNote = ', work permit restriction'; }
+    } else if (needVisa) {
       if (/\b(visa (sponsor\w*|support|assistance)|sponsorship|relocation|we sponsor|aide a la relocalisation|visum)\b/.test(body)) { place = Math.min(1, place + 0.2); visaNote = ', visa or relocation offered'; }
       else if (/\b(eu citizens?|eu passport|right to work|work permit required|must be authori[sz]ed|nationalite (francaise|europeenne)|citoyen europeen|security clearance|habilitation)\b/.test(body)) { place -= 0.45; visaNote = ', work permit restriction'; }
     }
@@ -775,7 +808,10 @@
     const d = new Date(now), gy = p.degree && p.degree.year;
     const graduated = !!gy && (d.getFullYear() > gy || (d.getFullYear() === gy && d.getMonth() >= 8));
     const canIntern = p.internships === 'yes' || (p.internships !== 'no' && !graduated);
-    if (lv.lvl === 0 && offer.kind !== 'phd' && !canIntern) blockers.push('Internship needs student status');
+    // Offers for students currently enrolled at a given level ("pursuing a PhD"), from Claude's reading.
+    if (R && R.enrollment === 'phd' && !p.phdStudent) blockers.push('For current PhD students');
+    else if (R && R.enrollment !== 'none' && !canIntern) blockers.push('Reserved for current students');
+    else if (lv.lvl === 0 && offer.kind !== 'phd' && !canIntern) blockers.push('Internship needs student status');
     // Jobs reserved for current students (student assistant, Werkstudent, "currently enrolled"), same rule.
     else if (offer.kind !== 'phd' && !canIntern && /\b(currently enrolled|must be (?:a |an )?(?:current |enrolled )?students?|enrolled (?:in|at) (?:a |an )?(?:university|bachelor|master)|student assistant|working student|werkstudent\w*|studentische (?:hilfskraft|mitarbeiter)|job etudiant|etudiant\w* en (?:cours|derniere annee)|en cours de (?:formation|cursus)|immatrikuliert)\b/.test(body)) blockers.push('Reserved for current students');
     if ((p.exclude || []).some((w) => w && termIn(w, norm(offer.title + ' ' + (offer.org || ''))))) blockers.push('Matches your exclusions');

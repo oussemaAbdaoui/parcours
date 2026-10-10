@@ -374,6 +374,9 @@ def main():
         steps += [("Company reviews", lambda: company_ratings(everything, store))]
     elif not home:
         steps += [("Company reviews", lambda: company_ratings(items, store, limit=0))]
+    # What each offer asks of the candidate, read once by Claude once its full description is in (dealbreakers below use it).
+    import requirements
+    steps += [("Requirements", lambda: requirements.extract(items))]
     for name, fn in steps:
         try:
             n, err = fn()
