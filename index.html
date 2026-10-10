@@ -1363,6 +1363,8 @@ let timer=null, saving=false, dirty=false, pulled=false;
 try{const s=localStorage.getItem(LKEY);if(s)state=Object.assign(emptyState(),JSON.parse(s));}catch(e){}
 const stat=k=>state.status[k]||'todo';
 const hasData=s=>s.apps.length||s.journal.length||Object.keys(s.status).length||Object.keys(s.notes).length;
+// Anything worth keeping, profile and lists included: the sync safeguards use this (hasData is narrower).
+const anyData=s=>['apps','journal','saved','searches','feeds','queue','contacts'].some(k=>(s[k]||[]).length)||Object.keys(s.status||{}).length>0||Object.keys(s.notes||{}).length>0||Object.keys(s.profile||{}).length>0;
 const getPw=()=>{try{return localStorage.getItem(PWKEY)||'';}catch(e){return '';}};
 function setSync(m){setTimeout(()=>{const a=$('#sync'),b=$('#sync2');if(a&&b){b.className=a.className;b.textContent=a.textContent;}},0);const el=$('#sync');if(!el)return;el.className='syncl'+(m==='saved'?' on':m==='error'?' err':'');el.textContent={saving:'Saving…',saved:'Synced',local:'Saved on this device only',error:'Sync failed, saved on this device'}[m]||'';}
 function persistLocal(){try{localStorage.setItem(LKEY,JSON.stringify(state));}catch(e){}}
@@ -1444,9 +1446,18 @@ async function pull(){
     if(demo)return;
     if(!r||!r.state){if(hasData(state)){dirty=true;flush();}else setSync('saved');return;}
     const remote=Object.assign(emptyState(),r.state),remoteSnap=snapshotOf(remote);
+    // The server lost its data (or was emptied) while this device still has it: send this device's copy back
+    // instead of adopting the empty one, which would erase the last copy.
+    if(!anyData(remote)&&anyData(state)){synced=remoteSnap;persistSynced();dirty=true;flush();return;}
     // Edits made here and not yet confirmed survive the download. With no confirmed copy yet (first sync on
-    // this device), local data that is newer than the server's counts as such an edit.
-    const pend=synced?diffSince(synced):((state.updatedAt||0)>(remote.updatedAt||0)?diffSince(remoteSnap):null);
+    // this device), only additions count: a new device never deletes or overwrites what the server has, however
+    // recent its own (often empty) data is.
+    let pend=null;
+    if(synced)pend=diffSince(synced);
+    else if((state.updatedAt||0)>(remote.updatedAt||0)&&anyData(state)){
+      const d=diffSince(remoteSnap);
+      pend={items:d.items.filter(it=>it.data!=null),settings:d.settings.filter(x=>{const cur=remote[x.k];return cur==null||(typeof cur==='object'&&!Object.keys(cur).length);}),cur:d.cur};
+    }
     const before=JSON.stringify(snapshotOf(state));
     if(pend)applyPending(remote,pend);
     state=remote;synced=remoteSnap;persistSynced();persistLocal();

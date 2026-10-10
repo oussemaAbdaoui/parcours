@@ -142,6 +142,18 @@ module.exports = async (req, res) => {
       const changes = body.changes || (body.state && Array.isArray(body.state.apps) ? asChanges(body.state, body.state.updatedAt || Date.now()) : null);
       if (!changes) return res.status(400).json({ error: 'Invalid data.' });
       if (JSON.stringify(changes).length > 2_000_000) return res.status(413).json({ error: 'Too many changes at once.' });
+      // Never let one save wipe the data: a device with an empty or stale copy once deleted everything this way.
+      // Refused: deleting 10+ items that are over 40% of what is stored, or blanking a profile that has content.
+      const dels = (changes.items || []).filter((it) => it && it.data == null).length;
+      if (dels >= 10) {
+        const n = Number((await pool.query('select count(*) from items where not deleted')).rows[0].count);
+        if (dels > 0.4 * n) return res.status(409).json({ error: `Refused: this save would delete ${dels} of your ${n} items at once.` });
+      }
+      const prof = (changes.settings || []).find((s) => s && s.k === 'profile');
+      if (prof && (!prof.data || !Object.keys(prof.data).length)) {
+        const cur = (await pool.query("select data from settings where key = 'profile'")).rows[0];
+        if (cur && cur.data && Object.keys(cur.data).length) return res.status(409).json({ error: 'Refused: this save would erase your profile.' });
+      }
       await apply(pool, changes);
       const state = await load(pool);
       await mirror(u, state).catch(() => {}); // the collectors' copy; never fail a save over it
