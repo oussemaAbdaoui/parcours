@@ -1945,10 +1945,19 @@ function applyReady(kind){
   if(!p.cvDoc)miss.push('your CV file (Profile, CV: upload it)');
   if(!(p.name||cvName()))miss.push('your name');
   if(!a.email)miss.push('your email (Profile, Applying)');
+  if(kind==='email'&&gmailInfo&&!gmailInfo.loading&&!gmailInfo.canSend)miss.push(gmailInfo.connected?'Gmail send permission (Applications, Scan Gmail: reconnect)':'Gmail (Applications, Scan Gmail: connect)');
   if(kind==='form')['phone','linkedin','workAuth'].forEach(k=>{if(!a[k])miss.push(APPLY_FIELDS.find(f=>f[0]===k)[1].toLowerCase()+' (Profile, Applying)');});
   return miss;
 }
 const sourceOn=s=>((prof().applySources||{})[s]||{}).enabled!==false;
+// Gmail status for sending applications (loaded once per visit to the queue).
+let gmailInfo=null;
+async function loadGmailInfo(){gmailInfo={loading:true};try{gmailInfo=await api('/api/gmail');}catch(e){gmailInfo={configured:false};}}
+const canEmail=()=>!!(gmailInfo&&gmailInfo.canSend);
+// The email that carries an application: subject in the offer's language, your letter as the body, and your
+// documents attached (CV file and recommendation letters, as uploaded in Profile).
+function mailSubject(q){const fr=offerLang(q)==='fr',role=q.titleL||cleanTitle(q.title,q.kind,offerLang(q))||q.title;return (fr?'Candidature : ':'Application: ')+role;}
+function mailDocs(){const p=prof();return [...(p.cvDoc?[{id:'cv',name:p.cvDoc.name}]:[]),...(p.recs||[]).map(r=>({id:r.id,name:r.name}))];}
 // Your name: set in the queue's templates, else the capitalised words that open your CV's first line (a PDF paste
 // is one long line), stopping before a job title such as "AI Engineer".
 const TITLE_WORD=/^(ai|ia|ml|data|software|machine|deep|backend|frontend|full|fullstack|senior|junior|engineer|engineering|ingénieur|ingenieur|developer|développeur|developpeur|student|étudiant|etudiant|researcher|chercheur|scientist|analyst|intern|stagiaire|phd|msc|curriculum|resume|résumé|cv)$/i;
@@ -2101,6 +2110,23 @@ function queuePage(){
     ${LETTER_KEYS.map(([k,l])=>`<label class="lab" for="qT-${k}" style="margin-top:12px">${l}</label><textarea id="qT-${k}" rows="12">${esc((p.letters&&p.letters[k])||LETTER_DEFAULT[k])}</textarea>`).join("")}
     <div class="row" style="margin-top:10px"><button class="btn primary" id="qTSave">Save templates</button><button class="btn ghost" id="qTReset">Back to defaults</button><span class="hint" id="qTMsg"></span></div></details>`;
   const find=id=>L.find(q=>q.id===id),msgOf=id=>$(`[data-qmsg="${CSS.escape(id)}"]`);
+  // Email applications: Gmail status first (once), then the fields you edit and the Send button.
+  if(gmailInfo===null&&todo.some(q=>applyMethod(q).kind==='email'))loadGmailInfo().then(()=>{if(location.hash.startsWith('#/queue'))queuePage();});
+  document.querySelectorAll('[data-qto],[data-qsubj]').forEach(i=>i.addEventListener('input',()=>{const q=find(i.dataset.qto||i.dataset.qsubj);if(!q)return;
+    q[i.dataset.qto?'mailTo':'mailSubject']=i.value.trim();clearTimeout(tq);tq=setTimeout(save,600);}));
+  document.querySelectorAll('[data-qatt]').forEach(c=>c.addEventListener('change',()=>{const q=find(c.dataset.qatt);if(!q)return;
+    q.attach=[...document.querySelectorAll(`[data-qatt="${CSS.escape(q.id)}"]:checked`)].map(x=>x.value);save();}));
+  document.querySelectorAll('[data-qsend]').forEach(b=>b.addEventListener('click',async()=>{const q=find(b.dataset.qsend);if(!q)return;const am=applyMethod(q),msg=msgOf(q.id);
+    const to=q.mailTo||am.to.email,subject=q.mailSubject||mailSubject(q),text=$(`[data-qletter="${CSS.escape(q.id)}"]`).value.trim();
+    const att=q.attach||mailDocs().map(d=>d.id);
+    if(unfilled(text).length){msg.textContent='Fill the parts in [square brackets] first.';return;}
+    if(!confirm(`Send this application to ${to}?\n\nSubject: ${subject}\nAttachments: ${att.length?mailDocs().filter(d=>att.includes(d.id)).map(d=>d.name).join(', '):'none'}`))return;
+    b.disabled=true;msg.textContent='Sending…';
+    try{const r=await api('/api/gmail',{method:'POST',body:JSON.stringify({action:'send',to,toName:(am.to&&am.to.name)||'',subject,text,attachments:att})});
+      addOrUpdate({id:uid(),org:q.org||q.source,role:q.title,c:cById(q.c)?q.c:'fr',d:DOM[q.kind]?q.kind:'job',p:q.source,date:today(),stage:'applied',result:'open',link:safeUrl(q.url),
+        notes:`Sent by email to ${to} from the apply queue${r.attached&&r.attached.length?' with '+r.attached.join(', '):''}.`});
+      q.status='sent';q.doneAt=Date.now();q.sentBy='email';q.letter=text;save();queuePage();}
+    catch(e){b.disabled=false;msg.textContent=errText(e,{},'Could not send it.');if(e&&(e.code==='need_send'||e.code==='not_connected'))gmailInfo=null;}}));
   document.querySelectorAll('[data-srcon]').forEach(c=>c.addEventListener('change',()=>{const all=Object.assign({},prof().applySources||{});
     all[c.dataset.srcon]=Object.assign({},all[c.dataset.srcon]||{},{enabled:c.checked});setProfile({applySources:all});}));
   let tq=null;
@@ -2137,6 +2163,13 @@ function qCard(q){
     <label class="lab" for="ql-${id}" style="margin-top:12px">Cover letter${q.letter?' (edited by you)':''}</label>
     <textarea id="ql-${id}" data-qletter="${id}" rows="12">${esc(q.letter||letterFor(q))}</textarea>
     <p class="qtodo" data-qtodo="${id}">${(()=>{const u=unfilled(q.letter||letterFor(q));return u.length?`Still to fill before sending: ${u.map(esc).join(', ')}`:'';})()}</p>
+    ${(()=>{const am=applyMethod(q);if(am.kind!=='email')return '';const docs=mailDocs(),att=q.attach||docs.map(d=>d.id);
+      return `<div class="panel" style="margin:10px 0 0;padding:12px 14px;background:var(--canvas,transparent)"><b>✉ Email application</b> <span class="hint" style="margin:0">your letter is the email body; nothing is sent until you press Send</span>
+      <div class="g3" style="margin-top:8px"><div><label class="lab" for="qto-${id}">To</label><input type="email" id="qto-${id}" data-qto="${id}" value="${esc(q.mailTo||am.to.email)}"></div>
+        <div style="grid-column:span 2"><label class="lab" for="qsu-${id}">Subject</label><input type="text" id="qsu-${id}" data-qsubj="${id}" value="${esc(q.mailSubject||mailSubject(q))}"></div></div>
+      <div class="row" style="margin-top:8px;gap:14px">${docs.length?docs.map(d=>`<label class="sc"><input type="checkbox" data-qatt="${id}" value="${esc(d.id)}" ${att.includes(d.id)?'checked':''}> 📎 ${esc(d.name)}</label>`).join(''):'<span class="hint" style="margin:0">No documents to attach: upload your CV file and letters in Profile.</span>'}</div>
+      <div class="row" style="margin-top:8px"><button class="btn primary" data-qsend="${id}" ${canEmail()?'':'disabled'} title="${canEmail()?'Send this application from your Gmail':'Connect Gmail with send permission first (Applications, Scan Gmail)'}">Send email</button>
+        ${canEmail()?'':`<a class="hint" href="#/apps" style="margin:0">Connect Gmail to send →</a>`}</div></div>`;})()}
     <div class="row" style="margin-top:10px">${u?`<a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open offer</a>`:''}
       <button class="btn" data-qcopy="${id}">Copy letter</button><button class="btn" data-qai="${id}" title="${caps.ai?'Claude rewrites the letter for this offer':'Needs ANTHROPIC_API_KEY in Vercel'}">Improve with AI</button>${q.letter?`<button class="btn ghost" data-qreset="${id}">Regenerate</button>`:''}
       <button class="btn" data-qsent="${id}">Sent</button><button class="btn ghost" data-qskip="${id}">Skip</button><span class="hint" data-qmsg="${id}"></span></div></article>`;
