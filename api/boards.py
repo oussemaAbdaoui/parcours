@@ -34,9 +34,9 @@ SITES = {"indeed": "indeed", "linkedin": "linkedin", "glassdoor": "glassdoor", "
          "zip_recruiter": "zip_recruiter", "bayt": "bayt"}
 # Indeed and Glassdoor need a country; Tunisia is not one of theirs.
 COUNTRY = {"fr": "france", "de": "germany", "ca": "canada", "ch": "switzerland", "gl": "usa", "be": "belgium", "nl": "netherlands",
-           "lu": "luxembourg", "se": "sweden", "dk": "denmark", "fi": "finland", "no": "norway", "ma": "morocco"}
+           "lu": "luxembourg", "se": "sweden", "dk": "denmark", "fi": "finland", "no": "norway", "ma": "morocco", "ie": "ireland"}
 COUNTRY_NAME = {"fr": "France", "de": "Germany", "ca": "Canada", "ch": "Switzerland", "tn": "Tunisia", "be": "Belgium",
-                "nl": "Netherlands", "lu": "Luxembourg", "se": "Sweden", "dk": "Denmark", "fi": "Finland", "no": "Norway", "ma": "Morocco"}
+                "nl": "Netherlands", "lu": "Luxembourg", "se": "Sweden", "dk": "Denmark", "fi": "Finland", "no": "Norway", "ma": "Morocco", "ie": "Ireland"}
 JOB_TYPES = {"fulltime", "parttime", "internship", "contract"}
 REMOTE = re.compile(r"remote|télétravail|teletravail|homeoffice|home office", re.I)
 

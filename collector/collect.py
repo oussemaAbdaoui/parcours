@@ -43,7 +43,8 @@ GENERIC = {"engineer", "engineering", "developer", "developpeur", "développeur"
 SITES = {"fr": ["indeed", "linkedin"], "de": ["indeed", "linkedin"], "ca": ["indeed", "linkedin"],
          "ch": ["indeed", "linkedin"], "tn": ["linkedin"], "gl": ["indeed", "linkedin"], "be": ["indeed", "linkedin"],
          "nl": ["indeed", "linkedin"], "lu": ["indeed", "linkedin"], "se": ["indeed", "linkedin"], "dk": ["indeed", "linkedin"],
-         "fi": ["indeed", "linkedin"], "no": ["indeed", "linkedin"], "ma": ["indeed", "linkedin"]}
+         "fi": ["indeed", "linkedin"], "no": ["indeed", "linkedin"], "ma": ["indeed", "linkedin"],
+         "ie": ["indeed", "linkedin"]}
 LABEL = {"indeed": "Indeed", "linkedin": "LinkedIn", "google": "Google Jobs", "glassdoor": "Glassdoor"}
 
 
@@ -166,7 +167,7 @@ PROFILE_QUERIES = [
     ({"backend", "rest api", "fastapi", "django", "spring", "node.js"}, "backend developer"),
 ]
 LOCATIONS = {"fr": "Paris", "de": "Berlin", "ca": "Montreal", "ch": "Zurich", "tn": "Tunis", "gl": "Remote", "be": "Brussels",
-             "nl": "Amsterdam", "lu": "Luxembourg", "se": "Stockholm", "dk": "Copenhagen", "fi": "Helsinki", "no": "Oslo", "ma": "Casablanca"}
+             "nl": "Amsterdam", "lu": "Luxembourg", "se": "Stockholm", "dk": "Copenhagen", "fi": "Helsinki", "no": "Oslo", "ma": "Casablanca", "ie": "Dublin"}
 # French titles find offers the English ones miss in French-speaking markets.
 FRENCH_QUERIES = {"fr": ["ingénieur IA", "développeur IA"], "tn": ["ingénieur IA", "développeur IA"], "ch": ["ingénieur IA"],
                   "be": ["ingénieur IA"], "lu": ["ingénieur IA"], "ma": ["ingénieur IA", "développeur IA"]}

@@ -597,6 +597,7 @@
     ['fi', /\b(finland|suomi|finlande|helsinki|espoo|tampere|turku|oulu|vantaa)\b/],
     ['no', /\b(norway|norge|norvege|oslo|bergen|trondheim|stavanger)\b/],
     ['ma', /\b(morocco|maroc|casablanca|rabat|marrakech|marrakesh|tangier|tanger|fes|fez|agadir|benguerir|ben guerir)\b/],
+    ['ie', /\b(ireland|irlande|irland|dublin|cork|galway|limerick)\b/],
   ];
   const WORLDWIDE = /\b(anywhere|worldwide|global|international|emea|europe|africa|mena)\b/;
   const ABROAD_SOURCES = { 'jobs.ac.uk': 'United Kingdom' }; // its location field holds only the town

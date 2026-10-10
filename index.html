@@ -1289,6 +1289,17 @@ const COUNTRIES = [
     ['Emploi.ma','https://www.emploi.ma','Job board',2,'Large Moroccan board.']],
    master:[['UM6P','https://um6p.ma','Direct contact',2,'Mohammed VI Polytechnic University.']],
    phd:[['UM6P PhD','https://um6p.ma','Direct contact',2,'Funded PhD positions in AI.']]}},
+ {id:'ie', name:'Ireland', flag:'🇮🇪',
+  edge:'English-speaking, European HQs of Google, Meta, Microsoft and many AI teams in Dublin.',
+  gap:'High rents in Dublin; the Critical Skills permit needs a job offer above a salary threshold.',
+  notes:{job:'Critical Skills Employment Permit roles (ICT, data, AI) lead to residence after two years.',
+   master:'Trinity, UCD and University of Galway teach AI and data master\'s in English.',
+   phd:'SFI centres such as ADAPT and Insight fund AI PhDs.'},
+  p:{job:[['LinkedIn','https://www.linkedin.com/jobs','Network',3,'Most Dublin tech jobs are posted here.'],
+    ['IrishJobs','https://www.irishjobs.ie','Job board',2,'Main Irish board.'],
+    ['Critical Skills list','https://enterprise.gov.ie/en/what-we-do/workplace-and-skills/employment-permits/','Official portal',2,'Which roles qualify for the permit.']],
+   master:[['Education in Ireland','https://www.educationinireland.com','Official portal',2,'Programmes and scholarships.']],
+   phd:[['ADAPT Centre','https://www.adaptcentre.ie','Research network',3,'AI and digital content PhDs.']]}},
  {id:'gl', name:'Remote / Global', flag:'🌍',
   edge:'Your GitHub projects (RAG, XAI, PaperLens) work anywhere.',
   gap:'Contracts, taxes and time zones need care.',
@@ -2105,16 +2116,16 @@ const SRC={
   francetravail:{label:'France Travail',c:['fr']},
   arbeitsagentur:{label:'Arbeitsagentur Jobbörse',c:['de']},
   arbeitnow:{label:'Arbeitnow',c:['de','ch','gl']},
-  jooble:{label:'Jooble',c:['fr','de','ca','tn','ch','gl','be','nl','lu','se','dk','fi','no','ma']},
+  jooble:{label:'Jooble',c:['fr','de','ca','tn','ch','gl','be','nl','lu','se','dk','fi','no','ma','ie']},
   remotive:{label:'Remotive',c:['gl'],remote:true},
   remoteok:{label:'RemoteOK',c:['gl'],remote:true},
-  indeed:{label:'Indeed',c:['fr','de','ca','ch','gl','be','nl','lu','se','dk','fi','no','ma']},
-  linkedin:{label:'LinkedIn',c:['fr','de','ca','ch','tn','gl','be','nl','lu','se','dk','fi','no','ma']},
+  indeed:{label:'Indeed',c:['fr','de','ca','ch','gl','be','nl','lu','se','dk','fi','no','ma','ie']},
+  linkedin:{label:'LinkedIn',c:['fr','de','ca','ch','tn','gl','be','nl','lu','se','dk','fi','no','ma','ie']},
   glassdoor:{label:'Glassdoor',c:['fr','de','ca','ch']}
 };
 // Served by api/boards.py (JobSpy). Slower and can be rate-limited, so saved searches leave them to the collector.
 const PY=['indeed','linkedin','glassdoor'];
-const LOC={fr:'Paris',de:'Berlin',ca:'Montréal',tn:'Tunis',ch:'Zurich',gl:'Remote',be:'Brussels',nl:'Amsterdam',lu:'Luxembourg',se:'Stockholm',dk:'Copenhagen',fi:'Helsinki',no:'Oslo',ma:'Casablanca'};
+const LOC={fr:'Paris',de:'Berlin',ca:'Montréal',tn:'Tunis',ch:'Zurich',gl:'Remote',be:'Brussels',nl:'Amsterdam',lu:'Luxembourg',se:'Stockholm',dk:'Copenhagen',fi:'Helsinki',no:'Oslo',ma:'Casablanca',ie:'Dublin'};
 const JTYPES=[['','Any type'],['fulltime','Full-time'],['internship','Internship'],['contract','Contract'],['parttime','Part-time']];
 const ACAD=[['Inria doctoral offers','https://jobs.inria.fr/public/classic/fr/offres?filtre=doctorants'],['ABG (France)','https://www.abg.asso.fr'],['Euraxess','https://euraxess.ec.europa.eu/jobs/search'],['DAAD PhDGermany','https://www.daad.de/en/study-and-research-in-germany/phd-studies-and-research-in-germany/'],['Academic Positions','https://academicpositions.com/jobs/position/phd/field/machine-learning'],['jobs.ac.uk','https://www.jobs.ac.uk/'],['ELLIS jobs','https://ellis.eu/jobs'],['Mila','https://mila.quebec']];
 let radar=null, radarFilter='all';
@@ -2140,7 +2151,7 @@ function statusLine(st){
 }
 function deepLinks(q){
   const k=encodeURIComponent(q.search||''),l=encodeURIComponent(q.location||''),sl=encodeURIComponent((q.search||'').trim().toLowerCase().replace(/\s+/g,'-'));
-  const ind={fr:'fr.indeed.com',de:'de.indeed.com',ca:'ca.indeed.com',ch:'ch.indeed.com',gl:'www.indeed.com',be:'be.indeed.com',nl:'nl.indeed.com',lu:'lu.indeed.com',se:'se.indeed.com',dk:'dk.indeed.com',fi:'fi.indeed.com',no:'no.indeed.com',ma:'ma.indeed.com'}[q.c];
+  const ind={fr:'fr.indeed.com',de:'de.indeed.com',ca:'ca.indeed.com',ch:'ch.indeed.com',gl:'www.indeed.com',be:'be.indeed.com',nl:'nl.indeed.com',lu:'lu.indeed.com',se:'se.indeed.com',dk:'dk.indeed.com',fi:'fi.indeed.com',no:'no.indeed.com',ma:'ma.indeed.com',ie:'ie.indeed.com'}[q.c];
   const L=[['LinkedIn',`https://www.linkedin.com/jobs/search/?keywords=${k}&location=${l}`],['Google Jobs',`https://www.google.com/search?q=${k}+jobs+${l}&ibp=htl;jobs`]];
   if(ind)L.push(['Indeed',`https://${ind}/jobs?q=${k}&l=${l}`]);
   const by={
