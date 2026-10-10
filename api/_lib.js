@@ -80,10 +80,13 @@ async function redis(u, args) {
 const aiOn = () => !!process.env.ANTHROPIC_API_KEY;
 
 // Calls the Anthropic Messages API. Throws { status, message } on failure.
-async function claude(prompt, { tier, maxTokens = 2000, ms = 28000 } = {}) {
+// Current models think before they answer, and the thinking counts against max_tokens: leave room for both, and
+// keep quick tasks (letter rewrites) at low effort so they think briefly.
+async function claude(prompt, { tier, maxTokens = 16000, ms = 55000 } = {}) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw { status: 503, message: 'Claude features are off. Add ANTHROPIC_API_KEY in Vercel.' };
-  const model = tier === 'quick'
+  const quick = tier === 'quick';
+  const model = quick
     ? (process.env.ANTHROPIC_MODEL_FAST || 'claude-haiku-5-5')
     : (process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5');
   const ctl = new AbortController();
@@ -92,11 +95,14 @@ async function claude(prompt, { tier, maxTokens = 2000, ms = 28000 } = {}) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', signal: ctl.signal,
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model, max_tokens: maxTokens, output_config: { effort: quick ? 'low' : 'medium' },
+        messages: [{ role: 'user', content: prompt }] })
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw { status: 502, message: (j.error && j.error.message) || 'Claude request failed (HTTP ' + r.status + ').' };
     const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+    if (j.stop_reason === 'refusal') throw { status: 502, message: 'Claude declined this request. Try rewording it.' };
+    if (!text && j.stop_reason === 'max_tokens') throw { status: 502, message: 'Claude ran out of room before answering. Try again with a shorter offer or CV.' };
     if (!text) throw { status: 502, message: 'Claude returned an empty answer.' };
     return text;
   } catch (e) {
