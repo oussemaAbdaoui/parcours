@@ -480,7 +480,10 @@ def we_work_remotely(keywords):
 # forbid automating. Once a day (the run after midnight UTC): two searches x your countries, one credit each.
 POST_PLACES = {"fr": ("fr", "(France OR Paris OR Lyon OR Toulouse)"), "de": ("de", "(Germany OR Deutschland OR Berlin OR München)"),
                "ca": ("ca", "(Canada OR Montréal OR Montreal OR Toronto)"), "ch": ("ch", "(Switzerland OR Suisse OR Schweiz OR Zürich OR Genève)"),
-               "tn": ("tn", "(Tunisie OR Tunisia OR Tunis OR Sfax)")}
+               "tn": ("tn", "(Tunisie OR Tunisia OR Tunis OR Sfax)"), "be": ("be", "(Belgium OR Belgique OR Brussels OR Bruxelles OR Antwerp)"),
+               "nl": ("nl", "(Netherlands OR Amsterdam OR Rotterdam OR Eindhoven OR Utrecht)"), "lu": ("lu", "(Luxembourg)"),
+               "se": ("se", "(Sweden OR Stockholm OR Gothenburg)"), "dk": ("dk", "(Denmark OR Copenhagen)"),
+               "fi": ("fi", "(Finland OR Helsinki)"), "no": ("no", "(Norway OR Oslo)"), "ma": ("ma", "(Maroc OR Morocco OR Casablanca OR Rabat)")}
 POST_COUNTRIES, POST_QUERIES = list(POST_PLACES), ["machine learning engineer", "AI engineer"]
 HIRING = '("hiring" OR "we\'re hiring" OR "je recrute" OR "nous recrutons" OR "on recrute" OR "wir suchen" OR "join our team")'
 
@@ -570,12 +573,20 @@ PLACES = {
     "ch": ("switzerland", "schweiz", "suisse", "zurich", "zürich", "geneva", "genève", "lausanne", "basel", "bern"),
     "ca": ("canada", "toronto", "montreal", "montréal", "vancouver", "ottawa", "québec", "quebec", "calgary", "waterloo", "ontario"),
     "tn": ("tunisia", "tunisie", "tunis", "sfax", "sousse"),
+    "be": ("belgium", "belgique", "brussels", "bruxelles", "antwerp", "ghent", "leuven", "liège", "liege"),
+    "nl": ("netherlands", "nederland", "amsterdam", "rotterdam", "the hague", "utrecht", "eindhoven", "delft"),
+    "lu": ("luxembourg",),
+    "se": ("sweden", "stockholm", "gothenburg", "göteborg", "malmö", "malmo", "lund"),
+    "dk": ("denmark", "copenhagen", "københavn", "aarhus"),
+    "fi": ("finland", "helsinki", "espoo", "tampere"),
+    "no": ("norway", "oslo", "bergen", "trondheim"),
+    "ma": ("morocco", "maroc", "casablanca", "rabat", "marrakech"),
 }
 _REMOTE = re.compile(r"\b(remote|anywhere|worldwide|global|télétravail)\b", re.I)
 _ELSEWHERE = re.compile(r"\b(us|usa|u\.s\.|united states|uk|united kingdom|london|india|brazil|latam|apac|asia|australia|"
-                        r"singapore|japan|new york|san francisco|americas?|seattle|austin|boston|chicago|belgium|spain|"
-                        r"barcelona|madrid|netherlands|amsterdam|italy|portugal|lisbon|poland|warsaw|ireland|dublin|"
-                        r"sweden|denmark|austria|vienna|bulgaria|israel|mexico|argentina|colombia|china|korea|dubai|uae|"
+                        r"singapore|japan|new york|san francisco|americas?|seattle|austin|boston|chicago|spain|"
+                        r"barcelona|madrid|italy|portugal|lisbon|poland|warsaw|ireland|dublin|"
+                        r"austria|vienna|bulgaria|israel|mexico|argentina|colombia|china|korea|dubai|uae|"
                         r"nyc|bay area|sf)\b", re.I)
 # Roles worth showing from sources that list every job a company has (sales, legal, HR... are left out).
 TECH_TITLE = re.compile(r"engineer|developer|scientist|research|machine learning|\bml\b|\bai\b|\bia\b|\bllm|data|software|"
@@ -683,7 +694,7 @@ def hn_hiring(keywords):
     return out
 
 
-FREEWORK_COUNTRIES = {"FR": "fr", "DE": "de", "CH": "ch", "CA": "ca", "TN": "tn"}
+FREEWORK_COUNTRIES = {"FR": "fr", "DE": "de", "CH": "ch", "CA": "ca", "TN": "tn", "BE": "be", "LU": "lu", "NL": "nl", "MA": "ma"}
 
 
 def free_work(keywords):
@@ -796,7 +807,9 @@ SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": 
             "Berlin Startup Jobs": berlin_startup_jobs, "Remote First Jobs": remote_first_jobs, "ETH Zurich": eth_zurich,
             "academics.de": academics_de}
 COUNTRY_WORDS = (("france", "fr"), ("germany", "de"), ("deutschland", "de"), ("switzerland", "ch"), ("schweiz", "ch"),
-                 ("suisse", "ch"), ("canada", "ca"), ("tunisia", "tn"), ("tunisie", "tn"))
+                 ("suisse", "ch"), ("canada", "ca"), ("tunisia", "tn"), ("tunisie", "tn"), ("belgium", "be"), ("belgique", "be"),
+                 ("netherlands", "nl"), ("luxembourg", "lu"), ("sweden", "se"), ("denmark", "dk"), ("finland", "fi"),
+                 ("norway", "no"), ("morocco", "ma"), ("maroc", "ma"))
 
 
 def _country(text):

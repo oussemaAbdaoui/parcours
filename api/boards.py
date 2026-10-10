@@ -33,8 +33,10 @@ Country.from_string = classmethod(_safe_from_string)
 SITES = {"indeed": "indeed", "linkedin": "linkedin", "glassdoor": "glassdoor", "google": "google",
          "zip_recruiter": "zip_recruiter", "bayt": "bayt"}
 # Indeed and Glassdoor need a country; Tunisia is not one of theirs.
-COUNTRY = {"fr": "france", "de": "germany", "ca": "canada", "ch": "switzerland", "gl": "usa"}
-COUNTRY_NAME = {"fr": "France", "de": "Germany", "ca": "Canada", "ch": "Switzerland", "tn": "Tunisia"}
+COUNTRY = {"fr": "france", "de": "germany", "ca": "canada", "ch": "switzerland", "gl": "usa", "be": "belgium", "nl": "netherlands",
+           "lu": "luxembourg", "se": "sweden", "dk": "denmark", "fi": "finland", "no": "norway", "ma": "morocco"}
+COUNTRY_NAME = {"fr": "France", "de": "Germany", "ca": "Canada", "ch": "Switzerland", "tn": "Tunisia", "be": "Belgium",
+                "nl": "Netherlands", "lu": "Luxembourg", "se": "Sweden", "dk": "Denmark", "fi": "Finland", "no": "Norway", "ma": "Morocco"}
 JOB_TYPES = {"fulltime", "parttime", "internship", "contract"}
 REMOTE = re.compile(r"remote|télétravail|teletravail|homeoffice|home office", re.I)
 

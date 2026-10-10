@@ -41,7 +41,9 @@ GENERIC = {"engineer", "engineering", "developer", "developpeur", "développeur"
 # JobSpy sites per app country (Indeed does not cover Tunisia). Google Jobs returns nothing to datacenter IPs,
 # so it is only offered in the app's live search.
 SITES = {"fr": ["indeed", "linkedin"], "de": ["indeed", "linkedin"], "ca": ["indeed", "linkedin"],
-         "ch": ["indeed", "linkedin"], "tn": ["linkedin"], "gl": ["indeed", "linkedin"]}
+         "ch": ["indeed", "linkedin"], "tn": ["linkedin"], "gl": ["indeed", "linkedin"], "be": ["indeed", "linkedin"],
+         "nl": ["indeed", "linkedin"], "lu": ["indeed", "linkedin"], "se": ["indeed", "linkedin"], "dk": ["indeed", "linkedin"],
+         "fi": ["indeed", "linkedin"], "no": ["indeed", "linkedin"], "ma": ["indeed", "linkedin"]}
 LABEL = {"indeed": "Indeed", "linkedin": "LinkedIn", "google": "Google Jobs", "glassdoor": "Glassdoor"}
 
 
@@ -163,9 +165,11 @@ PROFILE_QUERIES = [
     ({"data engineering", "spark", "sql"}, "data engineer"),
     ({"backend", "rest api", "fastapi", "django", "spring", "node.js"}, "backend developer"),
 ]
-LOCATIONS = {"fr": "Paris", "de": "Berlin", "ca": "Montreal", "ch": "Zurich", "tn": "Tunis", "gl": "Remote"}
+LOCATIONS = {"fr": "Paris", "de": "Berlin", "ca": "Montreal", "ch": "Zurich", "tn": "Tunis", "gl": "Remote", "be": "Brussels",
+             "nl": "Amsterdam", "lu": "Luxembourg", "se": "Stockholm", "dk": "Copenhagen", "fi": "Helsinki", "no": "Oslo", "ma": "Casablanca"}
 # French titles find offers the English ones miss in French-speaking markets.
-FRENCH_QUERIES = {"fr": ["ingénieur IA", "développeur IA"], "tn": ["ingénieur IA", "développeur IA"], "ch": ["ingénieur IA"]}
+FRENCH_QUERIES = {"fr": ["ingénieur IA", "développeur IA"], "tn": ["ingénieur IA", "développeur IA"], "ch": ["ingénieur IA"],
+                  "be": ["ingénieur IA"], "lu": ["ingénieur IA"], "ma": ["ingénieur IA", "développeur IA"]}
 AI_SKILLS = {"machine learning", "deep learning", "llm", "rag", "agents", "pytorch", "tensorflow", "nlp", "computer vision"}
 
 
@@ -326,7 +330,10 @@ def main():
         load_env(env)
     store = None if dry else Store()
     state = (store.get_json(STATE_KEY) if store else None) or {}
-    searches = [s for s in state.get("searches", []) if s.get("search")] or profile_searches(state)
+    searches = [s for s in state.get("searches", []) if s.get("search")]
+    # Countries in your profile with no saved search (one just added) get the searches built from your profile.
+    covered = {s.get("c") for s in searches}
+    searches += [s for s in profile_searches(state) if s["c"] not in covered] if searches else profile_searches(state)
     pwords, exclude = profile_terms(state)
     if home:
         # Your Tunisia searches plus the French defaults: Tanitjobs offers are mostly in French.

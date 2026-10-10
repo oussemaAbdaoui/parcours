@@ -589,6 +589,14 @@
     ['ca', /\b(canada|montreal|toronto|quebec|vancouver|ottawa|calgary|edmonton|waterloo)\b/],
     ['ch', /\b(switzerland|schweiz|suisse|zurich|geneva|geneve|lausanne|basel|bern|lugano)\b/],
     ['tn', /\b(tunisia|tunisie|tunis|sfax|sousse|ariana|monastir|nabeul|bizerte)\b/],
+    ['be', /\b(belgium|belgique|belgie|belgien|brussels|bruxelles|brussel|antwerp|anvers|antwerpen|ghent|gand|gent|leuven|louvain|liege|namur|mechelen|grimbergen|wavre|mons|charleroi|zaventem|flanders|wallonia|wallonie|vlaanderen)\b/],
+    ['nl', /\b(netherlands|nederland|pays.bas|holland|amsterdam|rotterdam|the hague|den haag|utrecht|eindhoven|delft|leiden|groningen|nijmegen|enschede|tilburg|breda)\b/],
+    ['lu', /\b(luxembourg|luxemburg|esch.sur.alzette|kirchberg|belval)\b/],
+    ['se', /\b(sweden|sverige|suede|stockholm|gothenburg|goteborg|malmo|uppsala|lund|linkoping)\b/],
+    ['dk', /\b(denmark|danmark|danemark|copenhagen|kobenhavn|copenhague|aarhus|odense|aalborg|lyngby)\b/],
+    ['fi', /\b(finland|suomi|finlande|helsinki|espoo|tampere|turku|oulu|vantaa)\b/],
+    ['no', /\b(norway|norge|norvege|oslo|bergen|trondheim|stavanger)\b/],
+    ['ma', /\b(morocco|maroc|casablanca|rabat|marrakech|marrakesh|tangier|tanger|fes|fez|agadir|benguerir|ben guerir)\b/],
   ];
   const WORLDWIDE = /\b(anywhere|worldwide|global|international|emea|europe|africa|mena)\b/;
   const ABROAD_SOURCES = { 'jobs.ac.uk': 'United Kingdom' }; // its location field holds only the town

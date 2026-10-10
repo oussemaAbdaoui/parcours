@@ -22,7 +22,7 @@ function matcher(q) {
 
 /* ---------- Adzuna (official API, free key) ---------- */
 async function adzuna(q) {
-  const cc = { fr: 'fr', de: 'de', ca: 'ca', ch: 'ch' }[q.c];
+  const cc = { fr: 'fr', de: 'de', ca: 'ca', ch: 'ch', be: 'be', nl: 'nl' }[q.c];
   if (!cc) throw new Error('Not available for this country');
   const p = new URLSearchParams({
     app_id: e.ADZUNA_APP_ID, app_key: e.ADZUNA_APP_KEY, results_per_page: '20',
