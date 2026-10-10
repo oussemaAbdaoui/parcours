@@ -1914,6 +1914,30 @@ function queueAdd(x){
     req:x.req||null,contacts:x.contacts||[]});
   save();
 }
+/* How an offer is applied to: by email when it names a contact, on the company's form when it is hosted by an ATS
+   whose public form can be filled (Greenhouse, Lever, Ashby, Workable), else assisted (job boards such as LinkedIn
+   and Indeed forbid automated applying: the letter is ready, you send it on their site). */
+const ATS=[[/(^|\.)greenhouse\.io$/,'Greenhouse'],[/(^|\.)lever\.co$/,'Lever'],[/(^|\.)ashbyhq\.com$/,'Ashby'],[/(^|\.)workable\.com$/,'Workable']];
+function applyMethod(q){
+  const mail=(q.contacts||[]).find(c=>c&&c.email);
+  if(mail)return {kind:'email',label:'Email',detail:'to '+(mail.name?mail.name+' · ':'')+mail.email,to:mail};
+  let host='';try{host=new URL(q.url).hostname.toLowerCase();}catch(e){}
+  const ats=ATS.find(([re])=>re.test(host));
+  if(ats)return {kind:'form',label:'Company form',detail:ats[1],ats:ats[1]};
+  return {kind:'assisted',label:'Assisted',detail:/linkedin|indeed|glassdoor|jooble|welcome/i.test(q.source||host)?'this site forbids automated applying':'apply on their site'};
+}
+// What each channel needs before it can send for you (the answers live in Profile, Applying).
+const APPLY_FIELDS=[['email','Email','email'],['phone','Phone','tel'],['city','City and country','text'],['linkedin','LinkedIn URL','url'],['github','GitHub or portfolio URL','url'],
+  ['workAuth','Work authorization (one sentence)','text'],['start','Earliest start date','text'],['salary','Salary expectation','text'],['relocate','Willing to relocate (yes or no)','text']];
+function applyReady(kind){
+  const p=prof(),a=p.apply||{},miss=[];
+  if(!p.cvDoc)miss.push('your CV file (Profile, CV: upload it)');
+  if(!(p.name||cvName()))miss.push('your name');
+  if(!a.email)miss.push('your email (Profile, Applying)');
+  if(kind==='form')['phone','linkedin','workAuth'].forEach(k=>{if(!a[k])miss.push(APPLY_FIELDS.find(f=>f[0]===k)[1].toLowerCase()+' (Profile, Applying)');});
+  return miss;
+}
+const sourceOn=s=>((prof().applySources||{})[s]||{}).enabled!==false;
 // Your name: set in the queue's templates, else the capitalised words that open your CV's first line (a PDF paste
 // is one long line), stopping before a job title such as "AI Engineer".
 const TITLE_WORD=/^(ai|ia|ml|data|software|machine|deep|backend|frontend|full|fullstack|senior|junior|engineer|engineering|ingénieur|ingenieur|developer|développeur|developpeur|student|étudiant|etudiant|researcher|chercheur|scientist|analyst|intern|stagiaire|phd|msc|curriculum|resume|résumé|cv)$/i;
@@ -2045,7 +2069,19 @@ function letterFor(q){
 function queuePage(){
   const L=qList(),p=prof();
   const todo=L.filter(q=>q.status==='todo').sort((a,b)=>a.addedAt-b.addedAt),done=L.filter(q=>q.status!=='todo').sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+  // Apply setup: for each source in the queue, how it applies, whether that channel is ready, and a switch.
+  const bySrc={};todo.forEach(q=>{const s=q.source||'Other',am=applyMethod(q);(bySrc[s]=bySrc[s]||{n:0,kinds:{}}).n++;bySrc[s].kinds[am.kind]=(bySrc[s].kinds[am.kind]||0)+1;});
+  const KIND_NAME={email:'✉ Email',form:'📝 Company form',assisted:'🔗 Assisted'};
+  const setup=Object.keys(bySrc).length?`<details class="panel" id="qSetup" style="margin-bottom:16px" ${applyReady('email').length?'open':''}><summary><b>Apply setup</b> <span class="hint" style="margin:0">how each source applies, and what it still needs</span></summary>
+    <p class="hint">Every application waits for your review before it is sent. Email and company forms are sent for you once their channel is set up; assisted ones you send on the site.</p>
+    <table class="tbl" style="width:100%;margin-top:8px"><thead><tr><th style="text-align:left">Source</th><th style="text-align:left">How</th><th style="text-align:left">Ready?</th><th>On</th></tr></thead><tbody>
+    ${Object.entries(bySrc).sort((a,b)=>b[1].n-a[1].n).map(([s,v])=>{const ks=Object.keys(v.kinds);const miss=[...new Set(ks.filter(k=>k!=='assisted').flatMap(applyReady))];
+      return `<tr><td><b>${esc(s)}</b> <span class="hint" style="margin:0">${v.n}</span></td><td>${ks.map(k=>KIND_NAME[k]+(ks.length>1?' '+v.kinds[k]:'')).join(' · ')}</td>
+        <td>${ks.every(k=>k==='assisted')?'Ready':miss.length?`<span style="color:var(--red)">Needs ${esc(miss.join(', '))}</span>`:'Ready'}</td>
+        <td style="text-align:center"><input type="checkbox" data-srcon="${esc(s)}" ${sourceOn(s)?'checked':''} aria-label="Apply through ${esc(s)}"></td></tr>`;}).join('')}
+    </tbody></table></details>`:'';
   $('#view').innerHTML=`<h1>Apply queue</h1><p class="sub">Offers you picked, each with a letter ready. Open the offer, paste the letter, then press <b>Sent</b>: it moves to your applications board.</p>
+  ${setup}
   ${todo.length?todo.map(qCard).join(''):`<div class="panel empty"><p>Nothing queued. In <a href="#/opps">Opportunities</a>, press <b>Queue</b> on the offers you want to apply to.</p></div>`}
   ${done.length?`<details class="panel" style="margin-top:16px"><summary><b>Done (${done.length})</b></summary>${done.map(q=>`<div class="row" style="justify-content:space-between;margin-top:8px"><span>${q.status==='sent'?'Sent':'Skipped'} · ${esc(q.title)} · ${esc(q.org)}</span><button class="btn sm ghost" data-qx="${esc(q.id)}">Remove</button></div>`).join('')}</details>`:''}
   <details class="panel" style="margin-top:16px"><summary><b>Letter templates</b></summary>
@@ -2054,6 +2090,8 @@ function queuePage(){
     ${LETTER_KEYS.map(([k,l])=>`<label class="lab" for="qT-${k}" style="margin-top:12px">${l}</label><textarea id="qT-${k}" rows="12">${esc((p.letters&&p.letters[k])||LETTER_DEFAULT[k])}</textarea>`).join("")}
     <div class="row" style="margin-top:10px"><button class="btn primary" id="qTSave">Save templates</button><button class="btn ghost" id="qTReset">Back to defaults</button><span class="hint" id="qTMsg"></span></div></details>`;
   const find=id=>L.find(q=>q.id===id),msgOf=id=>$(`[data-qmsg="${CSS.escape(id)}"]`);
+  document.querySelectorAll('[data-srcon]').forEach(c=>c.addEventListener('change',()=>{const all=Object.assign({},prof().applySources||{});
+    all[c.dataset.srcon]=Object.assign({},all[c.dataset.srcon]||{},{enabled:c.checked});setProfile({applySources:all});}));
   let tq=null;
   const markTodo=(id,t)=>{const el=$(`[data-qtodo="${CSS.escape(id)}"]`);if(el){const u=unfilled(t);el.textContent=u.length?`Still to fill before sending: ${u.join(', ')}`:'';}};
   document.querySelectorAll('[data-qletter]').forEach(t=>t.addEventListener('input',()=>{const q=find(t.dataset.qletter);if(!q)return;q.letter=t.value;markTodo(q.id,t.value);clearTimeout(tq);tq=setTimeout(save,600);}));
@@ -2079,7 +2117,8 @@ function qCard(q){
   const m=matchOf(q),u=safeUrl(q.url),v=DOM[q.kind]||DOM.job,c=cById(q.c)||{flag:''},id=esc(q.id);
   return `<article class="panel" style="--accent:var(${v.color});--tint:var(${v.tint});margin-bottom:14px">
     <div class="row" style="align-items:flex-start;flex-wrap:nowrap">${scoreBadge(m)}<div style="flex:1;min-width:0"><h3 style="margin:0 0 4px">${esc(q.title)}</h3>
-      <div class="meta"><span class="chip">${v.label}</span> <b>${esc(q.org)}</b>${q.location?' · '+esc(q.location):''} ${c.flag} · ${esc(q.source)}${q.deadline?' · Apply by '+esc(q.deadline):''}</div></div></div>
+      <div class="meta"><span class="chip">${v.label}</span> <b>${esc(q.org)}</b>${q.location?' · '+esc(q.location):''} ${c.flag} · ${esc(q.source)}${q.deadline?' · Apply by '+esc(q.deadline):''}</div>
+      ${(()=>{const am=applyMethod(q);return `<div class="meta" style="margin-top:4px"><span class="chip" title="How this application is sent">${am.kind==='email'?'✉ ':am.kind==='form'?'📝 ':'🔗 '}${esc(am.label)}</span> <span class="hint" style="margin:0">${esc(am.detail)}</span></div>`;})()}</div></div>
     <div class="g3 qfix" style="margin-top:12px">
       <div><label class="lab" for="qo-${id}">Company in the letter</label><input type="text" id="qo-${id}" data-qfix="orgL" data-q="${id}" value="${esc(q.orgL!=null?q.orgL:q.org||'')}"></div>
       <div><label class="lab" for="qr-${id}">Role in the letter</label><input type="text" id="qr-${id}" data-qfix="titleL" data-q="${id}" value="${esc(q.titleL||(q.type==='post'?postRole(q,offerLang(q)):cleanTitle(q.title,q.kind,offerLang(q))))}"></div>
@@ -2783,7 +2822,7 @@ function profilePage(){
   const groups={};names.forEach(n=>{(groups[fam[n]]=groups[fam[n]]||[]).push(n);});
   const nm=cvName()||'Your name',ini=nm.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(),st=profStrength(p);
   const DEG=['','Two-year degree',"Bachelor's","Master's or engineering degree",'PhD'][+(p.degree||{}).level||0];
-  const SECTIONS=[['pf-cv','CV'],['pf-recs','Letters'],['pf-skills','Skills'],['pf-bg','Background'],['pf-where','Where'],['pf-goal','Daily goal'],['pf-notif','Notifications']];
+  const SECTIONS=[['pf-cv','CV'],['pf-recs','Letters'],['pf-apply','Applying'],['pf-skills','Skills'],['pf-bg','Background'],['pf-where','Where'],['pf-goal','Daily goal'],['pf-notif','Notifications']];
   $('#view').innerHTML=`<h1>Profile</h1><p class="sub">The match score compares every offer with this. It stays in your data and syncs with your other devices.</p>
   <div class="pf-grid"><aside class="pf-side">
     <div class="panel pf-card"><div class="pf-avatar" aria-hidden="true">${esc(ini||'?')}</div>
@@ -2809,6 +2848,9 @@ function profilePage(){
       <pre data-rectext="${esc(r.id)}" hidden style="flex-basis:100%;white-space:pre-wrap;max-height:240px;overflow:auto;font-size:13px">${esc(r.text||'')}</pre></li>`).join('')}</ul>`:''}
     <label class="btn" for="pfRecFile" style="cursor:pointer">Upload a letter</label><input type="file" id="pfRecFile" accept=".pdf,.txt,.md,application/pdf,text/plain" multiple hidden>
     <div id="pfRecMsg" class="found" aria-live="polite"></div></div>
+  <div class="panel" id="pf-apply"><h2>Applying</h2><p class="hint">The answers application forms ask for, filled in once. Email applications use your email; company forms use all of them.</p>
+    <div class="g3">${APPLY_FIELDS.map(([k,l,t])=>`<div><label class="lab" for="pfA-${k}">${l}</label><input type="${t==='tel'?'tel':t==='email'?'email':'text'}" id="pfA-${k}" data-apply="${k}" value="${esc((p.apply||{})[k]||'')}"></div>`).join('')}</div>
+    <p class="hint" style="margin:8px 0 0">Saved as you type.</p></div>
   <div class="panel" id="pf-skills"><h2>Skills</h2><p class="hint">${p.skills.length} selected. Offers asking for a skill in the same family as yours get half credit.</p>
     ${p.skills.length?`<div class="skills" style="margin:4px 0 12px">${p.skills.map(n=>`<button type="button" class="skill" data-skill="${esc(n)}" aria-pressed="true">${esc(n)}</button>`).join('')}</div>`:''}
     <details class="skfold" ${p.skills.length?'':'open'}><summary>${p.skills.length?'Add or remove skills':'Pick your skills'} · ${Object.keys(groups).length} families</summary>
@@ -2857,6 +2899,10 @@ function profilePage(){
       // Keep the original file too: it is what gets attached when you apply.
       try{await saveDoc('cv',f);setProfile({cvDoc:{name:f.name,size:f.size}});}catch(x){}
     }catch(x){msg.textContent=x.message||'Could not read that file.';}e.target.value='';});
+  // Application answers: saved as you type.
+  let tApply=null;
+  $('#pf-apply').addEventListener('input',e=>{const i=e.target.closest('[data-apply]');if(!i)return;clearTimeout(tApply);
+    tApply=setTimeout(()=>setProfile({apply:Object.assign({},prof().apply||{},{[i.dataset.apply]:i.value.trim()})}),400);});
   // Recommendation letters: text into the profile (for the cover letters), the file into your documents (to attach).
   const recMsg=$('#pfRecMsg');
   $('#pfRecFile').addEventListener('change',async e=>{const files=[...e.target.files];e.target.value='';
