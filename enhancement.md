@@ -14,7 +14,7 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 | 6 | Scheduling | PC tasks, GitHub cron, interview stories | ✅ | `python collector/insights.py "Company" "Role"` |
 | 7 | Sync and storage | Your data across devices | ✅ | `python tests/sync_test.py` (sandboxed) |
 | 8 | App pages and UX | Offers, queue, tracker, profile | 🔧 | screenshots of every page, sandboxed |
-| 9 | Alerts | Notifications and weekly digest | ⏳ | |
+| 9 | Alerts | Notifications and weekly digest | ✅ | |
 | 10 | Academia and masters | Professors, PhDs, master's, scholarships | ⏳ | |
 | 11 | Letters | Cover letters with AI | ⏳ | |
 
@@ -135,7 +135,11 @@ Open:
 - [ ] Filters take two rows of twelve controls on desktop.
 - [ ] "Lead, AI Engineering" at Bain scores 80 as entry level: Claude's reading (entry) overrides a "Lead" title. Check the offer and decide which wins.
 
-## 9. Alerts ⏳
+## 9. Alerts ✅
+
+Done:
+- [x] Offers whose description arrives in a later run were never announced: an alert fired only for offers found in the same run, and LinkedIn offers arrive capped at 65 until their text is read. Now an offer from the last 7 days is announced the first time it reaches your threshold (85), and announced offers are remembered (`parcours:push:alerted`) so nothing repeats; the first run only records today's strong offers. Tested over three simulated runs.
+- [x] The weekly digest counted deadlines from score 60; it counts strong matches (75+) like the app.
 
 ## 10. Academia and masters ⏳
 
@@ -144,6 +148,7 @@ Open:
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.
+- 11 Oct: applications keep the offer; alerts reach offers read later.
 - 11 Oct: UX audit, first round: 8 fixes on Discover, Home and Track; 8 items open.
 - 11 Oct: sync round: both wipe scenarios pass in the sandbox, mirror matches Neon, daily PC backup added.
 - 11 Oct: scheduling round: cron gaps covered by the PC; interview stories fixed (wrong companies).
