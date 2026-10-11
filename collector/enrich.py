@@ -97,7 +97,7 @@ def _linkedin_fill(x, page):
 
 
 ACADEMIC = {"Inria", "CNRS", "ABG", "jobs.ac.uk", "ELLIS", "Academic Positions", "ScholarshipDB", "jobRxiv", "Max Planck"}
-STEALTH_SOURCES = {"ABG", "Academic Positions", "ScholarshipDB", "StepStone", "Tanitjobs"}
+STEALTH_SOURCES = {"ABG", "Academic Positions", "ScholarshipDB", "StepStone", "Tanitjobs", "Duunitori", "Emploi.ma"}
 MAIN_SELECTORS = ['[itemprop="description"]', ".job-description", "#job-description", ".jobsearch-JobComponent-description",
                   ".description", "article", "main"]
 
