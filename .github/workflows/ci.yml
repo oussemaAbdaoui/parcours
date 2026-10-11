@@ -1,0 +1,45 @@
+name: Check and deploy
+
+# Every push to main: the checks in tests/check.py (scoring cases, every script parses, every Python file compiles),
+# then a production deploy only if they pass. Without the VERCEL_TOKEN secret the deploy step is skipped.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["enhancement.md", "docs/**", "README.md"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tests/check.py
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_ORG_ID: team_IkzRTy9el0snUONuumitCgAU
+      VERCEL_PROJECT_ID: prj_UiVDYOwq5BlSNmSo4sMS2aPH6CXF
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.VERCEL_TOKEN != ''
+      - name: Deploy to production
+        if: env.VERCEL_TOKEN != ''
+        run: npx -y vercel@63.1.2 deploy --prod --yes --token "$VERCEL_TOKEN"
+      - name: No token yet
+        if: env.VERCEL_TOKEN == ''
+        run: echo "Checks passed. Add the VERCEL_TOKEN secret to deploy automatically."
