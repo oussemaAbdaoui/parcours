@@ -246,6 +246,22 @@ def merge(mine, others, found, now, origin):
     return kept, new, removed
 
 
+BACKUP_DIR, BACKUP_DAYS = os.path.join(os.path.expanduser("~"), "parcours-collector", "backups"), 30
+
+
+def backup_state(state):
+    """A dated copy of your synced data on the PC, once a day, the last 30 kept. The data was wiped once and came
+    back only because another device still had it."""
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    path = os.path.join(BACKUP_DIR, f"state-{date.today().isoformat()}.json")
+    if not os.path.exists(path):
+        with open(path, "w", encoding="utf8") as f:
+            json.dump(state, f, ensure_ascii=False)
+    old = sorted(f for f in os.listdir(BACKUP_DIR) if f.startswith("state-") and f.endswith(".json"))[:-BACKUP_DAYS]
+    for f in old:
+        os.remove(os.path.join(BACKUP_DIR, f))
+
+
 def load_env(path):
     """KEY=value lines (like Vercel's .env.local), for the PC collector."""
     for line in open(path, encoding="utf8"):
@@ -400,6 +416,8 @@ def main():
         load_env(env)
     store = None if dry else Store()
     state = (store.get_json(STATE_KEY) if store else None) or {}
+    if home and state:
+        backup_state(state)
     searches = [s for s in state.get("searches", []) if s.get("search")]
     # Countries in your profile with no saved search (one just added) get the searches built from your profile.
     covered = {s.get("c") for s in searches}
