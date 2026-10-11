@@ -3124,7 +3124,7 @@ async function companyPage(key,qs){
         ${saved.length?`<h2 style="margin-top:14px">Saved jobs</h2>${saved.map(j=>`<div class="rn"><b>${esc(j.title)}</b><span>${esc(j.location||'')}</span></div>`).join('')}`:''}</div>
     </div>
     <div class="panel"><h2>Hiring pattern</h2><p class="hint">When ${esc(name)} posts offers, from every offer the collectors have seen.</p>${hiringPatternHtml(name,hist||{companies:[]})}</div>
-    ${poliPanelHtml(name)}
+    ${poliPanelHtml(name,(offers.find(x=>x.sponsorId)||{}).sponsorId)}
     <div class="panel"><h2>People to contact</h2><p class="hint">Contacts named in ${esc(name)}'s offers, and LinkedIn searches that open in your own account. A short, specific message that names the offer works best.</p>
       ${peopleHtml(name,offers,defRole)}</div>
     <div class="panel"><h2>Interview stories</h2><p class="hint">What people who interviewed at ${esc(name)} for a similar role went through: how they applied, the rounds, the questions, and whether they got the offer.</p>
@@ -3613,8 +3613,9 @@ function drawPoliPeople(){
   const m=$('#spMore');if(m)m.addEventListener('click',()=>{m.disabled=true;renderPoliPeople(true);});
 }
 // Company page panel: licence, visas sponsored, and people likely sponsored there.
-function poliPanelHtml(name){
-  const c=poliCo(name);if(!c)return '';
+function poliPanelHtml(name,sponsorId){
+  // The offers' sponsorId (linked in the database) first; the name match only for pages without offers.
+  const c=(sponsorId&&poliData&&(poliData.companies||[]).find(x=>x.id===sponsorId))||poliCo(name);if(!c)return '';
   const people=poliPeopleAt(c);
   return `<div class="panel"><h2>UK visa sponsorship</h2><p class="hint">From Poli's sponsor directory${c.legalName?` (registered as ${esc(c.legalName)})`:''}.</p>
     <p style="margin:0 0 12px">${[c.licensed?'<b>Licensed sponsor</b>':'Not on the sponsor register',c.cos2025!=null?`<b>${c.cos2025}</b> visas sponsored in 2025`:'',`<b>${c.jobs}</b> open job${c.jobs===1?'':'s'} in the UK`,c.size,c.policy?esc(c.policy.replace(/\.+$/,'')):''].filter(Boolean).join(' · ')}.</p>
