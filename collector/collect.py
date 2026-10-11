@@ -286,6 +286,24 @@ def save_items(store, items, removed):
         store.cmd("HDEL", ITEMS_KEY, *removed[i:i + 100])
 
 
+def linkedin_home(everything, store, origin, limit=150):
+    """The cloud run's LinkedIn offers mostly come without a description (LinkedIn refuses GitHub's IPs). The PC
+    fills them, has their requirements read again from the full text, and saves just those offers; the cloud
+    run's dealbreaker check then drops the ones that do not fit."""
+    from enrich import linkedin_details
+    import requirements
+    todo = [x for x in everything if x.get("origin", "cloud") != origin and x.get("source") == "LinkedIn"
+            and len(x.get("desc") or "") < 400 and "applicants" not in x]
+    before = {x["id"]: x.get("desc") for x in todo}
+    n, err = linkedin_details(todo, limit=limit, stealth=True)
+    filled = [x for x in todo if x.get("desc") != before[x["id"]] or "applicants" in x]
+    if filled:
+        requirements.extract([x for x in filled if "req" not in x])
+        save_items(store, filled, [])
+    print(f"  LinkedIn descriptions: {sum(1 for x in filled if len(x.get('desc') or '') >= 400)} filled, {len(todo) - n} left")
+    return n, err
+
+
 def dealbreakers(items, state, scores=None):
     """{id: [reasons]} for offers that hit a dealbreaker for your profile, using the app's own score.js via Node.
     Also tags each offer with the experience it asks for (item["exp"] = {min, max, label}, e.g. "3+ yrs")."""
@@ -379,6 +397,7 @@ def main():
     # stored offer (cloud and home), into the shared cache the cloud runs then read.
     if home and store:
         everything = load_all(store)
+        steps += [("LinkedIn details", lambda: linkedin_home(everything, store, origin))]
         steps += [("Company reviews", lambda: company_ratings(everything, store))]
     elif not home:
         steps += [("Company reviews", lambda: company_ratings(items, store, limit=0))]

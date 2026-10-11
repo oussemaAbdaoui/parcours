@@ -28,40 +28,58 @@ def _t(s):
     return re.sub(r"\s+", " ", str(s or "")).strip()
 
 
-def linkedin_details(items, limit=40):
-    """Fills applicants / applicantsCapped / desc for LinkedIn items that lack them."""
-    done = 0
-    for x in items:
-        if done >= limit:
-            break
-        m = re.search(r"li-(\d+)", x.get("id", ""))
-        if x.get("source") != "LinkedIn" or not m or "applicants" in x:
-            continue
-        page = Fetcher.get(f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{m.group(1)}", stealthy_headers=True, timeout=20)
-        done += 1
-        if page.status == 429:
-            return done, "rate-limited"
-        if page.status != 200:
-            x["applicants"] = None
-            continue
-        text = _t(" ".join(page.css("::text").getall()))
-        a = re.search(r"(Over\s+)?(\d[\d,.]*)\s+applicants", text, re.I)
-        first = re.search(r"Be among the first (\d+) applicants", text, re.I)
-        if a:
-            x["applicants"] = int(re.sub(r"[,.]", "", a.group(2)))
-            x["applicantsCapped"] = bool(a.group(1))
-        elif first:
-            x["applicants"] = max(1, int(first.group(1)) // 2)  # "among the first 25" = fewer than 25 so far
-        else:
-            x["applicants"] = None
-        desc = page.css(".show-more-less-html__markup")
-        if desc:
-            x["desc"] = _keep(_t(desc[0].get_all_text()))
-        level = re.search(r"Seniority level\s+([A-Za-z -]+?)\s+Employment type", text)
-        if level:
-            x["type"] = (x.get("type") or "") + (" · " if x.get("type") else "") + level.group(1)
-        time.sleep(1.5)
+def linkedin_details(items, limit=40, stealth=False):
+    """Fills applicants / applicantsCapped / desc for LinkedIn items without a full description. LinkedIn
+    refuses most datacenter IPs (the cloud run), not a home connection; when it rate-limits even that, the rest
+    goes through Scrapling's stealth browser (stealth=True). A new description drops requirements read from the
+    title alone, so Claude reads them again from the full text."""
+    done, session, ctx = 0, None, None
+    try:
+        for x in items:
+            if done >= limit:
+                break
+            m = re.search(r"li-(\d+)", x.get("id", ""))
+            if x.get("source") != "LinkedIn" or not m or len(x.get("desc") or "") >= 400 or "applicants" in x:
+                continue
+            url = f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{m.group(1)}"
+            page = session.fetch(url) if session else Fetcher.get(url, stealthy_headers=True, timeout=20)
+            done += 1
+            if page.status == 429 and stealth and not session:
+                from scrapling.fetchers import StealthySession
+                ctx = StealthySession(headless=True, timeout=30000, disable_resources=True)
+                session = ctx.__enter__()
+                page = session.fetch(url)
+            if page.status == 429:
+                return done, "rate-limited"
+            if page.status != 200:
+                x["applicants"] = None  # gone or refused: not tried again
+                continue
+            _linkedin_fill(x, page)
+            time.sleep(1.5)
+    finally:
+        if ctx:
+            ctx.__exit__(None, None, None)
     return done, ""
+
+
+def _linkedin_fill(x, page):
+    text = _t(" ".join(page.css("::text").getall()))
+    a = re.search(r"(Over\s+)?(\d[\d,.]*)\s+applicants", text, re.I)
+    first = re.search(r"Be among the first (\d+) applicants", text, re.I)
+    if a:
+        x["applicants"] = int(re.sub(r"[,.]", "", a.group(2)))
+        x["applicantsCapped"] = bool(a.group(1))
+    elif first:
+        x["applicants"] = max(1, int(first.group(1)) // 2)  # "among the first 25" = fewer than 25 so far
+    else:
+        x["applicants"] = None
+    desc = page.css(".show-more-less-html__markup")
+    if desc:
+        x["desc"] = _keep(_t(desc[0].get_all_text()))
+        x.pop("req", None)  # read from the title alone: read again from the full text
+    level = re.search(r"Seniority level\s+([A-Za-z -]+?)\s+Employment type", text)
+    if level:
+        x["type"] = (x.get("type") or "") + (" · " if x.get("type") else "") + level.group(1)
 
 
 ACADEMIC = {"Inria", "CNRS", "ABG", "jobs.ac.uk", "ELLIS", "Academic Positions", "ScholarshipDB", "jobRxiv", "Max Planck"}
