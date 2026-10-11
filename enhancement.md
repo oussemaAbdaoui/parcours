@@ -124,11 +124,12 @@ Fixed (commit `a37f99f`, checked on new screenshots):
 - [x] Home's "Apply queue · 18" counted sent and skipped offers; the header said 3. Both count what is left to do.
 - [x] The board did not show duplicates: Université Gustave Eiffel, Rosenberger Tunisia and TNT are each logged twice (17 applications, 14 real). Marked "Logged twice".
 
+- [x] Applications keep the offer (commit `f577c7e`): logging from an offer or from the apply queue saves its text, requirements and salary on the application, shown in the dialog under "The offer as you applied". Editing an application used to drop every field the form does not show; it keeps them now. Sandboxed test on a real offer: logged, saved with 3117 characters of text and its requirements, edited, still there.
+
 Open:
 - [ ] Delete the 3 duplicate applications (your call, from the board).
-- [ ] All 17 applications are stuck at "applied": match Gmail replies to applications (a "Scan Gmail" button exists; check what it finds), and remind to follow up.
-- [ ] An offer's state lives in four places (hidden setting, queue, saved, applications) that can disagree. One state per offer id.
-- [ ] Applications keep only role, company and link: keep a copy of the offer (text, requirements, salary) when you apply.
+- [ ] ⛔ All 17 applications are stuck at "applied". "Scan Gmail" exists but cannot run: the server has no Google sign-in (`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` missing). Your step: create an OAuth client in Google Cloud Console (Web application, redirect `https://parcours-swart.vercel.app/api/gmail-callback`), add both values in Vercel, then Connect Gmail in the app.
+- [ ] An offer's state lives in four places (hidden setting, queue, saved, applications) that could disagree. Measured: no conflict in your data today. Low priority.
 - [ ] Eight buttons on every offer (Apply, Save, Queue, Log, Stories, Hide, Why, Offer details): group the less used ones.
 - [ ] Phone: the daily goal shows twice at the top (the "0/50 today" pill and the goal bar).
 - [ ] Filters take two rows of twelve controls on desktop.
