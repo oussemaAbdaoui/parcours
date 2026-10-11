@@ -231,8 +231,11 @@
     } else if (/\b(stage|stagiaire|intern(ship)?|pfe|praktikum|werkstudent|alternance|apprenti)/.test(t)) return { lvl: 0, label: 'internship' };
     const ex = offerYears(t);
     const y = ex && ex.label !== 'Entry level' ? ex.min : null;
-    if (/\b(principal|staff|head of|director|chef de|leiter)\b/.test(t) || /\blead\b(?! to)/.test(t) || (y !== null && y >= 8)) return { lvl: 4, label: 'lead', years: y };
-    if (/\b(senior|sr\.?|confirme|experimente|erfahren)\b/.test(t) || (y !== null && y >= 5)) return { lvl: 3, label: 'senior', years: y };
+    // With a title, seniority words in the text are not trusted: "mission principale", "work with senior
+    // engineers", "lead the project" describe the job, not the level. Only stated years count there.
+    const words = title == null;
+    if ((words && (/\b(principal|staff|head of|director|chef de|leiter)\b/.test(t) || /\blead\b(?! to)/.test(t))) || (y !== null && y >= 8)) return { lvl: 4, label: 'lead', years: y };
+    if ((words && /\b(senior|sr\.?|confirme|experimente|erfahren)\b/.test(t)) || (y !== null && y >= 5)) return { lvl: 3, label: 'senior', years: y };
     if (/\b(junior|jr\.?|graduate|debutant|entry.level|jeune diplome|berufseinsteiger|new grad)\b/.test(t) || (y !== null && y <= 2)) return { lvl: 1, label: 'junior', years: y };
     if (y !== null) return { lvl: 2, label: 'mid', years: y };
     return { lvl: null, label: 'not stated' };
@@ -264,8 +267,11 @@
     return null;
   }
 
+  // Internships open to graduates: Tunisian pre-hire and SIVP contracts, graduate schemes.
+  const GRADUATE_STAGE = /\b(pre.?embauche|sivp|stage d.insertion|contrat d.insertion|stage de perfectionnement|graduate (?:program\w*|scheme|internship)|post.?(?:graduate|diploma) internship)\b/;
   function levelFromTitle(title) {
     const t = norm(title);
+    if (GRADUATE_STAGE.test(t)) return { lvl: 1, label: 'graduate internship' };
     if (/\b(stage|stagiaire|intern(ship)?|pfe|praktikum|werkstudent|alternance|alternant|apprenti)\b/.test(t)) return { lvl: 0, label: 'internship' };
     // "New Grad to Principal level" is open to juniors: junior words win when both are present.
     if (/\b(junior|jr\.?|graduate|debutant|entry.level|jeune diplome|new grad)\b/.test(t)) return { lvl: 1, label: 'junior' };
@@ -428,7 +434,7 @@
      topic that applies machine learning to another domain. */
   const FIELDS = {
     ai: { fams: ['ml', 'llm', 'nlp', 'xai', 'ir', 'cv', 'dlfw', 'llmfw', 'mllib', 'mlops'],
-      title: /\b(machine learning|ml|ai|ia|a\.i\.|artificial intelligence|intelligence artificielle|kunstliche intelligenz|ki|deep learning|apprentissage|neural|nlp|llms?|genai|generative|computer vision|vision par ordinateur|data scien\w*|mlops|research (?:engineer|scientist)|applied scientist|prompt|rag|agents?|perception|reinforcement|model (?:optimi[sz]ation|training|evaluation)|inference|quantization|embeddings?)\b/ },
+      title: /\b(machine learning|ml|ai|ia|a\.i\.|artificial intelligence|intelligence artificielle|kunstliche intelligenz|ki|deep learning|apprentissage (?:automatique|profond|par renforcement)|neural|nlp|llms?|genai|generative|computer vision|vision par ordinateur|data scien\w*|mlops|research (?:engineer|scientist)|applied scientist|prompt|rag|agentic|agents? (?:ia|ai|intelligents?|autonomes?|llm)|(?:ai|ia|llm|autonomous|multi.agent) agents?|perception|reinforcement|model (?:optimi[sz]ation|training|evaluation)|inference|quantization|embeddings?)\b/ },
     data: { fams: ['data', 'db', 'nosql'],
       title: /\b(data|donnees|daten|analytics|bi|business intelligence|big data|etl|statisti\w*|quant\w*|analyst|analyste)\b/ },
     software: { fams: ['backend', 'api', 'pyweb', 'jvmweb', 'jsweb', 'phpweb', 'front', 'devops', 'cloud', 'lang', 'mobile'],
@@ -437,6 +443,10 @@
       title: /\b(phd|ph\.d|doctora\w*|doktorand\w*|these|thesis|research|recherche|forschung|postdoc|scientist|chercheur)\b/ },
   };
   const OFF_FIELD = /\b(account (?:executive|manager)|ae|sales|vente\w*|vendeu\w*|verkauf\w*|vertrieb\w*|commercia\w*|business development|business developer|bdr|sdr|marketing|growth|customer success|support agent|recrui\w*|recrut\w*|talent acquisition|engagement manager|services manager|human resources|ressources humaines|\bhr\b|\brh\b|accountant|comptab\w*|finance manager|lawyer|juriste|avocat|nurse|infirmi\w*|medecin|physician|pharmacist|teacher|enseignant|instituteur|chauffeur|driver|electricien|electrician|mecanicien|mechanic|technicien de maintenance|plombier|soudeur|cuisinier|chef de rang|serveur|receptionist|assistant(?:e)? (?:de direction|administrati\w*)|office manager|community manager|graphic designer|graphiste|copywriter|translator|traducteur|management consultant|strategist|partnerships?|logisti\w*|supply chain|procurement|achat\w*|architecte? d.interieur|immobilier|real estate|insurance|assurance)\b/;
+  const TECH_ROLE = /\b(engineers?|ingenieur\w*|developers?|developpeur\w*|entwickler\w*|programmer|programmeur|scientists?|devops|data (?:engineer|scientist|analyst)\w*|architect\w*|cybersecurit\w*|software|logiciel)\b/;
+  // A sales, marketing or HR word rules the job out only when the title names no technical role with it
+  // ("Marketing Data Scientist", "Recrutement – profils IT: DevOps" stay; a "Business Developer" is sales).
+  const offField = (title) => OFF_FIELD.test(title) && !TECH_ROLE.test(title.replace(/\bbusiness develop\w*/g, ''));
   function myFields(p) {
     const fams = new Set((p.skills || []).map((k) => FAMILY[k]));
     const out = Object.entries(FIELDS).filter(([, f]) => f.fams.filter((x) => fams.has(x)).length >= 1).map(([k]) => k);
@@ -448,14 +458,15 @@
     const mine = new Set(p.skills || []);
     const titleSkills = skillsIn(offer.title).filter((k) => !GENERIC_SKILLS.has(k));
     const myTitleSkills = titleSkills.filter((k) => mine.has(k) || fields.some((f) => FIELDS[f].fams.includes(FAMILY[k])));
-    const off = OFF_FIELD.test(title);
+    const off = offField(title);
     // Research titles alone (a PhD in fluid mechanics) do not make the job yours: they need a topic from your other fields.
     const coreHit = hitTitle.filter((f) => f !== 'research');
     if ((coreHit.length || myTitleSkills.length) && !off) {
       return { v: 1, known: true, off: false, note: `In your field: ${[...coreHit, ...myTitleSkills].slice(0, 3).join(', ')}` };
     }
     // "Commercial IT", "Sales Engineer - SaaS": the job itself is sales or HR even if the product is software.
-    if (off && coreHit.includes('ai')) return { v: 0.4, known: true, off: false, note: `Mostly ${title.match(OFF_FIELD)[0]}, around AI` };
+    // "Business Developer – Full IA", "Responsable RH – IA": the job itself is sales or HR, whatever the product.
+    if (off && coreHit.includes('ai')) return { v: 0.1, known: true, off: true, note: `Outside your field (${title.match(OFF_FIELD)[0]}, around AI)` };
     const coreFams = new Set(fields.filter((f) => f !== 'research').flatMap((f) => FIELDS[f].fams));
     const bodySkills = skillsIn(body).filter((k) => !GENERIC_SKILLS.has(k) && coreFams.has(FAMILY[k]));
     const dense = bodySkills.length >= 3;
@@ -468,6 +479,10 @@
     // No field in the title and none of your skills in the text: a different job (video editor, bookkeeper).
     return { v: bodySkills.length ? 0.3 : 0.1, known: true, off: !bodySkills.length && body.length > 200, note: 'Title outside your field' };
   }
+  // Any of your fields, or a generic technical job word ("Ingénieur R&D", "Consultant junior"): such a title may
+  // still be yours, so it waits for the full text before being ruled out.
+  const FIELD_ANY_TITLE = new RegExp(Object.values(FIELDS).map((f) => f.title.source).join('|') + '|\\b(ingenieur|engineer|consultant|analyst|analyste|scientist|chercheur|researcher|r&d|technique|technical|tech|it|informatique|digital|numerique|systemes?|systems?)\\b');
+  const UNCHECKED_DESC = 400, UNCHECKED_CAP = 65, STRETCH_CAP = 70;
   const ROLE_GENERIC = new Set(['engineer', 'ingenieur', 'developer', 'developpeur', 'h/f', 'f/h', 'm/w/d', 'intern', 'stage', 'senior', 'junior', 'and', 'et', 'de', 'en', 'in', 'of', 'the', 'for', 'a', 'position', 'poste']);
 
   /* ---------- ideas adapted from Resume-Matcher (srbhr/Resume-Matcher), without an LLM ----------
@@ -691,7 +706,8 @@
     let asked = offerYears(body);
     const mineY = p.years ?? 0;
     if (R && R.min_years >= 0) asked = R.min_years === 0 ? { min: 0, max: null, label: 'Entry level' } : { min: R.min_years, max: null, label: `${R.min_years}+ years` };
-    if (R && R.seniority === 'intern') lv = { ...lv, lvl: 0, label: 'Internship' };
+    const gradStage = GRADUATE_STAGE.test(title);
+    if (R && R.seniority === 'intern' && !gradStage) lv = { ...lv, lvl: 0, label: 'Internship' };
     else if (R && REQ_SENIORITY[R.seniority] && lv.lvl == null) lv = { ...lv, lvl: REQ_SENIORITY[R.seniority], label: R.seniority === 'entry' ? 'Entry level' : R.seniority };
     if (offer.kind === 'phd' || offer.kind === 'master') parts.seniority = { v: mineY <= 4 ? 1 : 0.7, known: true, note: offer.kind === 'phd' ? 'PhD position' : "Master's programme" };
     else if (asked && lv.lvl !== 0) {
@@ -708,7 +724,8 @@
     else {
       const gap = lv.lvl - profileLevel(p.years);
       tooSenior = gap >= 1.5;
-      const v = gap <= -2 ? 0.55 : gap <= 0 ? 1 : gap <= 1 ? 0.6 : gap <= 2 ? 0.25 : 0.05;
+      // One level above yours (a mid-level job for a junior) is a stretch, not a match.
+      const v = gap <= -2 ? 0.55 : gap <= 0 ? 1 : gap <= 0.5 ? 0.6 : gap <= 1 ? 0.3 : gap <= 2 ? 0.15 : 0.05;
       parts.seniority = { v, known: true, note: `Asks ${lv.label}${lv.years != null ? ` (${lv.years}+ yrs)` : ''}, you have ${p.years ?? 0} yrs` };
     }
 
@@ -819,7 +836,7 @@
     const canIntern = p.internships === 'yes' || (p.internships !== 'no' && !graduated);
     // Offers for students currently enrolled at a given level ("pursuing a PhD"), from Claude's reading. A PhD
     // position is what you apply to become a doctoral student, so enrollment only counts for PhD internships.
-    const enrollApplies = R && R.enrollment !== 'none' && (offer.kind !== 'phd' || /\b(intern\w*|stagiaire|stage|praktik\w*)\b/.test(title));
+    const enrollApplies = R && R.enrollment !== 'none' && !gradStage && (offer.kind !== 'phd' || /\b(intern\w*|stagiaire|stage|praktik\w*)\b/.test(title));
     if (enrollApplies && R.enrollment === 'phd' && !p.phdStudent) blockers.push('For current PhD students');
     else if (enrollApplies && !canIntern) blockers.push('Reserved for current students');
     else if (lv.lvl === 0 && offer.kind !== 'phd' && !canIntern) blockers.push('Internship needs student status');
@@ -828,9 +845,26 @@
     if ((p.exclude || []).some((w) => w && termIn(w, norm(offer.title + ' ' + (offer.org || ''))))) blockers.push('Matches your exclusions');
     if (blockers.length) total = Math.min(total, 40);
     else if (parts.field.v < 0.3) total = Math.min(total, 50); // a job outside your field never ranks with real matches
+    // One clearly unmet requirement (a level above yours, a degree below the one asked) is a stretch, however well
+    // the skills match: the weighted sum would hide it, so it caps the score below the strong band.
+    const stretch = (parts.seniority.known && parts.seniority.v <= 0.4) || (parts.education.known && parts.education.v <= 0.45);
+    let capped = '';
+    if (!blockers.length && stretch && total > STRETCH_CAP) { total = STRETCH_CAP; capped = 'one requirement is a stretch'; }
+    // Requirements unread (no full description yet): degree, experience and languages are unknown, so the offer
+    // cannot rank as a strong match on its title alone. Read once its description arrives.
+    const checked = (offer.desc || '').length >= UNCHECKED_DESC;
+    if (!checked && !blockers.length && total > UNCHECKED_CAP) { total = UNCHECKED_CAP; capped = 'requirements not read yet'; }
+    // Before the full text is read, only reasons that are certain from the title and listing rule an offer out (a
+    // short teaser misleads: "mission principale" is not a lead role). The collector drops on these alone until then.
+    const tl = levelFromTitle(offer.title || '');
+    const titleNamesNothing = !FIELD_ANY_TITLE.test(title) && !skillsIn(offer.title).length;
+    const sure = blockers.filter((b) => ['Matches your exclusions', 'Outside your countries', 'Deadline passed', 'Over 150 applicants'].includes(b)
+      || (b === 'Outside your field' && (offField(title) || titleNamesNothing))
+      || (b === 'Too senior for your experience' && tl && tl.lvl - profileLevel(p.years) >= 1.5)
+      || (b === 'Internship needs student status' && tl && tl.lvl === 0));
     const urgent = left != null && left >= 0 && left <= 7;
     const conf = knownW / 100;
-    return { score: Math.round(total), confidence: conf, rank: total - (1 - conf) * 12 * SCALE, parts, urgent, blockers };
+    return { score: Math.round(total), confidence: conf, rank: total - (1 - conf) * 12 * SCALE, parts, urgent, blockers, checked, capped, sureBlockers: checked ? blockers : sure };
   }
 
   const profileFromCv = (text) => parseCv(text); // kept for older callers

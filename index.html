@@ -2602,7 +2602,7 @@ function renderCollected(){
       return `<article class="offer" style="--accent:var(${v.color});--tint:var(${v.tint})">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.foundAt>colPrev?' <span class="new">New</span>':''}${x.m&&x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
       <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${coLink(x.org)}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}</div>
       ${(x.contacts||[]).length?`<div class="meta ctc">Contact: ${x.contacts.map(c=>`${c.name?esc(c.name)+(c.role?` (${esc(c.role)})`:'')+' · ':''}<span class="mono">${esc(c.email)}</span>`).join(' · ')}</div>`:''}
-      ${scoreWhy(x.m)}
+      ${scoreWhy(x.m,x)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
       <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm" data-coqueue="${esc(x.id)}" ${inQueue(x.id)?'disabled':''}>${inQueue(x.id)?'Queued':'Queue'}</button><button class="btn sm ghost" data-colog="${esc(x.id)}">Log</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Stories</a>`:''}<button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></article>`;}).join('')+'</div>'
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
@@ -2734,9 +2734,17 @@ function matchOf(x){
 }
 const band=s=>s>=75?'hi':s>=55?'mid':'lo';
 function scoreBadge(m){if(!m)return '';const n=Object.values(m.parts).filter(p=>p.known).length;return `<span class="score s-${band(m.score)}${m.confidence<0.6?' weak':''}" title="Match ${m.score}/100, based on ${n} of ${Object.keys(m.parts).length} signals${m.confidence<0.6?'. Little real data: treat as a rough guess':''}">${m.score}</span>`;}
-function scoreWhy(m){
+// "€45–55k / year" from the salary Claude read in the offer (req), or '' when it states no amount.
+function salaryText(r){
+  if(!r||!(r.salary_max>0||r.salary_min>0))return '';
+  const k=v=>v>=10000?Math.round(v/1000)+'k':String(v),lo=r.salary_min>0?k(r.salary_min):'',hi=r.salary_max>0?k(r.salary_max):'';
+  const amt=lo&&hi&&lo!==hi?lo+'–'+hi:lo&&!hi?'from '+lo:!lo?'up to '+hi:lo;
+  return `${amt} ${r.salary_currency||''}${r.salary_period&&r.salary_period!=='none'?' / '+r.salary_period:''}`.trim();
+}
+function scoreWhy(m,x){
   if(!m)return '';
-  return `<details class="why"><summary>Why ${m.score}${m.blockers.length?` · ${esc(m.blockers.join(', '))}`:''}${m.urgent?' · apply soon':''}</summary><div class="bars">${Object.entries(m.parts).map(([k,p])=>
+  const pay=x?salaryText(x.req):'';
+  return `<details class="why"><summary>Why ${m.score}${m.blockers.length?` · ${esc(m.blockers.join(', '))}`:''}${m.capped?` · capped: ${esc(m.capped)}`:''}${pay?` · ${esc(pay)}`:''}${m.urgent?' · apply soon':''}</summary><div class="bars">${Object.entries(m.parts).map(([k,p])=>
     `<div class="bar ${p.known?'':'unk'}"><span>${PART_LABEL[k]} <small>${SC.WEIGHTS[k]}</small></span><i><b style="width:${Math.round(p.v*100)}%"></b></i><em>${esc(p.note)}${p.missing&&p.missing.length?` · missing: ${esc(p.missing.join(', '))}`:''}${p.keywords&&(p.keywords.have.length||p.keywords.missing.length)?`<br>Offer keywords you have: ${esc(p.keywords.have.join(', ')||'none')} · not in your CV: ${esc(p.keywords.missing.slice(0,5).join(', ')||'none')}`:''}${p.evidence&&p.evidence.length?`<br>Your strongest evidence: ${p.evidence.map(e=>`“${esc(e)}”`).join(' ')}`:''}</em></div>`).join('')}
     <p class="hint" style="margin:6px 0 0">Based on ${Math.round(m.confidence*100)}% real data. Faded rows had nothing to go on and count as neutral.</p></div></details>`;
 }
@@ -3051,7 +3059,7 @@ async function companyPage(key,qs){
       <div class="row" style="margin-bottom:12px"><input type="text" id="stRole" value="${esc(defRole)}" placeholder="Role, e.g. Machine Learning Engineer…" style="max-width:360px" aria-label="Role"><button class="btn sm" id="stGo">Show</button></div>
       <div id="stBox"></div></div>
     <div class="panel"><h2>Open offers for you</h2>${offers.length?'<div class="offers compact">'+offers.sort((a,b)=>(b.m?b.m.rank:0)-(a.m?a.m.rank:0)).map(x=>{const u=safeUrl(x.url);
-      return `<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}</h3><div class="meta">${expTag(x.xp||expOf(x))} ${esc(x.location||'')} · ${esc(x.source)}${x.posted?' · '+esc(rel(x.posted)):''}</div>${scoreWhy(x.m)}</div></article>`;}).join('')+'</div>':'<p class="hint" style="margin:0">No collected offers from this company right now.</p>'}</div>`;
+      return `<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}</h3><div class="meta">${expTag(x.xp||expOf(x))} ${esc(x.location||'')} · ${esc(x.source)}${x.posted?' · '+esc(rel(x.posted)):''}</div>${scoreWhy(x.m,x)}</div></article>`;}).join('')+'</div>':'<p class="hint" style="margin:0">No collected offers from this company right now.</p>'}</div>`;
   const showStories=()=>loadStories(name,cleanRole($('#stRole').value));$('#stGo').addEventListener('click',showStories);$('#stRole').addEventListener('keydown',e=>{if(e.key==='Enter')showStories();});showStories();
   $('#coNote').addEventListener('input',e=>{state.companyNotes=state.companyNotes||{};state.companyNotes[key]={name,text:e.target.value,updatedAt:Date.now()};save();});
   const nb=$('#view').querySelector('[data-act="newco"]');nb.dataset.org=name;

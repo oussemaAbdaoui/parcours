@@ -17,7 +17,8 @@ process.stdin.on('data', (d) => (raw += d)).on('end', () => {
     if (!hasProfile) continue;
     const m = S.score(x, p, Date.now(), ctx);
     scores[x.id] = m.score;
-    if (m.blockers.length) blocked[x.id] = m.blockers;
+    // Until its full text is read, an offer is dropped only for reasons certain from its title and listing.
+    if (m.sureBlockers.length) blocked[x.id] = m.sureBlockers;
   }
   process.stdout.write(JSON.stringify({ blocked, exp, scores }));
 });
