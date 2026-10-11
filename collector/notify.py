@@ -10,6 +10,7 @@ import os
 from datetime import date, datetime, timedelta, timezone
 
 SUBS, DIGEST_KEY = "parcours:push:subs", "parcours:push:digest-week"
+ALERTED = "parcours:push:alerted"  # offer ids already announced
 
 
 def _sender():
@@ -45,7 +46,18 @@ def notify(store, items, scores, now, state, origin):
     if not subs:
         return "no devices"
     sent = gone = 0
-    fresh = [x for x in items if x.get("foundAt") == now and x["id"] in scores]
+    # Offers from the last 7 days the first time they reach a device's threshold. An offer often arrives without
+    # its description (LinkedIn): capped until it is read, it reaches the threshold on a later run, which "found in
+    # this run" never caught. The ids alerted are remembered; the first run only records today's strong offers.
+    low = min(rec.get("threshold", 80) for _, rec in subs)
+    week = now - 7 * 86400 * 1000
+    seeding = not store.cmd("EXISTS", ALERTED)
+    done = set(store.cmd("SMEMBERS", ALERTED) or [])
+    fresh = [x for x in items if x.get("foundAt", 0) >= week and scores.get(x["id"], 0) >= low and x["id"] not in done]
+    if fresh:
+        store.cmd("SADD", ALERTED, *[x["id"] for x in fresh])
+    if seeding:
+        return f"alerts start next run ({len(fresh)} current strong offers recorded)"
     for endpoint, rec in subs:
         strong = sorted((x for x in fresh if scores[x["id"]] >= rec.get("threshold", 80)), key=lambda x: -scores[x["id"]])
         if not strong:
@@ -74,7 +86,7 @@ def digest(store, items, scores, state, send, subs):
     week_ago = int((now - timedelta(days=7)).timestamp() * 1000)
     strong = [x for x in items if x.get("foundAt", 0) >= week_ago and scores.get(x["id"], 0) >= 75]
     today, soon = date.today(), (date.today() + timedelta(days=7)).isoformat()
-    deadlines = [x for x in items if x.get("deadline") and today.isoformat() <= x["deadline"] <= soon and scores.get(x["id"], 0) >= 60]
+    deadlines = [x for x in items if x.get("deadline") and today.isoformat() <= x["deadline"] <= soon and scores.get(x["id"], 0) >= 75]  # strong, as in the app
     follow = [a for a in state.get("apps", []) if a.get("stage") == "applied" and a.get("result") == "open"
               and a.get("date") and (today - date.fromisoformat(a["date"])).days >= 14]
     parts = [f"{len(strong)} new strong match{'es' if len(strong) != 1 else ''}"]
