@@ -8,7 +8,7 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 |---|---|---|---|---|
 | 1 | Scoring | Ranks offers against the profile, drops dealbreakers | ✅ | `node tests/score.test.js` (21 cases) |
 | 2 | Sources | Fetches offers from job boards | ✅ | `python tests/sources_check.py [--home]` |
-| 3 | Enrichment | Full descriptions, applicants, company ratings | 🔧 | coverage table below |
+| 3 | Enrichment | Full descriptions, applicants, company ratings | ✅ | coverage figures below |
 | 4 | Data model | How records are stored and linked | ✅ | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
 | 5 | Requirements (AI) | Claude reads what each offer asks, and the salary | ✅ | part of the scoring cases |
 | 6 | Scheduling | PC tasks, GitHub cron, interview stories | ✅ | `python collector/insights.py "Company" "Role"` |
@@ -16,7 +16,7 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 | 8 | App pages and UX | Offers, queue, tracker, profile | 🔧 | screenshots of every page, sandboxed |
 | 9 | Alerts | Notifications and weekly digest | ✅ | |
 | 10 | Academia and masters | Professors, PhDs, master's, scholarships | 🔧 | `python collector/academia.py --dry-run --only=se` |
-| 11 | Letters | Cover letters with AI | ⏳ | |
+| 11 | Letters | Cover letters with AI | ✅ | sandboxed letter test |
 
 ## 1. Scoring ✅
 
@@ -50,7 +50,7 @@ Open:
 - [ ] Belgium, Netherlands, Canada and Ireland still have no local board and no strong match.
 - [ ] LinkedIn posts need a Serper key.
 
-## 3. Enrichment 🔧
+## 3. Enrichment ✅
 
 Done (commits `034fd7e`, `41abe3f`, `c3dd48c`, `e6a6caf`, `dc60461`):
 - The PC fills LinkedIn descriptions; the cloud run does it through the rotating proxy (800 MB a month cap).
@@ -58,12 +58,16 @@ Done (commits `034fd7e`, `41abe3f`, `c3dd48c`, `e6a6caf`, `dc60461`):
 - Collectors never write an older, emptier copy over a richer one (the cloud run was erasing the PC's descriptions: 10 of 258 LinkedIn offers kept theirs).
 - Most promising offers are opened first; the PC opens 40 pages a run.
 
-Open:
-- [ ] Verify on the next runs: LinkedIn offers with a description should climb from 10.
-- [ ] Applicant counts: only read when a LinkedIn page is opened; check they stick.
-- [ ] Duunitori descriptions through the stealth details step.
+Verified on the cloud run of 11 Oct, 04:21 UTC:
+- [x] Cloud offers with their full text: 126 of 482, then 200, now 362 of 491.
+- [x] LinkedIn through the proxy: 400 pages of 400, no stop (19.5 MB; 22 MB of 800 this month).
+- [x] Applicant counts: 10, now 113.
 
-Coverage (11 Oct, before the fixes): 249 of 541 offers with full text; LinkedIn 10 of 258.
+Open:
+- [ ] Your decision: with applicant counts now known, 93 offers were dropped for "Over 150 applicants" in one run. Keep that as a dealbreaker, or show them lower instead?
+- [ ] Duunitori descriptions through the stealth details step: check on the next PC runs.
+
+Coverage before the fixes (11 Oct): 249 of 541 offers with full text; LinkedIn 10 of 258.
 
 ## 4. Data model 🔧
 
@@ -154,11 +158,17 @@ Open:
 - [ ] Master's cover France, Germany, Italy and Erasmus Mundus only: no source yet for the Nordics, the Netherlands, Belgium, the UK or Canada.
 - [ ] Some institutions are a sub-unit ("Formation Continue UNIL-EPFL" for an EPFL professor): prefer the parent institution.
 
-## 11. Letters ⏳
+## 11. Letters ✅
+
+Inspected: "Improve with AI" run on a real queued offer (IFP Energies nouvelles PhD), sandboxed; only the AI call went out.
+- Good: the offer's specifics (Méso-NH simulations, diffusion and transformer approaches) tied to real CV facts; every name (Sayadi, Noël, Enchéry) is in the offer; no placeholder; nothing invented.
+- [x] The date line kept the draft's old date (10 October on the 11th): Claude is now given today's date. Checked: "11 October 2026".
+- [x] The 220-word limit now counts the body only; the letter's body is about 240 words because the PhD draft is long. Accepted.
 
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.
+- 11 Oct: letters (date fixed); enrichment verified on the cloud run: 362 of 491 offers with full text, 113 with applicants.
 - 11 Oct: academia and masters: duplicates merged, professors in all your countries.
 - 11 Oct: applications keep the offer; alerts reach offers read later.
 - 11 Oct: UX audit, first round: 8 fixes on Discover, Home and Track; 8 items open.
