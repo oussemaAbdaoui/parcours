@@ -2614,8 +2614,10 @@ function renderCollected(){
   const when=run?new Date(run.at).toLocaleString('en',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   // Rate limits and optional keys left unset are normal running states, not failures: only real errors are shown.
   const expected=v=>/rate-limited|add an? [A-Z_]+|no .*account|refreshed on the next run|allowance used up/i.test(v.error||'');
+  // Claude out of credits or its key refused: offers stop being read, so scores turn partly blind. Said plainly.
+  const aiDown=run?Object.values(run.sources||{}).map(v=>v.error||'').find(e=>/credits used up|key refused/i.test(e))||'':'';
   const failed=run?Object.entries(run.sources||{}).filter(([,v])=>!v.ok&&!expected(v)).map(([k,v])=>`<span title="${esc(v.error||'')}">${esc(k)}</span>`).join(', '):'';
-  b.innerHTML=(!hasCv()&&all.length?`<p class="nudge">Scores use default skills until you add your CV. <a href="#/profile">Add it in Profile</a>.</p>`:'')
+  b.innerHTML=(aiDown?`<p class="nudge">Claude cannot read new offers: ${esc(aiDown)}. Until then their requirements are unchecked and they are scored with caution.</p>`:'')+(!hasCv()&&all.length?`<p class="nudge">Scores use default skills until you add your CV. <a href="#/profile">Add it in Profile</a>.</p>`:'')
     +(all.length||run?`<div class="toolbar${colFiltersOpen?' open':''}">
       <input type="search" id="coQ" placeholder="Search: ml engineer paris -senior…" aria-label="Search collected offers. Every word must match; -word excludes" value="${esc(colF.q)}">
       <button type="button" class="btn sm fbtn" id="coF" aria-expanded="${colFiltersOpen}">Filters${nActive?` · ${nActive}`:''}</button>

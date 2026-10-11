@@ -94,14 +94,22 @@ def extract(items, limit=400, budget=480, workers=4):
     # until their description arrives (they are read then).
     todo = [x for x in items if (x.get("req") or {}).get("v", 0) < MIN_VERSION and len(x.get("desc") or "") >= 400][:limit]
     t0, done, errors, tokens = time.time(), 0, 0, [0, 0]
+    stop = []  # set on an error every later call would hit too (credits used up, bad key): no point trying 400 times
 
     def one(x):
-        if time.time() - t0 > budget:
+        if time.time() - t0 > budget or stop:
             return x, None, None, "time"
         try:
             req, usage = _extract_one(client, x)
             return x, req, usage, None
         except anthropic.APIStatusError as e:
+            msg = str(getattr(e, "message", "") or e)
+            if "credit balance" in msg:
+                stop.append(1)
+                return x, None, None, "Anthropic credits used up: top up at console.anthropic.com (Plans & Billing)"
+            if e.status_code in (401, 403):
+                stop.append(1)
+                return x, None, None, f"Anthropic key refused (HTTP {e.status_code})"
             return x, None, None, f"HTTP {e.status_code}"
         except anthropic.APIConnectionError:
             return x, None, None, "connection"

@@ -64,7 +64,7 @@ Verified on the cloud run of 11 Oct, 04:21 UTC:
 - [x] Applicant counts: 10, now 113.
 
 Open:
-- [ ] Your decision: with applicant counts now known, 93 offers were dropped for "Over 150 applicants" in one run. Keep that as a dealbreaker, or show them lower instead?
+- [x] "Over 150 applicants" stays a dealbreaker: those offers are hidden (your decision, 11 Oct; 93 dropped in the first run with applicant counts).
 - [ ] Duunitori descriptions through the stealth details step: check on the next PC runs.
 
 Coverage before the fixes (11 Oct): 249 of 541 offers with full text; LinkedIn 10 of 258.
