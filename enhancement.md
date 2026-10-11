@@ -13,7 +13,7 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 | 5 | Requirements (AI) | Claude reads what each offer asks, and the salary | ✅ | part of the scoring cases |
 | 6 | Scheduling | PC tasks, GitHub cron, interview stories | ✅ | `python collector/insights.py "Company" "Role"` |
 | 7 | Sync and storage | Your data across devices | ✅ | `python tests/sync_test.py` (sandboxed) |
-| 8 | App pages and UX | Offers, queue, tracker, profile | ⏳ | |
+| 8 | App pages and UX | Offers, queue, tracker, profile | 🔧 | screenshots of every page, sandboxed |
 | 9 | Alerts | Notifications and weekly digest | ⏳ | |
 | 10 | Academia and masters | Professors, PhDs, master's, scholarships | ⏳ | |
 | 11 | Letters | Cover letters with AI | ⏳ | |
@@ -110,12 +110,29 @@ Inspected (sandboxed, every write captured and never sent; commit `930093d`):
 Open:
 - [ ] The server's mass-deletion refusal is checked by reading the code only; a test against a throwaway database would prove it.
 
-## 8. App pages and UX ⏳
+## 8. App pages and UX 🔧
 
-Known:
-- [ ] All 17 applications are stuck at "applied": match Gmail replies to applications, and remind to follow up.
+UX audit (11 Oct): Home, Discover, Track, Profile, Companies, Sponsors, Academia, Master's and Notes screenshotted at desktop (1366 px) and phone (390 px) width with your real data, writes captured. No page errors, no horizontal scrolling.
 
-UX audit: to do (pages walked through with your data in a sandbox, writes intercepted).
+Fixed (commit `a37f99f`, checked on new screenshots):
+- [x] Offers were not listed in the order of their score (79 above 81): a hidden confidence rank decided. Now the score shown, confidence only between equal scores.
+- [x] Phone: the last offer button (Hide) was cut off. The row wraps.
+- [x] "failed: LinkedIn posts, LinkedIn details" showed on every run for normal states (no Serper key, rate limit). Only real errors show now.
+- [x] Home said "29 close soon", counting off-field PhDs (fusion engineering, earthquakes). Now the strong matches only: 11.
+- [x] Home showed the same five offers twice (New strong matches, Best matches right now). The second list continues after the first.
+- [x] "Where you applied" had 12 empty country rows out of 15. Only countries with applications.
+- [x] Home's "Apply queue · 18" counted sent and skipped offers; the header said 3. Both count what is left to do.
+- [x] The board did not show duplicates: Université Gustave Eiffel, Rosenberger Tunisia and TNT are each logged twice (17 applications, 14 real). Marked "Logged twice".
+
+Open:
+- [ ] Delete the 3 duplicate applications (your call, from the board).
+- [ ] All 17 applications are stuck at "applied": match Gmail replies to applications (a "Scan Gmail" button exists; check what it finds), and remind to follow up.
+- [ ] An offer's state lives in four places (hidden setting, queue, saved, applications) that can disagree. One state per offer id.
+- [ ] Applications keep only role, company and link: keep a copy of the offer (text, requirements, salary) when you apply.
+- [ ] Eight buttons on every offer (Apply, Save, Queue, Log, Stories, Hide, Why, Offer details): group the less used ones.
+- [ ] Phone: the daily goal shows twice at the top (the "0/50 today" pill and the goal bar).
+- [ ] Filters take two rows of twelve controls on desktop.
+- [ ] "Lead, AI Engineering" at Bain scores 80 as entry level: Claude's reading (entry) overrides a "Lead" title. Check the offer and decide which wins.
 
 ## 9. Alerts ⏳
 
@@ -126,6 +143,7 @@ UX audit: to do (pages walked through with your data in a sandbox, writes interc
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.
+- 11 Oct: UX audit, first round: 8 fixes on Discover, Home and Track; 8 items open.
 - 11 Oct: sync round: both wipe scenarios pass in the sandbox, mirror matches Neon, daily PC backup added.
 - 11 Oct: scheduling round: cron gaps covered by the PC; interview stories fixed (wrong companies).
 - 11 Oct: data model round: company matching, apply log cleanup. PC run with the new sources: Welcome to the Jungle 26, Duunitori 22, Emploi.ma 14; 63 of 70 PC offers with full text.
