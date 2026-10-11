@@ -59,3 +59,50 @@ create table if not exists poli_jobs (
   data       jsonb   not null,
   seen_at    bigint  not null
 );
+
+-- Offers and companies (phase 2). One row per company, keyed by the normalised name every store already uses
+-- (enrich._norm); offers, ratings, the hiring log, interview stories and the Poli sponsor link point to its id.
+create table if not exists companies (
+  id         serial  primary key,
+  norm       text    not null unique,
+  name       text    not null,
+  rating     jsonb,                      -- {rating, count, source, url, at}: Indeed reviews, "not found" included
+  rating_at  bigint,
+  poli_id    integer,                    -- poli_companies.id when the company is a UK visa sponsor
+  updated_at bigint  not null
+);
+
+-- Collected offers, written by every collector run (the same set as the Redis hash parcours:opps:items).
+create table if not exists offers (
+  id         text    primary key,
+  company_id integer references companies (id),
+  origin     text    not null default 'cloud',   -- cloud (GitHub Actions) or home (the PC)
+  source     text    not null default '',
+  country    text    not null default '',
+  kind       text    not null default 'job',
+  title      text    not null default '',
+  found_at   bigint,
+  data       jsonb   not null,                   -- the offer as the app receives it
+  updated_at bigint  not null
+);
+create index if not exists offers_company on offers (company_id);
+
+-- Hiring log: each offer a company was seen posting (kept after the offer itself ages out).
+create table if not exists company_seen (
+  company_id integer not null references companies (id),
+  offer_id   text    not null,
+  day        date    not null,
+  kind       text    not null default 'job',
+  src        text    not null default 's',      -- p: posted date, s: day first seen, b: backfilled
+  primary key (company_id, offer_id)
+);
+
+-- Interview stories per company and role (Glassdoor, Reddit), mirrored from the Redis cache parcours:insights.
+create table if not exists insights (
+  key        text    primary key,                 -- insights.key(company, role)
+  company_id integer references companies (id),
+  role       text    not null default '',
+  data       jsonb   not null,
+  updated_at bigint  not null
+);
+create index if not exists insights_company on insights (company_id);

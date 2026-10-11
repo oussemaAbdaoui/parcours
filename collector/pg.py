@@ -73,3 +73,81 @@ def poli_people(rows, now):
 
 def poli_jobs(rows, now):
     return merge("poli_jobs", rows, lambda r: {"id": str(r["id"]), "company_id": (r.get("poli") or {}).get("companyId")}, now)
+
+
+# ---------- Offers and companies ----------
+
+def company_ids(names, now):
+    """{norm: display name} -> {norm: companies.id}, creating the missing companies; links new ones to their Poli
+    sponsor record by the same normalised name."""
+    c = conn()
+    names = {k: v for k, v in names.items() if k and len(k) >= 2}
+    if not c or not names:
+        return {}
+    keys = list(names)
+    with c.cursor() as cur:
+        cur.execute("insert into companies (norm, name, updated_at) select k, n, %s from unnest(%s::text[], %s::text[]) as t(k, n) "
+                    "on conflict (norm) do update set updated_at = excluded.updated_at returning norm, id",
+                    (now, keys, [names[k] or k for k in keys]))
+        ids = dict(cur.fetchall())
+        cur.execute("update companies c set poli_id = p.id from poli_companies p where c.poli_id is null and p.norm = c.norm and c.norm = any(%s)", (keys,))
+    return ids
+
+
+def offers_save(items, removed, now):
+    """Mirrors a run's save: each offer written whole (the run already merged richer stored copies), removed ones
+    deleted. Returns the count written."""
+    c = conn()
+    if not c:
+        return 0
+    from enrich import _norm as n
+    ids = company_ids({n(x.get("org")): x.get("org") or "" for x in items if x.get("org")}, now)
+    rows = [(x["id"], ids.get(n(x.get("org"))), x.get("origin") or "cloud", x.get("source") or "", x.get("c") or "",
+             x.get("kind") or "job", x.get("title") or "", x.get("foundAt"), json.dumps(x, ensure_ascii=False), now) for x in items]
+    with c.cursor() as cur:
+        for i in range(0, len(rows), 300):
+            cur.executemany("insert into offers (id, company_id, origin, source, country, kind, title, found_at, data, updated_at) "
+                            "values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) on conflict (id) do update set company_id = excluded.company_id, "
+                            "origin = excluded.origin, source = excluded.source, country = excluded.country, kind = excluded.kind, "
+                            "title = excluded.title, found_at = excluded.found_at, data = excluded.data, updated_at = excluded.updated_at", rows[i:i + 300])
+        if removed:
+            cur.execute("delete from offers where id = any(%s)", (list(removed),))
+    return len(rows)
+
+
+def company_rating(norm, name, rec, now):
+    """A company's review rating (or "not found"), as cached in Redis parcours:companies."""
+    c = conn()
+    if not c or not norm:
+        return
+    cid = company_ids({norm: name or norm}, now).get(norm)
+    with c.cursor() as cur:
+        cur.execute("update companies set rating = %s, rating_at = %s where id = %s",
+                    (json.dumps(rec, ensure_ascii=False), int((rec.get("at") or now / 1000) * 1000), cid))
+
+
+def company_seen(entries, now):
+    """Hiring log rows: [(norm, name, offer_id, day, kind, src)]. Idempotent: an offer counts once."""
+    c = conn()
+    if not c or not entries:
+        return 0
+    ids = company_ids({e[0]: e[1] for e in entries}, now)
+    rows = [(ids[e[0]], e[2], e[3], e[4] or "job", e[5] or "s") for e in entries if e[0] in ids]
+    with c.cursor() as cur:
+        for i in range(0, len(rows), 500):
+            cur.executemany("insert into company_seen (company_id, offer_id, day, kind, src) values (%s, %s, %s, %s, %s) "
+                            "on conflict do nothing", rows[i:i + 500])
+    return len(rows)
+
+
+def insight(key, company, role, rec, now):
+    """Interview stories for one company and role, linked to the company."""
+    c = conn()
+    if not c:
+        return
+    from enrich import _norm as n
+    cid = company_ids({n(company): company}, now).get(n(company))
+    with c.cursor() as cur:
+        cur.execute("insert into insights (key, company_id, role, data, updated_at) values (%s, %s, %s, %s, %s) on conflict (key) do update "
+                    "set company_id = excluded.company_id, role = excluded.role, data = excluded.data, updated_at = excluded.updated_at",
+                    (key, cid, role or "", json.dumps(rec, ensure_ascii=False), now))

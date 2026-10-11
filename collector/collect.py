@@ -330,6 +330,11 @@ def save_items(store, items, removed):
         store.cmd("HSET", ITEMS_KEY, *batch)
     for i in range(0, len(removed), 100):
         store.cmd("HDEL", ITEMS_KEY, *removed[i:i + 100])
+    try:  # Postgres, where offers are moving (Redis stays the source until the app reads Postgres)
+        import pg
+        pg.offers_save(items, removed, int(time.time() * 1000))
+    except Exception as e:
+        print(f"  Postgres offers: {str(e)[:160]}")
 
 
 def linkedin_home(everything, store, origin, limit=150):

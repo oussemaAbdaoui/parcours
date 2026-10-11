@@ -192,6 +192,11 @@ def process_queue(store, limit=6):
         print(f"  stories: {req['company']} / {req.get('role', '')}")
         res = lookup(req["company"], req.get("role", ""))
         store.cmd("HSET", STORE, k, json.dumps(res, ensure_ascii=False))
+        try:
+            import pg
+            pg.insight(k, req["company"], req.get("role", ""), res, int(time.time() * 1000))
+        except Exception as e:
+            print(f"  Postgres stories: {str(e)[:120]}")
         store.cmd("SREM", QUEUE + ":pending", k)
         done += 1
     return done

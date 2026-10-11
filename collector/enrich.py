@@ -379,6 +379,11 @@ def company_ratings(items, store, limit=30):
                     looked += 1
                     if store:
                         store.cmd("HSET", COMPANIES_KEY, k, json.dumps(rec))
+                        try:
+                            import pg
+                            pg.company_rating(k, names[k], rec, int(now * 1000))
+                        except Exception as e:
+                            print(f"  Postgres rating: {str(e)[:120]}")
                     time.sleep(1.5)
         except Exception as e:  # blocked or broken: keep what we have
             err = str(e)[:120]

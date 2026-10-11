@@ -12,6 +12,7 @@ day is when collection started, so weekday and rhythm figures leave them out).
 """
 import json
 import re
+import time
 from datetime import date, datetime, timezone
 
 from enrich import _norm
@@ -66,4 +67,14 @@ def record(store, offers, backfill=False):
                 batch = []
     if batch:
         store.cmd("HSET", HISTORY_KEY, *batch)
+    try:  # Postgres: one row per offer seen, linked to the company
+        import pg
+        rows = []
+        for k, xs in by_co.items():
+            for x in xs:
+                day, src = _day(x, backfill)
+                rows.append((k, x.get("org") or k, x["id"], day, x.get("kind") or "job", src))
+        pg.company_seen(rows, int(time.time() * 1000))
+    except Exception as e:
+        print(f"  Postgres history: {str(e)[:160]}")
     return added
