@@ -273,7 +273,33 @@ def load_all(store):
     return migrated
 
 
+ENRICHED = ("desc", "req", "applicants", "applicantsCapped", "contacts")
+
+
+def keep_enriched(store, items):
+    """A run holds the offers as they were when it started (30-50 min for the cloud run); meanwhile the other
+    collector may have filled their descriptions (the PC fills the cloud's LinkedIn offers). Before saving, each
+    offer takes the stored copy's description, reading and applicant count when those are richer than its own,
+    so a run never writes an older, emptier copy over a newer one."""
+    for i in range(0, len(items), 100):
+        chunk = items[i:i + 100]
+        cur = store.cmd("HMGET", ITEMS_KEY, *[x["id"] for x in chunk]) or []
+        for x, raw in zip(chunk, cur):
+            if not raw:
+                continue
+            s = json.loads(raw)
+            if len(s.get("desc") or "") > len(x.get("desc") or ""):
+                for k in ENRICHED:
+                    if k in s:
+                        x[k] = s[k]
+                    else:
+                        x.pop(k, None)
+            elif "applicants" in s and "applicants" not in x:
+                x["applicants"] = s["applicants"]
+
+
 def save_items(store, items, removed):
+    keep_enriched(store, items)
     batch = []
     for x in items:
         batch += [x["id"], json.dumps(x, ensure_ascii=False)]
