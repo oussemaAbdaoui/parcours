@@ -23,7 +23,8 @@ STATE_KEY, OPPS_KEY, HOME_KEY = "parcours:state", "parcours:opps", "parcours:opp
 # Offers live in one hash (id -> offer JSON), so every write stays small; each offer records which collector found it.
 ITEMS_KEY, META_KEY = "parcours:opps:items", "parcours:opps:meta"
 HOME_KEYWORDS = ["développeur", "machine learning", "data scientist", "intelligence artificielle"]
-MAX_ITEMS, MAX_AGE_DAYS = 600, 45
+# Stored offers per collector: the app downloads them all (Vercel answers up to 4.5 MB), so cloud + home stay near 1200.
+MAX_ITEMS, MAX_ITEMS_HOME, MAX_AGE_DAYS = 900, 300, 45
 DEFAULT_SEARCHES = [
     {"search": "machine learning engineer", "c": "fr", "location": "Paris", "type": ""},
     {"search": "machine learning engineer", "c": "de", "location": "Berlin", "type": ""},
@@ -239,8 +240,7 @@ def merge(mine, others, found, now, origin):
     today = date.today().isoformat()
     cutoff = int((datetime.now(timezone.utc) - timedelta(days=MAX_AGE_DAYS)).timestamp() * 1000)
     kept = [x for x in by_id.values() if x.get("foundAt", now) >= cutoff and not (x.get("deadline") and x["deadline"] < today)]
-    kept.sort(key=lambda x: x["foundAt"], reverse=True)
-    kept = kept[:MAX_ITEMS]
+    kept.sort(key=lambda x: x["foundAt"], reverse=True)  # the store cap applies later, by score (keep_best)
     kept_ids = {x["id"] for x in kept}
     removed = [i for i in by_id if i not in kept_ids]
     return kept, new, removed
@@ -456,6 +456,13 @@ def main():
     if late:
         removed += [x["id"] for x in items if x["id"] in late]
         items = [x for x in items if x["id"] not in late]
+    # Over the cap, the lowest-scoring offers go, not the oldest: a good offer stays until it closes or ages out.
+    cap = MAX_ITEMS_HOME if home else MAX_ITEMS
+    if len(items) > cap:
+        items.sort(key=lambda x: (scores.get(x["id"], 0), x.get("foundAt", 0)), reverse=True)
+        print(f"  store cap {cap}: {len(items) - cap} lowest-scoring offers dropped (kept down to score {scores.get(items[cap - 1]['id'], 0)})")
+        removed += [x["id"] for x in items[cap:]]
+        items = items[:cap]
     rich = sum(1 for x in items if len(x.get("desc") or "") >= 400)
     print(f"  full description: {rich}/{len(items)}, applicants: {sum(1 for x in items if x.get('applicants'))}, company rating: {sum(1 for x in items if x.get('company'))}")
 
