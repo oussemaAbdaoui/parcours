@@ -1,12 +1,10 @@
 const crypto = require('crypto');
 const { upstash, redis } = require('./_lib');
 
-// Gmail connection: read access (scan) and send access (applications you approve), refresh token kept in Upstash
-// only (never sent to the browser).
+// Gmail connection: read-only access, refresh token kept in Upstash only (never sent to the browser).
 const KEY = 'parcours:gmail';
 const NONCE = 'parcours:gmail:nonce:';
-const READ = 'https://www.googleapis.com/auth/gmail.readonly', SEND = 'https://www.googleapis.com/auth/gmail.send';
-const SCOPE = READ + ' ' + SEND;
+const SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
 function missing(req) {
   const e = process.env, m = [];
@@ -85,13 +83,4 @@ function bodyText(payload) {
   return (plain || htmlToText(html)).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 }
 
-// Sends one email (multipart, with attachments) as the connected account. raw = RFC 2822, base64url.
-async function sendRaw(token, raw) {
-  const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'content-type': 'application/json' }, body: JSON.stringify({ raw }) });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw { status: 502, message: 'Gmail did not send it (HTTP ' + r.status + ')' + ((j.error && j.error.message) ? ': ' + j.error.message : '') };
-  return j;
-}
-
-module.exports = { KEY, NONCE, SEND, missing, origin, getConn, startUrl, tokenCall, accessToken, gmail, bodyText, sendRaw };
+module.exports = { KEY, NONCE, missing, origin, getConn, startUrl, tokenCall, accessToken, gmail, bodyText };

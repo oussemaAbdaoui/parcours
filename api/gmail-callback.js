@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
     if (!tok.refresh_token) return fail('Google did not grant offline access. Try connecting again.');
     if (!String(tok.scope || '').includes('gmail.readonly')) return fail('Gmail read access was not granted.');
     const prof = await gmail(tok.access_token, 'profile');
-    await redis(u, ['SET', KEY, JSON.stringify({ refresh_token: tok.refresh_token, email: prof.emailAddress || '', scope: tok.scope || '', connectedAt: Date.now() })]);
+    await redis(u, ['SET', KEY, JSON.stringify({ refresh_token: tok.refresh_token, email: prof.emailAddress || '', connectedAt: Date.now() })]);
     back('gmail=ok');
   } catch (e) {
     fail(e.message || 'Could not connect Gmail.');

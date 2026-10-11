@@ -1,5 +1,5 @@
 const { auth, upstash, redis, isoDate } = require('./_lib');
-const { KEY, SEND, missing, getConn, startUrl, accessToken, gmail, bodyText, sendRaw } = require('./_gmail');
+const { KEY, missing, getConn, startUrl, accessToken, gmail, bodyText } = require('./_gmail');
 const { classify } = require('./_classify');
 
 // Words that show up in application, recruiting and admissions emails (EN, FR, DE).
@@ -38,45 +38,6 @@ async function scan(req, u) {
   return { emails, scanned: emails.length, skipped: all.length - fresh.length, more };
 }
 
-/* Sends one application email you approved in the apply queue: your letter as the body, your CV and recommendation
-   letters attached (from your documents, api/state.js ?doc=). One recipient, at most 5 attachments, 15 MB in all. */
-const EMAIL = /^[^\s@<>()",;]+@[^\s@<>()",;]+\.[a-z]{2,}$/i;
-const hdr = (s) => (/^[\x20-\x7e]*$/.test(s) ? s : '=?UTF-8?B?' + Buffer.from(s, 'utf8').toString('base64') + '?=');
-const wrap = (b64) => b64.replace(/.{76}/g, '$&\r\n');
-async function send(req, u) {
-  const { to, toName, subject, text, attachments } = req.body || {};
-  if (!EMAIL.test(String(to || ''))) throw { status: 400, message: 'The recipient email is not valid.' };
-  if (!String(subject || '').trim() || String(text || '').trim().length < 50) throw { status: 400, message: 'The email needs a subject and a letter.' };
-  const conn = await getConn(u);
-  if (!conn) throw { status: 409, code: 'not_connected', message: 'Connect Gmail first (Applications, Scan Gmail).' };
-  if (!String(conn.scope || '').includes(SEND)) throw { status: 409, code: 'need_send', message: 'Reconnect Gmail and allow sending emails.' };
-  const ids = (Array.isArray(attachments) ? attachments : []).map(String).filter((x) => /^[\w-]{1,64}$/.test(x)).slice(0, 5);
-  const files = [];
-  if (ids.length) {
-    const pool = require('./_db').db();
-    if (!pool) throw { status: 501, message: 'Attachments need the Neon database.' };
-    const r = await pool.query('select id, name, type, data from docs where id = any($1)', [ids]);
-    files.push(...r.rows);
-    if (files.reduce((n, f) => n + f.data.length * 3 / 4, 0) > 15 * 1024 * 1024) throw { status: 413, message: 'The attachments are over 15 MB.' };
-  }
-  const boundary = 'parcours-' + require('crypto').randomBytes(12).toString('hex');
-  const from = conn.email ? conn.email : 'me';
-  const lines = [
-    `From: ${from}`, `To: ${toName ? hdr(String(toName).replace(/[<>"]/g, '')) + ' ' : ''}<${to}>`, `Subject: ${hdr(String(subject).slice(0, 200))}`,
-    'MIME-Version: 1.0', `Content-Type: multipart/mixed; boundary="${boundary}"`, '',
-    `--${boundary}`, 'Content-Type: text/plain; charset="UTF-8"', 'Content-Transfer-Encoding: base64', '',
-    wrap(Buffer.from(String(text), 'utf8').toString('base64')),
-  ];
-  for (const f of files) {
-    lines.push(`--${boundary}`, `Content-Type: ${f.type}; name="${hdr(f.name)}"`, `Content-Disposition: attachment; filename="${hdr(f.name)}"`,
-      'Content-Transfer-Encoding: base64', '', wrap(f.data));
-  }
-  lines.push(`--${boundary}--`, '');
-  const raw = Buffer.from(lines.join('\r\n'), 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const out = await sendRaw(await accessToken(u), raw);
-  return { ok: true, id: out.id, threadId: out.threadId, attached: files.map((f) => f.name) };
-}
-
 module.exports = async (req, res) => {
   if (!(await auth(req, res))) return;
   res.setHeader('Cache-Control', 'no-store');
@@ -87,13 +48,12 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const conn = await getConn(u);
-      return res.status(200).json({ configured: true, connected: !!conn, email: conn ? conn.email : '', canSend: !!conn && String(conn.scope || '').includes(SEND) });
+      return res.status(200).json({ configured: true, connected: !!conn, email: conn ? conn.email : '' });
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
     const action = (req.body || {}).action;
     if (action === 'start') return res.status(200).json({ url: await startUrl(req, u) });
     if (action === 'scan') return res.status(200).json(await scan(req, u));
-    if (action === 'send') return res.status(200).json(await send(req, u));
     if (action === 'disconnect') {
       const conn = await getConn(u);
       if (conn) {

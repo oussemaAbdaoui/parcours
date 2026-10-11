@@ -76,57 +76,12 @@ async function mirror(u, state) {
   if (u) await redis(u, ['SET', KEY, JSON.stringify(state)]);
 }
 
-/* Your documents (CV and recommendation letters as uploaded, PDF or text), kept apart from the state so the
-   sync stays small: ?doc=<id> on this same function (the Hobby plan allows 12). The extracted text lives in the
-   profile; the original file is what gets attached when you apply. Files up to 3 MB.
-   GET ?doc=list -> [{id, name, type, size, updated}]; GET ?doc=<id> -> {id, name, type, data (base64)};
-   PUT ?doc=<id> {name, type, data}; DELETE ?doc=<id>. */
-const DOC_MAX = 3 * 1024 * 1024;
-let docsReady = null;
-function docsTable(pool) {
-  docsReady = docsReady || pool.query(`create table if not exists docs (id text primary key, name text not null, type text not null,
-    data text not null, size integer not null, updated_at bigint not null)`);
-  return docsReady;
-}
-async function docs(req, res, pool) {
-  const id = String(req.query.doc || '');
-  if (!/^[\w-]{1,64}$/.test(id)) return res.status(400).json({ error: 'Invalid document id.' });
-  await docsTable(pool);
-  if (req.method === 'GET' && id === 'list') {
-    const r = await pool.query('select id, name, type, size, updated_at from docs order by updated_at desc');
-    return res.status(200).json({ docs: r.rows.map((d) => ({ id: d.id, name: d.name, type: d.type, size: d.size, updated: Number(d.updated_at) })) });
-  }
-  if (req.method === 'GET') {
-    const r = await pool.query('select id, name, type, data from docs where id = $1', [id]);
-    return r.rows[0] ? res.status(200).json(r.rows[0]) : res.status(404).json({ error: 'Document not found.' });
-  }
-  if (req.method === 'PUT') {
-    const { name, type, data } = req.body || {};
-    if (typeof name !== 'string' || typeof data !== 'string' || !/^(application\/pdf|text\/plain|text\/markdown)$/.test(type || '')) return res.status(400).json({ error: 'Send a PDF or text file.' });
-    const size = Math.floor(data.length * 3 / 4);
-    if (size > DOC_MAX) return res.status(413).json({ error: 'The file is over 3 MB.' });
-    await pool.query(`insert into docs (id, name, type, data, size, updated_at) values ($1, $2, $3, $4, $5, $6)
-      on conflict (id) do update set name = excluded.name, type = excluded.type, data = excluded.data, size = excluded.size, updated_at = excluded.updated_at`,
-      [id, name.slice(0, 200), type, data, size, Date.now()]);
-    return res.status(200).json({ ok: true, id, size });
-  }
-  if (req.method === 'DELETE') {
-    await pool.query('delete from docs where id = $1', [id]);
-    return res.status(200).json({ ok: true });
-  }
-  return res.status(405).json({ error: 'Method not allowed.' });
-}
-
 module.exports = async (req, res) => {
   if (!(await auth(req, res))) return;
   const pool = db(), u = upstash();
   if (!pool && !u) return res.status(501).json({ error: 'Sync is not configured.' });
   res.setHeader('Cache-Control', 'no-store');
   try {
-    if (req.query && req.query.doc != null) {
-      if (!pool) return res.status(501).json({ error: 'Documents need the Neon database (DATABASE_URL).' });
-      return await docs(req, res, pool);
-    }
     if (!pool) return legacy(req, res, u);
     if (req.method === 'GET') {
       let state = await load(pool);
