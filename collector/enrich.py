@@ -228,6 +228,10 @@ def _apply_page(x, page):
     return False
 
 
+PROMISING = re.compile(r"\b(ai|ia|ml|machine learning|deep learning|llm|genai|data|python|d[ée]velopp\w*|developer|software|logiciel|"
+                       r"engineer|ing[ée]nieur\w*|backend|full.?stack|devops|cloud|nlp|vision|research|recherche|phd|doctora\w*|th[èe]se)\b", re.I)
+
+
 def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, budget=360):
     """Opens offer pages whose stored description is short and fills desc, deadline, salary, type.
     Stops when the time budget (seconds) runs out; the rest is picked up on later runs."""
@@ -241,6 +245,9 @@ def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, 
     for x in todo:
         if len(x.get("desc") or "") == OLD_DESC_MAX:
             x["recut"] = True  # one more attempt only
+    # Most promising first: an offer stays capped until its text is read, so a "Junior AI Engineer" is opened
+    # before a "Barman" that was listed earlier.
+    todo.sort(key=lambda x: not PROMISING.search(x.get("title") or ""))
     plain = [x for x in todo if x.get("source") not in STEALTH_SOURCES][:limit]
     hard = [x for x in todo if x.get("source") in STEALTH_SOURCES][:stealth_limit] if stealth else []
     done = failed = 0

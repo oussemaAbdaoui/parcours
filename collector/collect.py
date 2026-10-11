@@ -441,7 +441,9 @@ def main():
     print(f"{len(found)} found, {new} new, {len(items)} kept")
 
     from enrich import company_ratings, details
-    steps = [("Offer details", lambda: details(items, stealth=os.environ.get("STEALTH") == "1" or home))]
+    # The PC opens more pages in the stealth browser: Tanitjobs, Duunitori and Emploi.ma list far more than 20 a run.
+    steps = [("Offer details", lambda: details(items, stealth=os.environ.get("STEALTH") == "1" or home,
+                                               **({"stealth_limit": 40, "budget": 600} if home else {})))]
     if not home:
         steps += [("LinkedIn details", lambda: linkedin_cloud(items, store))]
     # Indeed blocks company pages from datacenter IPs: company reviews are looked up from the PC, for every
