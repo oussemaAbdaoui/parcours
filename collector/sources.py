@@ -8,6 +8,7 @@ and Euraxess disallows its search in robots.txt; their email alerts reach the ap
 Every scraper returns a list of dicts: id, title, org, location, c, kind, source, url, posted, deadline, desc.
 """
 import json
+import os
 import re
 import time
 
@@ -1005,7 +1006,85 @@ def bayt_tunisia(keywords):
     return out
 
 
+WTTJ_SLUG = re.compile(r"machine-learning|data-scien|data-engineer|data-analy|(^|[-_])(ia|ai|ml)([-_]|$)|llm|genai|gen-ai|python|"
+                       r"deep-learning|nlp|computer-vision|mlops|intelligence-artificielle|vision-par-ordinateur")
+WTTJ_JUNIOR = re.compile(r"junior|graduate|debutant|jeune-diplome|entry|(^|[-_])vie([-_]|$)")
+WTTJ_STUDENT = re.compile(r"stage|stagiaire|intern|alternan|apprenti")  # need student status: read last
+WTTJ_COUNTRIES = {"FR": "fr", "BE": "be", "NL": "nl", "LU": "lu", "DE": "de", "CH": "ch", "CA": "ca", "SE": "se", "DK": "dk",
+                  "NO": "no", "FI": "fi", "MA": "ma", "IE": "ie", "TN": "tn"}
+WTTJ_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36"}
+WTTJ_SEEN = os.path.join(os.path.expanduser("~"), "parcours-collector", "wttj-seen.json")
+
+
+def welcome_to_the_jungle(keywords, limit=30):
+    """Welcome to the Jungle (startups and tech, mostly France). Its search needs an account, but its sitemaps list
+    every public offer (about 90k) with the title and city in the link. Offers whose link reads like AI / data /
+    Python are opened in a stealth browser (a bot check clears after a few seconds) for their JobPosting data;
+    junior and graduate ones first, internships and work-study last (they need student status). Links already
+    opened are remembered in WTTJ_SEEN on this PC, so each run reads `limit` new ones. Home connection only."""
+    import gzip
+    import html
+    links = []
+    for i in range(10):
+        r = requests.get(f"https://www.welcometothejungle.com/sitemaps/job-listings.{i}.xml.gz", headers=WTTJ_UA, timeout=60)
+        if r.status_code != 200:
+            break
+        body = r.content.decode(errors="ignore") if r.content[:2] == b"<?" else gzip.decompress(r.content).decode()
+        links += re.findall(r"<loc>([^<]+/jobs/[^<]+)</loc>", body)
+    # Matched on the link's own words (broad search keywords like "développeur" would take in every developer job).
+    wanted = [u for u in links if WTTJ_SLUG.search(u.split("/jobs/")[1])]
+    try:
+        seen = json.load(open(WTTJ_SEEN))
+    except (OSError, ValueError):
+        seen = {}
+    rank = lambda u: 0 if WTTJ_JUNIOR.search(u) else 2 if WTTJ_STUDENT.search(u) else 1
+    todo = sorted((u for u in wanted if u not in seen), key=rank)[:limit]
+    out = []
+    if todo:
+        from scrapling.fetchers import StealthySession
+        with StealthySession(headless=True, timeout=60000) as session:
+            for u in todo:
+                try:
+                    page = session.fetch(u, network_idle=True, wait=8000)
+                except Exception:
+                    continue  # tried again next run
+                job = None
+                for raw in page.css('script[type="application/ld+json"]::text').getall():
+                    try:
+                        d = json.loads(raw)
+                    except ValueError:
+                        continue
+                    if isinstance(d, dict) and d.get("@type") == "JobPosting":
+                        job = d
+                if page.status == 200 and not job:
+                    continue  # bot check not cleared: tried again next run
+                seen[u] = int(time.time())
+                if not job:
+                    continue
+                places = job.get("jobLocation") or []
+                places = places if isinstance(places, list) else [places]
+                addr = [(p.get("address") or {}) for p in places if isinstance(p, dict)]
+                c = next((WTTJ_COUNTRIES[a.get("addressCountry")] for a in addr if a.get("addressCountry") in WTTJ_COUNTRIES), None)
+                valid = (job.get("validThrough") or "")[:10]
+                if not c or (valid and valid < date.today().isoformat()):
+                    continue
+                desc = html.unescape(re.sub(r"<[^>]+>", " ", job.get("description") or ""))
+                out.append({
+                    "id": "wttj:" + u.split("/companies/")[1], "title": _t(job.get("title")),
+                    "org": _t((job.get("hiringOrganization") or {}).get("name")),
+                    "location": ", ".join(dict.fromkeys(_t(a.get("addressLocality")) for a in addr if a.get("addressLocality"))),
+                    "c": c, "kind": "job", "source": "Welcome to the Jungle", "url": u,
+                    "posted": (job.get("datePosted") or "")[:10], "deadline": valid,
+                    "type": _t(job.get("employmentType") if isinstance(job.get("employmentType"), str) else " · ".join(job.get("employmentType") or [])),
+                    "desc": _t(desc)[:4000],
+                })
+    os.makedirs(os.path.dirname(WTTJ_SEEN), exist_ok=True)
+    json.dump({u: t for u, t in seen.items() if t > time.time() - 120 * 86400}, open(WTTJ_SEEN, "w"))
+    return out
+
+
 # Browser-based (StealthyFetcher). Only run where a browser is installed (STEALTH=1 in the workflow).
 STEALTH_SCRAPERS = {"ABG": abg, "Academic Positions": academic_positions, "ScholarshipDB": scholarshipdb, "StepStone": stepstone}
 # Need a home IP (blocked from datacenters). Run by the PC collector: collect.py --home.
-HOME_SCRAPERS = {"Tanitjobs": tanitjobs, "TunisieTravail": tunisietravail, "EmploiTunisie": emploitunisie, "Bayt": bayt_tunisia}
+HOME_SCRAPERS = {"Tanitjobs": tanitjobs, "TunisieTravail": tunisietravail, "EmploiTunisie": emploitunisie, "Bayt": bayt_tunisia,
+                 "Welcome to the Jungle": welcome_to_the_jungle}
