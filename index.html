@@ -753,7 +753,7 @@ dialog{border-radius:28px;box-shadow:var(--pop)}
   .toolbar #coS{flex:1}
   .offer{grid-template-columns:44px minmax(0,1fr);gap:4px 10px;padding:12px 2px}
   .offer .score{width:38px}
-  .oa{grid-column:1 / -1;justify-content:flex-start;flex-wrap:nowrap;margin-top:8px;gap:6px}
+  .oa{grid-column:1 / -1;justify-content:flex-start;flex-wrap:wrap;margin-top:8px;gap:6px} /* nowrap cut off the last button */
   .oa .btn.sm{height:34px;padding:0 12px}
   .oa .btn.primary{flex:1}
   .offers .thead{display:none}
@@ -1559,7 +1559,10 @@ async function loadBest(){
   if(!caps.online||demo){const pn=b.closest('.panel');if(pn)pn.remove();return;}
   if(!colData){b.innerHTML='<p class="hint" style="margin:0">Loading…</p>';if(!await ensureCollected(null)){b.innerHTML='<p class="hint" style="margin:0">Could not load collected offers.</p>';return;}}
   if(!$('#bestBox'))return;
-  const top=visibleOffers().filter(x=>x.m).sort((a,b)=>b.m.rank-a.m.rank).slice(0,5);
+  // The five "New strong matches" above already show this week's best: this list continues after them.
+  const wk=Date.now()-7*864e5,byRank=(a,b)=>b.m.rank-a.m.rank,all=visibleOffers().filter(x=>x.m);
+  const shown=new Set(all.filter(x=>(x.foundAt||0)>=wk&&x.m.score>=75).sort(byRank).slice(0,5).map(x=>x.id));
+  const top=all.filter(x=>!shown.has(x.id)).sort(byRank).slice(0,5);
   b.innerHTML=(!hasCv()?`<p class="nudge">These use default skills. <a href="#/profile">Add your CV</a> for real matches.</p>`:'')
     +(top.length?'<div class="offers compact">'+top.map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:''};
       return `<article class="offer">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
@@ -1608,7 +1611,8 @@ function platforms(apps){
 }
 function matrix(apps){
   let h=`<div class="mxw"><div class="mx"><div class="h"></div>${Object.values(DOM).map(v=>`<div class="h">${v.label}</div>`).join('')}`;
-  COUNTRIES.forEach(c=>{
+  // Only countries with applications: 12 empty rows out of 15 buried the three that mattered.
+  COUNTRIES.filter(c=>apps.some(a=>a.c===c.id)).forEach(c=>{
     h+=`<div class="cn"><span aria-hidden="true">${c.flag}</span>${esc(c.name)}</div>`;
     Object.entries(DOM).forEach(([d,v])=>{
       const l=apps.filter(a=>a.c===c.id&&a.d===d);const r=l.filter(gotReply).length;
@@ -1670,10 +1674,13 @@ const BOARD_COLS=[...STAGES.map(s=>[s,STAGE_LABEL[s]]),['closed','Closed']];
 let appView=(()=>{try{return localStorage.getItem('parcours-appview')||'board';}catch(e){return 'board';}})();
 function renderBoard(l){
   const col=a=>CLOSED.includes(a.result)?'closed':a.stage;
+  // The same company and role logged more than once (from an email and by hand, say): marked so one can be deleted.
+  const dupKey=a=>coNorm(a.org)+'|'+normOrg(a.role),dups=new Map();
+  state.apps.forEach(a=>dups.set(dupKey(a),(dups.get(dupKey(a))||0)+1));
   $('#list').innerHTML=`<div class="board">${BOARD_COLS.map(([k,label])=>{const cards=l.filter(a=>col(a)===k);
     return `<section class="col" data-col="${k}" aria-label="${esc(label)}"><div class="colh">${esc(label)}<span>${cards.length}</span></div><div class="kcards">${cards.map(a=>{const v=DOM[a.d]||DOM.job,c=cById(a.c)||{flag:''};
       return `<button type="button" class="kcard" draggable="true" data-card="${esc(a.id)}" style="--accent:var(${v.color})"><b>${esc(a.org)}</b>${a.role?`<small>${esc(a.role)}</small>`:''}
-        <span class="kmeta"><span class="chip">${v.label}</span>${c.flag} · ${esc(rel(a.date))}${a.result!=='open'?`<span class="kres r-${a.result}">${RES_LABEL[a.result]}</span>`:''}</span></button>`;}).join('')||'<div class="kempty">Drop a card here</div>'}</div></section>`;}).join('')}</div>
+        <span class="kmeta"><span class="chip">${v.label}</span>${c.flag} · ${esc(rel(a.date))}${a.result!=='open'?`<span class="kres r-${a.result}">${RES_LABEL[a.result]}</span>`:''}${dups.get(dupKey(a))>1?`<span class="kres r-withdrawn" title="This company and role are logged ${dups.get(dupKey(a))} times. Open a card to delete the extra one.">Logged ${dups.get(dupKey(a))===2?'twice':dups.get(dupKey(a))+' times'}</span>`:''}</span></button>`;}).join('')||'<div class="kempty">Drop a card here</div>'}</div></section>`;}).join('')}</div>
     <p class="hint" style="margin-top:10px">Drag a card to move it between stages. Dropping it on Closed marks it rejected. Click a card to edit it.</p>`;
 }
 document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('[data-card]');if(!c)return;e.dataTransfer.setData('text/plain',c.dataset.card);e.dataTransfer.effectAllowed='move';c.classList.add('dragging');});
@@ -2590,7 +2597,9 @@ function renderCollected(){
   else l.sort((a,b)=>(b.foundAt||0)-(a.foundAt||0));
   const nNew=all.filter(x=>x.foundAt>colPrev).length,run=(colData.runs||[])[0];
   const when=run?new Date(run.at).toLocaleString('en',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-  const failed=run?Object.entries(run.sources||{}).filter(([,v])=>!v.ok).map(([k,v])=>`<span title="${esc(v.error||'')}">${esc(k)}</span>`).join(', '):'';
+  // Rate limits and optional keys left unset are normal running states, not failures: only real errors are shown.
+  const expected=v=>/rate-limited|add an? [A-Z_]+|no .*account|refreshed on the next run|allowance used up/i.test(v.error||'');
+  const failed=run?Object.entries(run.sources||{}).filter(([,v])=>!v.ok&&!expected(v)).map(([k,v])=>`<span title="${esc(v.error||'')}">${esc(k)}</span>`).join(', '):'';
   b.innerHTML=(!hasCv()&&all.length?`<p class="nudge">Scores use default skills until you add your CV. <a href="#/profile">Add it in Profile</a>.</p>`:'')
     +(all.length||run?`<div class="toolbar${colFiltersOpen?' open':''}">
       <input type="search" id="coQ" placeholder="Search: ml engineer paris -senior…" aria-label="Search collected offers. Every word must match; -word excludes" value="${esc(colF.q)}">
@@ -3174,7 +3183,7 @@ function goalPanelHtml(){
     <div class="goalparts"><span><b>${c.job}</b> job${c.job===1?'':'s'}</span><span><b>${c.phd}</b> PhD${c.phd===1?'':'s'}</span><span><b>${c.master}</b> master's</span><span><b>${c.contacts}</b> contact${c.contacts===1?'':'s'}</span></div>
     <div class="row" style="margin-top:14px">
       <button class="btn primary" type="button" data-act="new">Log an application</button><button class="btn" type="button" data-act="contact">Log a contact</button>
-      <a class="btn" href="#/queue">Apply queue · ${(state.queue||[]).length}</a><a class="btn" href="#/academia">Professors to email</a><a class="btn" href="#/sponsors/network">People to contact</a></div>
+      <a class="btn" href="#/queue">Apply queue · ${(state.queue||[]).filter(x=>x.status==='todo').length}</a><a class="btn" href="#/academia">Professors to email</a><a class="btn" href="#/sponsors/network">People to contact</a></div>
     <div class="goaldays" aria-label="Last 14 days">${days.map(x=>`<div class="gd${x.n>=g?' ok':x.d===td?' now':' miss'}" title="${esc(x.d)}: ${x.n} of ${g}"><i style="height:${Math.max(4,Math.round(x.n/mx*100))}%"></i><span>${new Date(x.d+'T12:00').toLocaleDateString('en',{weekday:'narrow'})}</span></div>`).join('')}</div>
     <p class="hint" style="margin:6px 0 0">Last 14 days: goal met on ${days.filter(x=>x.n>=g).length}${missed?`, missed on ${missed}`:''}.</p></div>`;
 }
@@ -3204,7 +3213,9 @@ async function weekPanel(){
   const offers=colData&&!demo?visibleOffers():[];
   const strong=offers.filter(x=>(x.foundAt||0)>=wk&&x.m&&x.m.score>=75).sort((a,b)=>b.m.rank-a.m.rank);
   const dl=[];
-  offers.forEach(x=>{if(x.deadline)dl.push({t:x.title,org:x.org,d:x.deadline,url:x.url,src:'Collected'});});
+  // Collected offers count only when they are strong matches (75+, no dealbreaker), like the headline's: a "fair"
+  // fusion-engineering PhD with AI in its title is not a deadline to worry about. Saved offers always count.
+  offers.forEach(x=>{if(x.deadline&&x.m&&!x.m.blockers.length&&x.m.score>=75)dl.push({t:x.title,org:x.org,d:x.deadline,url:x.url,src:'Collected'});});
   state.saved.forEach(j=>{if(j.deadline)dl.push({t:j.title,org:j.company,d:j.deadline,url:j.url,src:'Saved'});});
   ((radar&&radar.items)||[]).forEach(x=>{if(x.deadline)dl.push({t:x.title,org:x.org,d:x.deadline,url:x.url,src:'Radar'});});
   const soon=dl.filter(x=>{const t=tms(x.d);return t>=today0&&t<=today0+14*864e5;}).sort((a,b)=>a.d.localeCompare(b.d));

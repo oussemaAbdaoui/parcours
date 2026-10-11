@@ -885,7 +885,9 @@
       || (b === 'Internship needs student status' && tl && tl.lvl === 0));
     const urgent = left != null && left >= 0 && left <= 7;
     const conf = knownW / 100;
-    return { score: Math.round(total), confidence: conf, rank: total - (1 - conf) * 12 * SCALE, parts, urgent, blockers, checked, capped, sureBlockers: checked ? blockers : sure };
+    // Lists sort by rank: the score shown first (a 79 never above an 81), then how much of it rests on real data.
+    // Unread offers are already held down by the cap, so confidence only orders equal scores.
+    return { score: Math.round(total), confidence: conf, rank: Math.round(total) + conf * 0.9, parts, urgent, blockers, checked, capped, sureBlockers: checked ? blockers : sure };
   }
 
   const profileFromCv = (text) => parseCv(text); // kept for older callers
