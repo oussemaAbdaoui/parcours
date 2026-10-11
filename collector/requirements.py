@@ -12,6 +12,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 REQ_VERSION = 2  # 2: salary
+MIN_VERSION = 1  # offers read with an older version are not read again
 MODEL = os.environ.get("ANTHROPIC_MODEL_FAST", "claude-haiku-5-5")
 
 FIELDS = ["computer_science", "data_ai", "mathematics_statistics", "electrical_electronics", "mechanical_materials",
@@ -87,7 +88,9 @@ def extract(items, limit=400, budget=480, workers=4):
         return 0, "add ANTHROPIC_API_KEY to read offer requirements with Claude"
     import anthropic
     client = anthropic.Anthropic(max_retries=3)
-    todo = [x for x in items if (x.get("req") or {}).get("v") != REQ_VERSION and (len(x.get("desc") or "") >= 150 or x.get("title"))][:limit]
+    # Offers read with an older schema keep their reading: a new field (v2 salary) only applies to offers read
+    # from now on. Raise MIN_VERSION only when old readings are wrong, not merely incomplete.
+    todo = [x for x in items if (x.get("req") or {}).get("v", 0) < MIN_VERSION and (len(x.get("desc") or "") >= 150 or x.get("title"))][:limit]
     t0, done, errors, tokens = time.time(), 0, 0, [0, 0]
 
     def one(x):
