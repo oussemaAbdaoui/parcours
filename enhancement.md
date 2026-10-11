@@ -15,7 +15,7 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 | 7 | Sync and storage | Your data across devices | ✅ | `python tests/sync_test.py` (sandboxed) |
 | 8 | App pages and UX | Offers, queue, tracker, profile | 🔧 | screenshots of every page, sandboxed |
 | 9 | Alerts | Notifications and weekly digest | ✅ | |
-| 10 | Academia and masters | Professors, PhDs, master's, scholarships | ⏳ | |
+| 10 | Academia and masters | Professors, PhDs, master's, scholarships | 🔧 | `python collector/academia.py --dry-run --only=se` |
 | 11 | Letters | Cover letters with AI | ⏳ | |
 
 ## 1. Scoring ✅
@@ -141,13 +141,25 @@ Done:
 - [x] Offers whose description arrives in a later run were never announced: an alert fired only for offers found in the same run, and LinkedIn offers arrive capped at 65 until their text is read. Now an offer from the last 7 days is announced the first time it reaches your threshold (85), and announced offers are remembered (`parcours:push:alerted`) so nothing repeats; the first run only records today's strong offers. Tested over three simulated runs.
 - [x] The weekly digest counted deadlines from score 60; it counts strong matches (75+) like the app.
 
-## 10. Academia and masters ⏳
+## 10. Academia and masters 🔧
+
+Inspected: 539 master's programmes and scholarships, 299 professors.
+
+Done:
+- [x] 37 duplicate master's programmes: Mon Master lists a programme once per variant (work-study, another session). One entry now, marked work-study if any variant is; a fresh fetch gives 196 programmes and no duplicate (commit `2c75e42`).
+- [x] Professors covered 5 fixed countries while you target 15: they now follow your profile (the UK included). Dry run for Sweden: relevant explainable-AI professors with emails; about 2 minutes a country, within the weekly job's limit (commit after `2c75e42`).
+- Expired deadlines (138 of 539) are hidden by the app's default filter: fine as is.
+
+Open:
+- [ ] Master's cover France, Germany, Italy and Erasmus Mundus only: no source yet for the Nordics, the Netherlands, Belgium, the UK or Canada.
+- [ ] Some institutions are a sub-unit ("Formation Continue UNIL-EPFL" for an EPFL professor): prefer the parent institution.
 
 ## 11. Letters ⏳
 
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.
+- 11 Oct: academia and masters: duplicates merged, professors in all your countries.
 - 11 Oct: applications keep the offer; alerts reach offers read later.
 - 11 Oct: UX audit, first round: 8 fixes on Discover, Home and Track; 8 items open.
 - 11 Oct: sync round: both wipe scenarios pass in the sandbox, mirror matches Neon, daily PC backup added.
