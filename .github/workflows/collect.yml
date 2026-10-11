@@ -43,5 +43,6 @@ jobs:
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PROXY_URL: ${{ secrets.PROXY_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
           PYTHONUNBUFFERED: "1"
         run: python collector/collect.py ${{ (inputs.dry_run || secrets.UPSTASH_REDIS_REST_URL == '') && '--dry-run' || '' }} ${{ inputs.poli && '--poli' || '' }}

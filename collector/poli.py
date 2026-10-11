@@ -212,10 +212,17 @@ def run(store, dry=False, force=False):
     # Merged, never replaced: whatever a step returns is added, nothing stored is lost.
     _merge_hash(store, COMPANIES_KEY, companies, now)
     _merge_hash(store, PEOPLE_KEY, people, now)
+    feed = []
     try:  # the jobs feed too, kept in its own hash (the offer store ages offers out after 45 days)
-        _merge_hash(store, JOBS_KEY, jobs(session()), now)
+        feed = jobs(session())
+        _merge_hash(store, JOBS_KEY, feed, now)
     except Exception as e:
         status["Jobs archive"] = {"ok": False, "count": 0, "error": str(e)[:160]}
+    try:  # Postgres, where Poli now lives (Redis kept until the app reads Postgres everywhere)
+        import pg
+        pg.poli_companies(companies, now), pg.poli_people(people, now), pg.poli_jobs(feed, now)
+    except Exception as e:
+        status["Postgres"] = {"ok": False, "count": 0, "error": str(e)[:160]}
     store.cmd("SET", META_KEY, json.dumps({"at": now, "companies": len(companies), "people": len(people),
                                            "stats": stats, "sources": status}))
     bad = [n for n, s in status.items() if not s["ok"]]
@@ -297,8 +304,8 @@ def export(out, max_job_pages=2500):
 
 
 def import_export(store, out):
-    """Loads an export (out/raw/*.json) into the hashes the app reads: companies, people (sponsored employees and the
-    whole network) and the jobs archive. Merged like a normal run: adds and updates, never deletes or blanks."""
+    """Loads an export (out/raw/*.json) into Postgres: companies, people (sponsored employees and the whole network)
+    and the jobs archive. Merged like a normal run: adds and updates, never deletes or blanks."""
     raw = lambda n: json.load(open(os.path.join(out, "raw", n + ".json"), encoding="utf-8"))
     now = int(time.time() * 1000)
     companies = [company(c) for c in raw("companies")]
@@ -306,10 +313,9 @@ def import_export(store, out):
     for p in raw("network"):
         people[p["id"]] = {**people.get(p["id"], {}), **{k: v for k, v in person(p).items() if v not in ("", None)}, "network": True}
     jobs_ = [offer(j) for j in raw("jobs") if j.get("url")]
-    _merge_hash(store, COMPANIES_KEY, companies, now)
-    _merge_hash(store, PEOPLE_KEY, list(people.values()), now)
-    _merge_hash(store, JOBS_KEY, jobs_, now)
-    return {"companies": len(companies), "people": len(people), "jobs": len(jobs_)}
+    import pg  # into Postgres: the 20,000 people are searched there, too many for one Redis read
+    return {"companies": pg.poli_companies(companies, now), "people": pg.poli_people(list(people.values()), now),
+            "jobs": pg.poli_jobs(jobs_, now)}
 
 
 if __name__ == "__main__":

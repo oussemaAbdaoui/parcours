@@ -3336,7 +3336,7 @@ function sponsorsPage(tab){
       ${T==='companies'?`<select id="spF" aria-label="Filter"><option value="">All sponsors</option><option value="jobs" ${poliF.filter==='jobs'?'selected':''}>With open jobs</option><option value="staff" ${poliF.filter==='staff'?'selected':''}>With sponsored staff to contact</option><option value="cos" ${poliF.filter==='cos'?'selected':''}>Sponsored visas in 2025</option><option value="shortlist" ${poliF.filter==='shortlist'?'selected':''}>Your shortlist</option><option value="hidden" ${poliF.filter==='hidden'?'selected':''}>Hidden by you</option></select>
       <select id="spZ" aria-label="Company size"><option value="">Any size</option></select>
       <select id="spS" aria-label="Sort"><option value="jobs" ${poliF.sort==='jobs'?'selected':''}>Most open jobs</option><option value="cos" ${poliF.sort==='cos'?'selected':''}>Most visas sponsored in 2025</option><option value="staff" ${poliF.sort==='staff'?'selected':''}>Most sponsored staff</option><option value="new" ${poliF.sort==='new'?'selected':''}>Newest on the register</option><option value="name" ${poliF.sort==='name'?'selected':''}>Name</option></select>`
-      :`<select id="spF" aria-label="Filter"><option value="">Everyone</option><option value="network" ${poliF.filter==='network'?'selected':''}>Your Poli network</option><option value="notcontacted" ${poliF.filter==='notcontacted'?'selected':''}>Not contacted yet</option></select>`}`}
+      :`<select id="spF" aria-label="Filter"><option value="">Everyone</option><option value="useful" ${poliF.filter==='useful'?'selected':''}>Likely sponsored themselves</option><option value="notcontacted" ${poliF.filter==='notcontacted'?'selected':''}>Not contacted yet</option></select>`}`}
     </div>${T==='jobs'?'<div id="pjFilters" class="panel pjf" hidden></div>':''}<div id="spBox"><p class="hint">Loading…</p></div>`;
   $('#spTabs').addEventListener('click',e=>{const b=e.target.closest('[data-sp]');if(!b||b.dataset.sp===poliF.tab)return;
     poliF={...poliF,tab:b.dataset.sp,filter:b.dataset.sp==='people'?'':'jobs'};poliMax=50;location.hash='#/sponsors/'+poliF.tab;});
@@ -3345,7 +3345,7 @@ function sponsorsPage(tab){
     $('#spStats').innerHTML=d.at?`<div class="stats">
       <div class="stat"><b>${n('sponsored-jobs')}</b><span>Jobs at sponsors</span><small>Tracked by Poli</small></div>
       <div class="stat"><b>${(d.companies||[]).length.toLocaleString('en')}</b><span>Licensed sponsors</span></div>
-      <div class="stat"><b>${(d.people||[]).length.toLocaleString('en')}</b><span>People to contact</span><small>Likely sponsored themselves</small></div></div>`:'';};
+      <div class="stat"><b>${(d.people||[]).length.toLocaleString('en')}</b><span>People to contact</span><small>Likely sponsored themselves${d.peopleTotal?`, of ${d.peopleTotal.toLocaleString('en')} people`:''}</small></div></div>`:'';};
   if(T==='network'){
     $('#pnMode').addEventListener('click',e=>{const b=e.target.closest('[data-pnm]');if(!b||b.dataset.pnm===pn.mode)return;pn.mode=b.dataset.pnm;
       $('#pnMode').querySelectorAll('[data-pnm]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.pnm===pn.mode));poliNetLoad(true);});
@@ -3581,11 +3581,8 @@ function renderSponsors(){
   if(!d.at){box.innerHTML='<p class="hint">No Poli directory yet. It fills on the next collector run (every 6 hours).</p>';return;}
   const words=poliF.q.toLowerCase().split(/\s+/).filter(Boolean),has=t=>words.every(w=>t.toLowerCase().includes(w));
   let rows,html;
-  if(poliF.tab==='people'){
-    rows=(d.people||[]).filter(p=>has(`${p.name} ${p.title} ${p.company} ${p.expertise}`)&&(poliF.filter!=='network'||p.network)&&(poliF.filter!=='notcontacted'||!p.contacted))
-      .sort((a,b)=>(a.company||'').localeCompare(b.company||'')||(a.name||'').localeCompare(b.name||''));
-    html=rows.slice(0,poliMax).map(p=>poliPersonRow(p)).join('');
-  }else{
+  if(poliF.tab==='people')return renderPoliPeople();
+  {
     const f=poliF.filter,key={jobs:c=>c.jobs,cos:c=>c.cos2025||0,staff:c=>c.sponsoredEmployees,new:c=>Date.parse(c.onRegisterSince)||0}[poliF.sort];
     rows=(d.companies||[]).filter(c=>has(`${c.name} ${c.legalName}`)&&(!poliF.size||c.size===poliF.size)&&(f!=='jobs'||c.jobs>0)&&(f!=='staff'||c.sponsoredEmployees>0)&&(f!=='cos'||c.cos2025>0)&&(f!=='shortlist'||pm.fav.has(c.id))&&(f!=='hidden'||pm.hidden.has(c.id)))
       .sort((a,b)=>key?key(b)-key(a)||a.name.localeCompare(b.name):a.name.localeCompare(b.name));
@@ -3595,6 +3592,25 @@ function renderSponsors(){
     ${rows.length>poliMax?`<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" type="button" id="spMore">Show more</button></div>`:''}`
     :'<p class="hint">Nothing matches.</p>';
   const m=$('#spMore');if(m)m.addEventListener('click',()=>{poliMax+=50;renderSponsors();});
+}
+// People: about 20,000, searched on the server (api/_polipg.js), 50 at a time, likely sponsored first.
+let pp={rows:[],total:0,key:''},ppSeq=0,ppTimer=0;
+function renderPoliPeople(more){
+  const key=poliF.q+'|'+poliF.filter;
+  if(!more&&pp.key===key&&pp.rows.length)return drawPoliPeople();
+  clearTimeout(ppTimer);
+  ppTimer=setTimeout(async()=>{const my=++ppSeq;
+    try{const j=await api('/api/opps?'+new URLSearchParams({set:'poli-people',q:poliF.q,filter:poliF.filter||'',offset:String(more?pp.rows.length:0)}));
+      if(my!==ppSeq)return;pp={rows:more?pp.rows.concat(j.people||[]):(j.people||[]),total:j.total||0,key};drawPoliPeople();}
+    catch(e){const b=$('#spBox');if(b&&my===ppSeq)b.innerHTML=`<p class="hint">${esc(errText(e,{},'Could not load people. Try again.'))}</p>`;}
+  },more?0:250);
+}
+function drawPoliPeople(){
+  const box=$('#spBox');if(!box||poliF.tab!=='people')return;
+  box.innerHTML=pp.rows.length?`<p class="hint">${pp.total.toLocaleString('en')} ${pp.total===1?'person':'people'}${pp.total>pp.rows.length?`, showing ${pp.rows.length}`:''}. People likely sponsored themselves come first.</p><div class="offers">${pp.rows.map(p=>poliPersonRow(p)).join('')}</div>
+    ${pp.total>pp.rows.length?`<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" type="button" id="spMore">Show more</button></div>`:''}`
+    :'<p class="hint">Nothing matches.</p>';
+  const m=$('#spMore');if(m)m.addEventListener('click',()=>{m.disabled=true;renderPoliPeople(true);});
 }
 // Company page panel: licence, visas sponsored, and people likely sponsored there.
 function poliPanelHtml(name){

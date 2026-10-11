@@ -50,8 +50,16 @@ module.exports = async (req, res) => {
       return res.status(502).json({ error: 'Storage is unavailable right now.' });
     }
   }
+  if ((req.query || {}).set === 'poli-people') {
+    try { return await require('./_polipg').people(req, res); } catch (e) { return res.status(502).json({ error: 'The database is unavailable right now.' }); }
+  }
   if ((req.query || {}).set === 'poli') {
-    // Poli (collector/poli.py): UK sponsor directory, employees likely sponsored there, and the run report with Poli's totals.
+    // Poli (collector/poli.py): from Postgres (api/_polipg.js); the Redis copy below only when no database is set.
+    try {
+      const meta = await redis(u, ['GET', 'parcours:poli:meta']).catch(() => null);
+      const report = meta && meta.result ? JSON.parse(meta.result) : {};
+      if (await require('./_polipg').directory(req, res, notModified, { stats: report.stats, sources: report.sources, refreshedAt: report.at })) return;
+    } catch (e) { /* fall back to Redis */ }
     try {
       if (notModified(req, res, ['p', ...await version(u, [['GET', 'parcours:poli:meta']])])) return;
       const [co, pe, meta] = await Promise.all([redis(u, ['HVALS', 'parcours:poli:companies']), redis(u, ['HVALS', 'parcours:poli:people']),
