@@ -19,6 +19,7 @@ import requests
 
 BASE = "https://app.withpoli.com/api/"
 COMPANIES_KEY, PEOPLE_KEY, META_KEY = "parcours:poli:companies", "parcours:poli:people", "parcours:poli:meta"
+JOBS_KEY = "parcours:poli:jobs"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36"}
 PAUSE = 0.6  # seconds between requests
 JOB_PAGES, NETWORK_PAGES = 30, 30  # 10 per page
@@ -176,21 +177,19 @@ def collect():
     return companies, list(people.values()), stats, status
 
 
-def _replace_hash(store, key, records):
-    """Writes every record, then drops the ones Poli no longer lists."""
-    flat = store.cmd("HKEYS", key) or []
-    fresh = {str(r["id"]) for r in records}
-    batch = []
-    for r in records:
-        batch += [str(r["id"]), json.dumps(r, ensure_ascii=False)]
-        if len(batch) >= 400:
-            store.cmd("HSET", key, *batch)
-            batch = []
-    if batch:
+def _merge_hash(store, key, records, now):
+    """Adds and updates, never deletes or blanks: the Pro account ends, and a free account sees less (fewer people,
+    hidden fields), so a record Poli no longer shows, and any field it now returns empty, keeps what was stored.
+    seenAt says when Poli last listed the record. A copy of the Pro-era data is in parcours:poli:archive:*."""
+    for i in range(0, len(records), 200):
+        chunk = records[i:i + 200]
+        old = store.cmd("HMGET", key, *[str(r["id"]) for r in chunk]) or [None] * len(chunk)
+        batch = []
+        for r, raw in zip(chunk, old):
+            prev = json.loads(raw) if raw else {}
+            merged = {**prev, **{k: v for k, v in r.items() if v not in ("", None, [], {})}, "seenAt": now}
+            batch += [str(r["id"]), json.dumps(merged, ensure_ascii=False)]
         store.cmd("HSET", key, *batch)
-    gone = [k for k in flat if k not in fresh]
-    for i in range(0, len(gone), 200):
-        store.cmd("HDEL", key, *gone[i:i + 200])
 
 
 def run(store, dry=False, force=False):
@@ -210,11 +209,13 @@ def run(store, dry=False, force=False):
         for p in people[:5]:
             print(f"  {p['name'][:25]:25} {p['title'][:35]:35} @ {p['company'][:20]}")
         return {"ok": all(s["ok"] for s in status.values()), "count": len(companies)}
-    # A failed step keeps what was stored before rather than wiping it.
-    if status["Companies"]["ok"]:
-        _replace_hash(store, COMPANIES_KEY, companies)
-    if status["Sponsored employees"]["ok"] and status["Network"]["ok"]:
-        _replace_hash(store, PEOPLE_KEY, people)
+    # Merged, never replaced: whatever a step returns is added, nothing stored is lost.
+    _merge_hash(store, COMPANIES_KEY, companies, now)
+    _merge_hash(store, PEOPLE_KEY, people, now)
+    try:  # the jobs feed too, kept in its own hash (the offer store ages offers out after 45 days)
+        _merge_hash(store, JOBS_KEY, jobs(session()), now)
+    except Exception as e:
+        status["Jobs archive"] = {"ok": False, "count": 0, "error": str(e)[:160]}
     store.cmd("SET", META_KEY, json.dumps({"at": now, "companies": len(companies), "people": len(people),
                                            "stats": stats, "sources": status}))
     bad = [n for n, s in status.items() if not s["ok"]]
