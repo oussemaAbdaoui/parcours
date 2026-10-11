@@ -1075,6 +1075,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
     </div>
     <div><label for="fLink">Link (optional)</label><input type="url" id="fLink" placeholder="https://"></div>
     <div><label for="fNotes">Notes (optional)</label><textarea id="fNotes" placeholder="Contact, next step, what to prepare…"></textarea></div>
+    <details id="fOffer" class="why" hidden><summary>The offer as you applied</summary><div id="fOfferBody" class="hint" style="white-space:pre-wrap;max-height:320px;overflow:auto"></div></details>
     <p class="err" id="fErr" hidden></p>
     <div class="acts">
       <button class="btn danger" type="button" id="fDel" hidden>Delete</button>
@@ -1720,22 +1721,36 @@ function fillPlatforms(sel){
   if(sel&&inList)$('#fP').value=sel;else if(sel){$('#fP').value='__o';$('#fPO').value=sel;}else $('#fP').value=list.length?list[0][0]:'__o';
   $('#fPO').hidden=$('#fP').value!=='__o';
 }
+// A copy of the offer kept on the application: collected offers age out after 45 days, and its text,
+// requirements and salary are what you need when the interview comes.
+const offerCopy=x=>x?{title:x.title||'',org:x.org||'',url:safeUrl(x.url)||'',source:x.source||'',location:x.location||'',
+  posted:x.posted||'',deadline:x.deadline||'',desc:String(x.desc||'').slice(0,4000),req:x.req||null,keptAt:Date.now()}:null;
+let dlgOffer=null;
 function openDlg(pre,id){
   editId=id||null;const a=id?state.apps.find(x=>x.id===id):null;
   pre=pre||{};Object.keys(pre).forEach(k=>{if(pre[k]===undefined)delete pre[k];});
+  dlgOffer=pre.offer||null;delete pre.offer;
   const v=Object.assign({c:'fr',d:'job',date:today(),stage:'applied',result:'open',org:'',role:'',link:'',notes:'',p:''},a||{},pre);
   fillSelects();
   $('#dlgT').textContent=editId?'Edit application':'Log an application';
   $('#fOrg').value=v.org;$('#fRole').value=v.role;$('#fC').value=v.c;$('#fD').value=v.d;$('#fPO').value='';
   fillPlatforms(v.p);$('#fDate').value=v.date;$('#fStage').value=v.stage;$('#fRes').value=v.result;$('#fLink').value=v.link;$('#fNotes').value=v.notes;
   $('#fErr').hidden=true;$('#fDel').hidden=!editId;
+  const o=dlgOffer||(a&&a.offer);$('#fOffer').hidden=!o;$('#fOffer').open=false;
+  if(o){const pay=salaryText(o.req),R=o.req||{};
+    $('#fOfferBody').innerHTML=`<b>${esc(o.title)}</b>${o.org?' · '+esc(o.org):''}${o.location?' · '+esc(o.location):''}${o.source?' · '+esc(o.source):''}`
+      +(pay?`\nSalary: ${esc(pay)}`:'')+(R.evidence?`\nKey requirement: “${esc(R.evidence)}”`:'')
+      +(o.desc?`\n\n${esc(o.desc)}`:'')+`\n\nKept ${esc(new Date(o.keptAt||Date.now()).toISOString().slice(0,10))}`;}
   $('#dlg').showModal();$('#fOrg').focus();
 }
 function saveDlg(){
   const org=$('#fOrg').value.trim(),date=$('#fDate').value;
   if(!org||!date){const e=$('#fErr');e.textContent=!org?'Add the organisation name.':'Pick the date you applied.';e.hidden=false;return;}
   const p=$('#fP').value==='__o'?$('#fPO').value.trim():$('#fP').value;
-  const a={id:editId||uid(),org,role:$('#fRole').value.trim(),c:$('#fC').value,d:$('#fD').value,p,date,stage:$('#fStage').value,result:$('#fRes').value,link:$('#fLink').value.trim(),notes:$('#fNotes').value.trim()};
+  // Fields the form does not show (the kept offer) survive an edit.
+  const prev=editId?state.apps.find(x=>x.id===editId):null;
+  const a=Object.assign({},prev||{},{id:editId||uid(),org,role:$('#fRole').value.trim(),c:$('#fC').value,d:$('#fD').value,p,date,stage:$('#fStage').value,result:$('#fRes').value,link:$('#fLink').value.trim(),notes:$('#fNotes').value.trim()});
+  if(dlgOffer)a.offer=dlgOffer;
   addOrUpdate(a);$('#dlg').close();route();
 }
 function addOrUpdate(a){
@@ -2095,7 +2110,7 @@ function queuePage(){
       if(q.letter)msgOf(q.id).textContent='You edited this letter, so it was kept. Press Regenerate to rebuild it.';},350);}));
   document.querySelectorAll('[data-qreset]').forEach(b=>b.addEventListener('click',()=>{const q=find(b.dataset.qreset);if(!q)return;q.letter='';save();queuePage();}));
   document.querySelectorAll('[data-qsent]').forEach(b=>b.addEventListener('click',()=>{const q=find(b.dataset.qsent);if(!q)return;
-    addOrUpdate({id:uid(),org:q.org||q.source,role:q.title,c:cById(q.c)?q.c:'fr',d:DOM[q.kind]?q.kind:'job',p:q.source,date:today(),stage:'applied',result:'open',link:safeUrl(q.url),notes:'Applied from the apply queue.'});
+    addOrUpdate({id:uid(),org:q.org||q.source,role:q.title,c:cById(q.c)?q.c:'fr',d:DOM[q.kind]?q.kind:'job',p:q.source,date:today(),stage:'applied',result:'open',link:safeUrl(q.url),notes:'Applied from the apply queue.',offer:offerCopy(q)});
     q.status='sent';q.doneAt=Date.now();save();queuePage();}));
   document.querySelectorAll('[data-qskip]').forEach(b=>b.addEventListener('click',()=>{const q=find(b.dataset.qskip);if(q){q.status='skipped';q.doneAt=Date.now();save();queuePage();}}));
   document.querySelectorAll('[data-qx]').forEach(b=>b.addEventListener('click',()=>{state.queue=L.filter(q=>q.id!==b.dataset.qx);save();queuePage();}));
@@ -4088,7 +4103,7 @@ document.addEventListener('click',e=>{
   const cq=e.target.closest('[data-coqueue]');
   if(cq){const x=colData&&colData.items.find(i=>i.id===cq.dataset.coqueue);if(x){queueAdd(x);cq.textContent='Queued';cq.disabled=true;}return;}
   const cl=e.target.closest('[data-colog]');
-  if(cl){const x=colData&&colData.items.find(i=>i.id===cl.dataset.colog);if(x)openDlg({org:x.org||x.source,role:x.title,c:cById(x.c)?x.c:'fr',d:DOM[x.kind]?x.kind:'job',p:x.source,link:safeUrl(x.url)});return;}
+  if(cl){const x=colData&&colData.items.find(i=>i.id===cl.dataset.colog);if(x)openDlg({org:x.org||x.source,role:x.title,c:cById(x.c)?x.c:'fr',d:DOM[x.kind]?x.kind:'job',p:x.source,link:safeUrl(x.url),offer:offerCopy(x)});return;}
   const ch=e.target.closest('[data-cohide]');
   if(ch){state.oppsHidden=[...(state.oppsHidden||[]),ch.dataset.cohide].slice(-2000);save();renderCollected();return;}
   const jd=e.target.closest('[data-jdel]');if(jd){state.saved=state.saved.filter(x=>x.id!==jd.dataset.jdel);save();renderSaved();return;}
