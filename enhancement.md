@@ -12,7 +12,7 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 | 4 | Data model | How records are stored and linked | ✅ | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
 | 5 | Requirements (AI) | Claude reads what each offer asks, and the salary | ✅ | part of the scoring cases |
 | 6 | Scheduling | PC tasks, GitHub cron, interview stories | ✅ | `python collector/insights.py "Company" "Role"` |
-| 7 | Sync and storage | Your data across devices | ⏳ | |
+| 7 | Sync and storage | Your data across devices | ✅ | `python tests/sync_test.py` (sandboxed) |
 | 8 | App pages and UX | Offers, queue, tracker, profile | ⏳ | |
 | 9 | Alerts | Notifications and weekly digest | ⏳ | |
 | 10 | Academia and masters | Professors, PhDs, master's, scholarships | ⏳ | |
@@ -99,7 +99,16 @@ Done (commit `2882aa8`):
 Open:
 - [ ] The cloud run's schedule could move off minute 17 of the hour (GitHub drops more runs at busy times); low value while the PC trigger covers.
 
-## 7. Sync and storage ⏳
+## 7. Sync and storage ✅
+
+Inspected (sandboxed, every write captured and never sent; commit `930093d`):
+- [x] A fresh device adopts the server's data and sends no deletion (12 of 12 applications, 0 writes).
+- [x] When the server comes back empty and the device still has data, the device sends its copy back (12 adds, 0 deletions).
+- [x] The Redis mirror the collectors read matches Neon exactly (every list, the profile, the last update).
+- [x] Daily backup of your synced data on the PC, 30 days kept (`parcours-collector/backups/state-YYYY-MM-DD.json`). Before this there was no copy outside the devices.
+
+Open:
+- [ ] The server's mass-deletion refusal is checked by reading the code only; a test against a throwaway database would prove it.
 
 ## 8. App pages and UX ⏳
 
@@ -117,5 +126,6 @@ UX audit: to do (pages walked through with your data in a sandbox, writes interc
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.
+- 11 Oct: sync round: both wipe scenarios pass in the sandbox, mirror matches Neon, daily PC backup added.
 - 11 Oct: scheduling round: cron gaps covered by the PC; interview stories fixed (wrong companies).
 - 11 Oct: data model round: company matching, apply log cleanup. PC run with the new sources: Welcome to the Jungle 26, Duunitori 22, Emploi.ma 14; 63 of 70 PC offers with full text.
