@@ -60,7 +60,7 @@ def _norm(name):
 
 def poli_companies(rows, now):
     return merge("poli_companies", rows, lambda r: {"id": int(r["id"]), "name": r.get("name") or "", "norm": _norm(r.get("name")),
-                                                    "licensed": bool(r.get("licensed"))}, now)
+                                                    "legal_norm": _norm(r.get("legalName")), "licensed": bool(r.get("licensed"))}, now)
 
 
 def poli_people(rows, now):
@@ -78,20 +78,33 @@ def poli_jobs(rows, now):
 # ---------- Offers and companies ----------
 
 def company_ids(names, now):
-    """{norm: display name} -> {norm: companies.id}, creating the missing companies; links new ones to their Poli
-    sponsor record by the same normalised name."""
+    """{key: display name} -> {key: companies.id}, creating the missing companies. Keys are normalised again
+    (keys stored by an older normaliser, "lovable labs sweden ab", land on "lovable labs"). New companies are linked
+    to their Poli sponsor record by trading or registered name."""
     c = conn()
-    names = {k: v for k, v in names.items() if k and len(k) >= 2}
-    if not c or not names:
+    canon = {k: _norm(k) for k in names if k}
+    canon = {k: v for k, v in canon.items() if len(v) >= 2}
+    if not c or not canon:
         return {}
-    keys = list(names)
+    first = {}
+    for k, v in canon.items():
+        first.setdefault(v, names[k] or k)
+    keys = list(first)
     with c.cursor() as cur:
         cur.execute("insert into companies (norm, name, updated_at) select k, n, %s from unnest(%s::text[], %s::text[]) as t(k, n) "
                     "on conflict (norm) do update set updated_at = excluded.updated_at returning norm, id",
-                    (now, keys, [names[k] or k for k in keys]))
+                    (now, keys, [first[k] for k in keys]))
         ids = dict(cur.fetchall())
-        cur.execute("update companies c set poli_id = p.id from poli_companies p where c.poli_id is null and p.norm = c.norm and c.norm = any(%s)", (keys,))
-    return ids
+        link_sponsors(cur, keys)
+    return {k: ids[v] for k, v in canon.items() if v in ids}
+
+
+def link_sponsors(cur, keys=None):
+    """companies.poli_id from the Poli directory: same trading name first, else same registered name."""
+    only = "and c.norm = any(%s)" if keys is not None else ""
+    for col in ("norm", "legal_norm"):
+        cur.execute(f"update companies c set poli_id = p.id from poli_companies p where c.poli_id is null and p.{col} = c.norm and p.{col} <> '' {only}",
+                    (keys,) if keys is not None else None)
 
 
 def offers_save(items, removed, now):
@@ -151,3 +164,32 @@ def insight(key, company, role, rec, now):
         cur.execute("insert into insights (key, company_id, role, data, updated_at) values (%s, %s, %s, %s, %s) on conflict (key) do update "
                     "set company_id = excluded.company_id, role = excluded.role, data = excluded.data, updated_at = excluded.updated_at",
                     (key, cid, role or "", json.dumps(rec, ensure_ascii=False), now))
+
+
+def merge_renormalised(now):
+    """Companies stored under a key the current normaliser would change ("lovable labs sweden ab") are folded into
+    the right one ("lovable labs"): offers, hiring log and stories move over, a missing rating is carried, and the
+    old row goes. Returns how many were folded."""
+    c = conn()
+    folded = 0
+    with c.cursor() as cur:
+        cur.execute("select id, norm, name, rating, rating_at from companies")
+        for cid, norm, name, rating, rating_at in cur.fetchall():
+            want = _norm(norm)
+            if want == norm:
+                continue
+            if len(want) < 2:
+                continue
+            target = company_ids({want: name}, now)[want]
+            cur.execute("update offers set company_id = %s where company_id = %s", (target, cid))
+            cur.execute("update insights set company_id = %s where company_id = %s", (target, cid))
+            cur.execute("insert into company_seen (company_id, offer_id, day, kind, src) select %s, offer_id, day, kind, src "
+                        "from company_seen where company_id = %s on conflict do nothing", (target, cid))
+            cur.execute("delete from company_seen where company_id = %s", (cid,))
+            if rating is not None:
+                cur.execute("update companies set rating = %s, rating_at = %s where id = %s and rating is null",
+                            (json.dumps(rating, ensure_ascii=False), rating_at, target))
+            cur.execute("delete from companies where id = %s", (cid,))
+            folded += 1
+        link_sponsors(cur)
+    return folded

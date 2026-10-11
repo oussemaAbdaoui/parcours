@@ -32,11 +32,14 @@ create table if not exists poli_companies (
   id         integer primary key,
   name       text    not null,
   norm       text    not null,           -- company key shared with offers (enrich._norm: no legal forms, no country words)
+  legal_norm text    not null default '',  -- the same for the registered name ("ASOS.com Ltd" for ASOS)
   licensed   boolean not null default false,
   data       jsonb   not null,
   seen_at    bigint  not null
 );
+alter table poli_companies add column if not exists legal_norm text not null default '';
 create index if not exists poli_companies_norm on poli_companies (norm);
+create index if not exists poli_companies_legal_norm on poli_companies (legal_norm);
 
 create table if not exists poli_people (
   id          integer primary key,
