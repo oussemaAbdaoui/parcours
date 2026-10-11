@@ -141,6 +141,7 @@ def daad_scholarships(fams, origin=TUNISIA["daad"]):
 def mon_master(fams):
     base = "https://data.enseignementsup-recherche.gouv.fr/api/explore/v2.1/catalog/datasets/fr-esr-mon_master/records"
     out, seen = [], set()
+    same = {}  # (title, university, city) -> entry: each variant (work-study, another session) has its own record
     terms = terms_for(fams, "fr")
     for t in terms[:5]:
         where = f'search(mention, "{t}") or search(parcours, "{t}")'
@@ -158,6 +159,10 @@ def mon_master(fams):
             applicants = (r.get("n_can_pp") or 0) + (r.get("n_can_pc") or 0)
             offers, seats = r.get("n_prop_total"), r.get("col")
             city = re.sub(r"\s*\(\d+\)$", "", (r.get("lieux") or "").split("|")[0].split(" - ")[-1]).title()
+            twin = same.get((title.lower(), r.get("eta_nom", ""), city))
+            if twin:  # the same programme again: one entry, work-study if any variant offers it
+                twin["alternance"] = twin["alternance"] or r.get("alternance") == "1"
+                continue
             q = urllib.parse.quote(f'master "{title}" {r.get("eta_nom", "")}')
             out.append({
                 "id": f"mm:{key}", "type": "program", "country": "fr", "source": "Mon Master",
@@ -173,6 +178,7 @@ def mon_master(fams):
                         "Études en France (Campus France) instead of Mon Master.",
                 "deadline": "", "deadlineText": "",
             })
+            same[(title.lower(), r.get("eta_nom", ""), city)] = out[-1]
     return out
 
 
