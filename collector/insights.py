@@ -13,7 +13,7 @@ import re
 import sys
 import time
 import unicodedata
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, unquote
 
 QUEUE, STORE = "parcours:insights:queue", "parcours:insights"
 MAX_STORIES = 15
@@ -22,6 +22,16 @@ MAX_STORIES = 15
 def norm(s):
     s = unicodedata.normalize("NFD", str(s or "").lower())
     return re.sub(r"[^a-z0-9]+", " ", "".join(c for c in s if unicodedata.category(c) != "Mn")).strip()
+
+
+def _co(s):
+    """Company name without legal forms and country words, as the collector's company matching (enrich._norm)."""
+    from enrich import _norm
+    return _norm(s)
+
+
+TECH_ROLE = re.compile(r"\b(engineer|ingenieur|developer|developpeur|scientist|data|software|logiciel|ai|ia|ml|machine learning|"
+                       r"research|analyst|devops|backend|frontend|full stack|intern|stagiaire)\b")
 
 
 def key(company, role):
@@ -101,11 +111,14 @@ def parse_glassdoor(html, summary=None):
 
 def glassdoor(session, company, role):
     page = session.fetch("https://www.glassdoor.com/Search/results.htm?keyword=" + quote_plus(company), network_idle=False, timeout=60000)
-    links = re.findall(r'href="/Interview/([A-Za-z0-9-]+)-Interview-Questions-E(\d+)\.htm"', page.html_content)
-    want = norm(company)
-    match = next(((s, i) for s, i in links if norm(s.replace("-", " ")) == want), None) or (links[0] if links else None)
+    # Names with accents come URL-encoded (Soci%C3%A9t%C3%A9-G%C3%A9n%C3%A9rale): kept encoded for the URL, decoded to compare.
+    links = re.findall(r'href="/Interview/([A-Za-z0-9%-]+)-Interview-Questions-E(\d+)\.htm"', page.html_content)
+    # The company itself or nothing: the first search result used to stand in, so a Tunisian "TNT" got TNT
+    # Express delivery drivers. Names are compared without legal forms and country words.
+    want = _co(company)
+    match = next(((s, i) for s, i in links if _co(unquote(s).replace("-", " ")) == want), None)
     if not match:
-        return {"url": "", "stories": [], "note": "Company not found on Glassdoor"}
+        return {"url": "", "stories": [], "note": "No Glassdoor page for this company"}
     cslug, cid = match
     base = f"https://www.glassdoor.com/Interview/{cslug}-Interview-Questions-E{cid}.htm"
     stories, url, summary = [], base, {}
@@ -126,7 +139,9 @@ def glassdoor(session, company, role):
     if len(stories) < 3:  # few or no reviews for that exact title: company-wide, keep the closest roles first
         p = session.fetch(base, network_idle=False, timeout=60000)
         extra = parse_glassdoor(p.html_content) if p.status == 200 else []
-        words = set(norm(role).split())
+        words = set(norm(role).split()) - {"h", "f", "m", "w", "d", "de", "en", "and", "et", "junior", "senior"}
+        # Company-wide stories only for related roles (a word in common, or a technical role), closest first.
+        extra = [s for s in extra if words & set(norm(s["title"]).split()) or TECH_ROLE.search(norm(s["title"]))]
         extra.sort(key=lambda s: -len(words & set(norm(s["title"]).split())))
         seen = {(s["title"], s["date"]) for s in stories}
         stories += [s for s in extra if (s["title"], s["date"]) not in seen]
@@ -136,13 +151,15 @@ def glassdoor(session, company, role):
 
 
 def reddit(session, company, role):
-    q = f'"{company}" {role} interview' if role else f'"{company}" interview'
+    q = f'"{company}" interview'  # the role narrowed results to generic interview threads about other companies
     page = session.fetch("https://www.reddit.com/search/?q=" + quote_plus(q) + "&sort=relevance&t=all", network_idle=False, timeout=60000)
     out = []
-    for a in page.css('a[data-testid="post-title"]')[:8]:
+    # Reddit's search ignores the quotes: only threads whose title names the company are about it.
+    named = re.compile(r"\b" + r"\s+".join(map(re.escape, _co(company).split())) + r"\b") if _co(company) else None
+    for a in page.css('a[data-testid="post-title"]')[:25]:
         href = a.attrib.get("href", "")
         title = re.sub(r"\s+", " ", a.get_all_text()).strip()
-        if not href or not title:
+        if not href or not title or not named or not named.search(norm(title)) or len(out) >= 8:
             continue
         sub = re.search(r"/r/([^/]+)/", href)
         out.append({"title": title[:200], "url": page.urljoin(href), "sub": sub.group(1) if sub else ""})
