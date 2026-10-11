@@ -1954,31 +1954,6 @@ const sourceOn=s=>((prof().applySources||{})[s]||{}).enabled!==false;
 let gmailInfo=null;
 async function loadGmailInfo(){gmailInfo={loading:true};try{gmailInfo=await api('/api/gmail');}catch(e){gmailInfo={configured:false};}}
 const canEmail=()=>!!(gmailInfo&&gmailInfo.canSend);
-/* One-click applications on company forms: what the PC apply worker did (api/opps.js ?set=applylog). Checked every
-   15 s while the queue is open and an application is on its way; an applied one is logged and leaves the queue. */
-let applyLog=null,applyTimer=null;
-async function loadApplyLog(){try{applyLog=(await api('/api/opps?set=applylog')).log||{};}catch(e){applyLog=applyLog||{};}}
-function settleApplied(){
-  let changed=false;
-  for(const q of qList()){const lg=q.status==='todo'&&q.autoApply&&applyLog&&applyLog[q.id];
-    if(lg&&lg.at>=q.autoApply&&lg.status==='applied'){
-      addOrUpdate({id:uid(),org:q.org||q.source,role:q.title,c:cById(q.c)?q.c:'fr',d:DOM[q.kind]?q.kind:'job',p:q.source,date:today(),stage:'applied',result:'open',link:safeUrl(q.url),
-        notes:`Applied on the company form by Parcours (${applyMethod(q).ats||'form'})${lg.answers&&Object.keys(lg.answers).length?'; questions answered: '+Object.keys(lg.answers).join(' / '):''}.`});
-      q.status='sent';q.doneAt=Date.now();q.sentBy='form';changed=true;}}
-  if(changed)save();
-  return changed;
-}
-async function watchApplyLog(){
-  clearTimeout(applyTimer);
-  if(!location.hash.startsWith('#/queue'))return;
-  await loadApplyLog();
-  const changed=settleApplied();
-  const waiting=qList().some(q=>q.status==='todo'&&q.autoApply&&!(applyLog[q.id]&&applyLog[q.id].at>=q.autoApply));
-  if(changed||location.hash.startsWith('#/queue'))queuePageOnly();
-  if(waiting)applyTimer=setTimeout(watchApplyLog,15000);
-}
-// Re-render the queue without restarting the watcher.
-function queuePageOnly(){const y=window.scrollY;queuePage(true);window.scrollTo(0,y);}
 // The email that carries an application: subject in the offer's language, your letter as the body, and your
 // documents attached (CV file and recommendation letters, as uploaded in Profile).
 function mailSubject(q){const fr=offerLang(q)==='fr',role=q.titleL||cleanTitle(q.title,q.kind,offerLang(q))||q.title;return (fr?'Candidature : ':'Application: ')+role;}
@@ -2111,10 +2086,8 @@ function letterFor(q){
   out=out.replace(/\bmon licence\b/g,'ma licence').replace(/\bBonjour Madame, Monsieur\b/,'Madame, Monsieur');
   return out.replace(/\b([Dd])e ([AEIOUYÉÈaeiouyéè])/g,"$1'$2"); // "poste de AI…" -> "poste d'AI…"
 }
-function queuePage(fromWatch){
+function queuePage(){
   const L=qList(),p=prof();
-  // One-click applications on their way: start the watcher (it re-renders through queuePageOnly, not here).
-  if(!fromWatch&&L.some(q=>q.status==='todo'&&q.autoApply))setTimeout(watchApplyLog,0);
   const todo=L.filter(q=>q.status==='todo').sort((a,b)=>a.addedAt-b.addedAt),done=L.filter(q=>q.status!=='todo').sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
   // Apply setup: for each source in the queue, how it applies, whether that channel is ready, and a switch.
   const bySrc={};todo.forEach(q=>{const s=q.source||'Other',am=applyMethod(q);(bySrc[s]=bySrc[s]||{n:0,kinds:{}}).n++;bySrc[s].kinds[am.kind]=(bySrc[s].kinds[am.kind]||0)+1;});
@@ -2147,6 +2120,7 @@ function queuePage(fromWatch){
     const to=q.mailTo||am.to.email,subject=q.mailSubject||mailSubject(q),text=$(`[data-qletter="${CSS.escape(q.id)}"]`).value.trim();
     const att=q.attach||mailDocs().map(d=>d.id);
     if(unfilled(text).length){msg.textContent='Fill the parts in [square brackets] first.';return;}
+    if(!confirm(`Send this application to ${to}?\n\nSubject: ${subject}\nAttachments: ${att.length?mailDocs().filter(d=>att.includes(d.id)).map(d=>d.name).join(', '):'none'}`))return;
     b.disabled=true;msg.textContent='Sending…';
     try{const r=await api('/api/gmail',{method:'POST',body:JSON.stringify({action:'send',to,toName:(am.to&&am.to.name)||'',subject,text,attachments:att})});
       addOrUpdate({id:uid(),org:q.org||q.source,role:q.title,c:cById(q.c)?q.c:'fr',d:DOM[q.kind]?q.kind:'job',p:q.source,date:today(),stage:'applied',result:'open',link:safeUrl(q.url),
@@ -2160,12 +2134,6 @@ function queuePage(fromWatch){
     const w=window.open(safeUrl(q.url),'_blank','noopener');
     navigator.clipboard.writeText(text).then(()=>{msgOf(q.id).textContent='Letter copied: paste it on the site, send, then press Sent here.';},()=>{msgOf(q.id).textContent='Opened. Copy the letter with Copy letter.';});
     if(!w)msgOf(q.id).textContent='Your browser blocked the new tab: use Open offer.';}));
-  // One-click apply on company forms: the letter as reviewed goes to the PC apply worker, which submits it.
-  document.querySelectorAll('[data-qauto]').forEach(b=>b.addEventListener('click',()=>{const q=find(b.dataset.qauto);if(!q)return;
-    const text=$(`[data-qletter="${CSS.escape(q.id)}"]`).value.trim();
-    if(unfilled(text).length){msgOf(q.id).textContent='Fill the parts in [square brackets] first.';return;}
-    const miss=applyReady('form');if(miss.length){msgOf(q.id).textContent='Still needed: '+miss.join(', ')+'.';return;}
-    q.letter=text;q.autoApply=Date.now();save();queuePage();watchApplyLog();}));
   // Company forms: keep the letter exactly as reviewed and mark the offer for the PC form filler.
   document.querySelectorAll('[data-qfill]').forEach(b=>b.addEventListener('click',()=>{const q=find(b.dataset.qfill);if(!q)return;
     const text=$(`[data-qletter="${CSS.escape(q.id)}"]`).value.trim();
@@ -2213,18 +2181,12 @@ function qCard(q){
       <div class="g3" style="margin-top:8px"><div><label class="lab" for="qto-${id}">To</label><input type="email" id="qto-${id}" data-qto="${id}" value="${esc(q.mailTo||am.to.email)}"></div>
         <div style="grid-column:span 2"><label class="lab" for="qsu-${id}">Subject</label><input type="text" id="qsu-${id}" data-qsubj="${id}" value="${esc(q.mailSubject||mailSubject(q))}"></div></div>
       <div class="row" style="margin-top:8px;gap:14px">${docs.length?docs.map(d=>`<label class="sc"><input type="checkbox" data-qatt="${id}" value="${esc(d.id)}" ${att.includes(d.id)?'checked':''}> 📎 ${esc(d.name)}</label>`).join(''):'<span class="hint" style="margin:0">No documents to attach: upload your CV file and letters in Profile.</span>'}</div>
-      <div class="row" style="margin-top:8px"><button class="btn primary" data-qsend="${id}" ${canEmail()?'':'disabled'} title="${canEmail()?'Sends this application from your Gmail now':'Connect Gmail with send permission first (Applications, Scan Gmail)'}">Apply now</button>
+      <div class="row" style="margin-top:8px"><button class="btn primary" data-qsend="${id}" ${canEmail()?'':'disabled'} title="${canEmail()?'Send this application from your Gmail':'Connect Gmail with send permission first (Applications, Scan Gmail)'}">Send email</button>
         ${canEmail()?'':`<a class="hint" href="#/apps" style="margin:0">Connect Gmail to send →</a>`}</div></div>`;})()}
     ${(()=>{const am=applyMethod(q);if(am.kind!=='form')return '';
-      const lg=q.autoApply&&applyLog&&applyLog[q.id]&&applyLog[q.id].at>=q.autoApply?applyLog[q.id]:null;
-      const st=q.autoApply&&!lg?`<p class="hint" style="margin:8px 0 0">⏳ Applying on your PC… (sent ${new Date(q.autoApply).toLocaleTimeString()}; your PC must be on)</p>`
-        :lg&&lg.status==='needs_you'?`<p style="margin:8px 0 0;color:var(--red)">Needs you: ${esc(lg.note||'')}${(lg.missing||[]).length?' · '+esc(lg.missing.slice(0,6).join(' · ')):''}. Use Fill on my PC to finish it.</p>`
-        :lg&&lg.status==='failed'?`<p style="margin:8px 0 0;color:var(--red)">Could not apply: ${esc(lg.note||'')}. Use Fill on my PC.</p>`:'';
-      const given=lg&&lg.answers&&Object.keys(lg.answers).length?`<details style="margin-top:6px"><summary class="hint">What Claude answered for you (${Object.keys(lg.answers).length})</summary>${Object.entries(lg.answers).map(([k,v])=>`<p style="margin:6px 0"><b>${esc(k)}</b><br>${esc(v)}</p>`).join('')}</details>`:'';
-      return `<div class="panel" style="margin:10px 0 0;padding:12px 14px"><b>📝 ${esc(am.ats)} form</b> <span class="hint" style="margin:0">one click: your PC fills it with your answers, CV and this letter, answers its questions and submits; if something is missing it stops and tells you</span>
-      <div class="row" style="margin-top:8px"><button class="btn primary" data-qauto="${id}" ${q.autoApply&&!lg?'disabled':''}>${lg&&lg.status!=='applied'?'Try again':'Apply now'}</button>
-      <button class="btn" data-qfill="${id}">${q.fillAt?'Fill again on my PC':'Fill on my PC'}</button>
-      <span class="hint" style="margin:0">${q.fillAt?'Marked for filling '+new Date(q.fillAt).toLocaleString()+': run "Parcours - fill applications".':''}</span></div>${st}${given}</div>`;})()}
+      return `<div class="panel" style="margin:10px 0 0;padding:12px 14px"><b>📝 ${esc(am.ats)} form</b> <span class="hint" style="margin:0">filled on your PC with your answers, CV and this letter; you check it and press Submit yourself</span>
+      <div class="row" style="margin-top:8px"><button class="btn primary" data-qfill="${id}">${q.fillAt?'Fill again on my PC':'Fill on my PC'}</button>
+      <span class="hint" style="margin:0">${q.fillAt?'Marked '+new Date(q.fillAt).toLocaleString()+'. On your PC, run "Parcours: fill applications".':'Then run "Parcours: fill applications" on your PC.'}</span></div></div>`;})()}
     <div class="row" style="margin-top:10px">${u&&applyMethod(q).kind==='assisted'?`<button class="btn primary" data-qgo="${id}" title="Copies your letter, then opens the offer: paste it there and send, then press Sent">Copy letter &amp; open offer</button>`:''}${u?`<a class="btn${applyMethod(q).kind==='assisted'?'':' primary'}" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open offer</a>`:''}
       <button class="btn" data-qcopy="${id}">Copy letter</button><button class="btn" data-qai="${id}" title="${caps.ai?'Claude rewrites the letter for this offer':'Needs ANTHROPIC_API_KEY in Vercel'}">Improve with AI</button>${q.letter?`<button class="btn ghost" data-qreset="${id}">Regenerate</button>`:''}
       <button class="btn" data-qsent="${id}">Sent</button><button class="btn ghost" data-qskip="${id}">Skip</button><span class="hint" data-qmsg="${id}"></span></div></article>`;
