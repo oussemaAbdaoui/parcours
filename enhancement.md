@@ -88,7 +88,11 @@ Audit on real data (11 Oct, 735 offers):
 - Missing basics: 60 offers with no text, 53 with no date, 11 with no company.
 - Company links: 512 companies in offers; 379 have a rating, 44 are Poli sponsors, 11 have interview stories.
 - Links hold: 16 of 17 applications point to a stored offer; 4 of 18 queue items point to offers that aged out (the queue keeps its own copy).
-- [ ] Poli export (raw records, whole jobs feed) running; then shown in the app.
+- [x] Poli export: the full raw data saved to the PC (`poli-archive/2026-10-11/full/`, JSON and CSV): 2,531 sponsors, 20,023 people (the whole network; the old collector stopped at 534), 99 jobs.
+- [x] **Move to Postgres, phase 1 (Poli)**: tables `poli_companies`, `poli_people`, `poli_jobs` (merged, never deleted, empty fields never blank stored ones); export and older Redis copies imported; collector runs write Postgres. The People tab searches all 20,023 on the server (likely sponsored first, 50 at a time). Sandboxed: search "machine learning" 173, likely sponsored 19, Show more, companies 2,531, no page errors.
+- [x] CI (`.github/workflows/ci.yml` + `tests/check.py`): every push runs the scoring cases and checks every script parses and every Python file compiles; deploys only when they pass, once the `VERCEL_TOKEN` secret is added (your step). A deliberately broken file was caught.
+- [ ] Phase 2: offers and companies to Postgres, with a company table and real company IDs linking offers, ratings, hiring history, sponsors and stories.
+- [ ] Phase 3: master's and academia; then retire the Redis copies (`parcours:poli:*`, the state mirror).
 
 Open:
 - [ ] The `autoApply` field on one queue item and the recommendation letters in the profile are unused, but they sit in your synced data; changed only through the app, never from outside (that is how the data was once wiped).
