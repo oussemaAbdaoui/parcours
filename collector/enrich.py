@@ -35,7 +35,7 @@ def linkedin_details(items, limit=40, stealth=False, proxy=None, meter=None):
     comes from another home IP, so the cloud run gets through too; meter = {"left": bytes} stops it once this
     month's proxy allowance is used up (meter["used"] gets the bytes spent). A new description drops
     requirements read from the title alone, so Claude reads them again from the full text."""
-    done, session, ctx = 0, None, None
+    done, session, ctx, refused = 0, None, None, 0
     try:
         for x in items:
             if done >= limit or (meter and meter.get("used", 0) >= meter["left"]):
@@ -57,7 +57,14 @@ def linkedin_details(items, limit=40, stealth=False, proxy=None, meter=None):
                 session = ctx.__enter__()
                 page = session.fetch(url)
             if page.status == 429:
-                return done, "rate-limited"
+                # Through a rotating proxy the next request leaves from another IP: skip this offer (tried next
+                # run) and go on; stop only when refusals follow one another. A single IP stops at the first.
+                refused += 1
+                if not proxy or refused >= 5:
+                    return done, f"rate-limited after {done - refused} pages"
+                time.sleep(2)
+                continue
+            refused = 0
             if page.status != 200:
                 x["applicants"] = None  # gone or refused: not tried again
                 continue
