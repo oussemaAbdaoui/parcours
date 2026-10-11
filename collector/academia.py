@@ -32,7 +32,8 @@ from collect import STATE_KEY, Store, load_env  # noqa: E402
 from masters import profile_fields  # noqa: E402
 
 SCHOOLS_KEY, PEOPLE_KEY, META_KEY = "parcours:academia:schools", "parcours:academia:people", "parcours:academia:meta"
-COUNTRIES = {"fr": "FR", "de": "DE", "ca": "CA", "ch": "CH", "tn": "TN"}
+COUNTRIES = {"fr": "FR", "de": "DE", "ca": "CA", "ch": "CH", "tn": "TN", "be": "BE", "nl": "NL", "lu": "LU", "se": "SE", "dk": "DK",
+             "fi": "FI", "no": "NO", "ma": "MA", "ie": "IE", "uk": "GB"}  # app country -> ISO code (OpenAlex)
 UA = {"User-Agent": "parcours-personal-app (academic search for one applicant)"}
 PER_COUNTRY = 60  # professors kept per country
 TOPICS = {  # profile families (masters.profile_fields) -> research topics searched in titles and abstracts
@@ -374,11 +375,13 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     dry = "--dry-run" in sys.argv
     env = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--env=")), "")
-    only = next((a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--only=")), list(COUNTRIES))
+    only = next((a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--only=")), None)
     if env:
         load_env(env)
     store = None if dry and not os.environ.get("UPSTASH_REDIS_REST_URL") else Store()
     state = (store.get_json(STATE_KEY) if store else None) or {}
+    # The countries in your profile (it held five fixed ones while you target fifteen).
+    only = only or [c for c in (state.get("profile") or {}).get("countries", []) if c in COUNTRIES] or list(COUNTRIES)
     topics = topics_for(state)
     since = date(date.today().year - 3, 1, 1).isoformat()
     print(f"topics: {topics}, since {since}, countries: {only}")
