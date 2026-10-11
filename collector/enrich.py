@@ -28,21 +28,28 @@ def _t(s):
     return re.sub(r"\s+", " ", str(s or "")).strip()
 
 
-def linkedin_details(items, limit=40, stealth=False):
+def linkedin_details(items, limit=40, stealth=False, proxy=None, meter=None):
     """Fills applicants / applicantsCapped / desc for LinkedIn items without a full description. LinkedIn
     refuses most datacenter IPs (the cloud run), not a home connection; when it rate-limits even that, the rest
-    goes through Scrapling's stealth browser (stealth=True). A new description drops requirements read from the
-    title alone, so Claude reads them again from the full text."""
+    goes through Scrapling's stealth browser (stealth=True). With a rotating residential proxy every request
+    comes from another home IP, so the cloud run gets through too; meter = {"left": bytes} stops it once this
+    month's proxy allowance is used up (meter["used"] gets the bytes spent). A new description drops
+    requirements read from the title alone, so Claude reads them again from the full text."""
     done, session, ctx = 0, None, None
     try:
         for x in items:
-            if done >= limit:
+            if done >= limit or (meter and meter.get("used", 0) >= meter["left"]):
                 break
             m = re.search(r"li-(\d+)", x.get("id", ""))
             if x.get("source") != "LinkedIn" or not m or len(x.get("desc") or "") >= 400 or "applicants" in x:
                 continue
             url = f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{m.group(1)}"
-            page = session.fetch(url) if session else Fetcher.get(url, stealthy_headers=True, timeout=20)
+            if session:
+                page = session.fetch(url)
+            else:
+                page = Fetcher.get(url, stealthy_headers=True, timeout=30, **({"proxy": proxy} if proxy else {}))
+                if meter is not None:
+                    meter["used"] = meter.get("used", 0) + len(page.body or b"") + 2000  # plus headers
             done += 1
             if page.status == 429 and stealth and not session:
                 from scrapling.fetchers import StealthySession
@@ -55,7 +62,7 @@ def linkedin_details(items, limit=40, stealth=False):
                 x["applicants"] = None  # gone or refused: not tried again
                 continue
             _linkedin_fill(x, page)
-            time.sleep(1.5)
+            time.sleep(0.3 if proxy else 1.5)
     finally:
         if ctx:
             ctx.__exit__(None, None, None)

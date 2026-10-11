@@ -304,6 +304,31 @@ def linkedin_home(everything, store, origin, limit=150):
     return n, err
 
 
+PROXY_KEY = "parcours:proxy:bytes:"  # + YYYY-MM: bytes sent through the paid proxy this month
+
+
+def linkedin_cloud(items, store):
+    """LinkedIn descriptions in the cloud run. Without a proxy LinkedIn refuses GitHub's IPs after a few pages;
+    with PROXY_URL (rotating residential, paid by the GB) it reads them all, up to PROXY_MB_MONTH a month."""
+    from enrich import linkedin_details
+    proxy = os.environ.get("PROXY_URL")
+    if not proxy or not store:
+        return linkedin_details(items)
+    key = PROXY_KEY + time.strftime("%Y-%m")
+    spent = int(store.cmd("GET", key) or 0)
+    meter = {"left": int(os.environ.get("PROXY_MB_MONTH") or 800) * 1024 * 1024 - spent}
+    if meter["left"] <= 0:
+        return 0, "proxy allowance used up this month"
+    try:
+        n, err = linkedin_details(items, limit=400, proxy=proxy, meter=meter)
+    finally:
+        if meter.get("used"):
+            store.cmd("INCRBY", key, meter["used"])
+            store.cmd("EXPIRE", key, 70 * 86400)
+    print(f"  proxy: {meter.get('used', 0) / 1048576:.1f} MB this run, {(spent + meter.get('used', 0)) / 1048576:.0f} MB this month")
+    return n, err
+
+
 def dealbreakers(items, state, scores=None):
     """{id: [reasons]} for offers that hit a dealbreaker for your profile, using the app's own score.js via Node.
     Also tags each offer with the experience it asks for (item["exp"] = {min, max, label}, e.g. "3+ yrs")."""
@@ -389,10 +414,10 @@ def main():
     items, new, removed = merge(mine, others, found, now, origin)
     print(f"{len(found)} found, {new} new, {len(items)} kept")
 
-    from enrich import company_ratings, details, linkedin_details
+    from enrich import company_ratings, details
     steps = [("Offer details", lambda: details(items, stealth=os.environ.get("STEALTH") == "1" or home))]
     if not home:
-        steps += [("LinkedIn details", lambda: linkedin_details(items))]
+        steps += [("LinkedIn details", lambda: linkedin_cloud(items, store))]
     # Indeed blocks company pages from datacenter IPs: company reviews are looked up from the PC, for every
     # stored offer (cloud and home), into the shared cache the cloud runs then read.
     if home and store:
