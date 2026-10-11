@@ -11,7 +11,7 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 | 3 | Enrichment | Full descriptions, applicants, company ratings | 🔧 | coverage table below |
 | 4 | Data model | How records are stored and linked | ✅ | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
 | 5 | Requirements (AI) | Claude reads what each offer asks, and the salary | ✅ | part of the scoring cases |
-| 6 | Scheduling | PC tasks and GitHub cron | ⏳ | |
+| 6 | Scheduling | PC tasks, GitHub cron, interview stories | ✅ | `python collector/insights.py "Company" "Role"` |
 | 7 | Sync and storage | Your data across devices | ⏳ | |
 | 8 | App pages and UX | Offers, queue, tracker, profile | ⏳ | |
 | 9 | Alerts | Notifications and weekly digest | ⏳ | |
@@ -85,11 +85,19 @@ Open:
 - Only offers with their full text are read.
 - Trimming the text before sending it was tested and rejected: 10% saved, requirements lost in 14 of 175 offers.
 
-## 6. Scheduling ⏳
+## 6. Scheduling ✅
 
-Known:
-- [ ] GitHub's cron skips runs (the PC trigger covers the gaps; verify it still does).
-- [ ] "Stories" fetched nothing in about 150 runs: fix or turn off.
+Inspected:
+- GitHub's cron is set for every 3 hours but runs 3 to 4 times a day, with gaps up to 9 hours. The PC trigger fills the gaps while the laptop is on (it started the 02:40 run, and skips when a run is recent). Accepted: what only the PC can do is the Tunisian boards.
+- "Stories" was wrongly listed as broken: it fetches only what is requested, and 12 companies had stories. But their content was wrong, see below.
+
+Done (commit `2882aa8`):
+- [x] Interview stories matched the wrong company: Glassdoor took the first search result when the name did not match (the Tunisian TNT got TNT Express delivery drivers, Dev Digital an Indian DevDigital), accented names never matched (Société Générale got its insurance arm), and Reddit returned any AI interview thread. Now: the company itself or "no page", related roles only, Reddit threads that name the company. Checked on TNT, Société Générale and Capgemini.
+- [x] The 12 stored records are queued to be fetched again (6 every 30 minutes).
+- [x] The stories task runs with `--auto`: open applications get their stories refreshed every 14 days.
+
+Open:
+- [ ] The cloud run's schedule could move off minute 17 of the hour (GitHub drops more runs at busy times); low value while the PC trigger covers.
 
 ## 7. Sync and storage ⏳
 
@@ -109,4 +117,5 @@ UX audit: to do (pages walked through with your data in a sandbox, writes interc
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.
+- 11 Oct: scheduling round: cron gaps covered by the PC; interview stories fixed (wrong companies).
 - 11 Oct: data model round: company matching, apply log cleanup. PC run with the new sources: Welcome to the Jungle 26, Duunitori 22, Emploi.ma 14; 63 of 70 PC offers with full text.
