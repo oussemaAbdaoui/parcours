@@ -137,7 +137,7 @@ Open:
 - [ ] Eight buttons on every offer (Apply, Save, Queue, Log, Stories, Hide, Why, Offer details): group the less used ones.
 - [ ] Phone: the daily goal shows twice at the top (the "0/50 today" pill and the goal bar).
 - [ ] Filters take two rows of twelve controls on desktop.
-- [ ] "Lead, AI Engineering" at Bain scores 80 as entry level: Claude's reading (entry) overrides a "Lead" title. Check the offer and decide which wins.
+- [x] "Lead, AI Engineering" at Bain scored 77 as entry level. Cause: the text says "mentoring more junior team members", and "junior" anywhere made the offer entry level, overriding the "Lead" title. Now juniors you would mentor, coach or manage do not count, and an entry-level guess from words never overrides a senior or lead title. 9 of 735 offers changed, each checked: Bain, ClearRoute, DoubleVerify "Sr" are now too senior (40); IKEA, Booking.com, La Fosse, Metsä, Harmattan, Storyteller lose 6 to 9 points (all "mentor junior engineers"). 2 new test cases, 23/23 pass.
 
 ## 9. Alerts ✅
 
@@ -175,3 +175,4 @@ Inspected: "Improve with AI" run on a real queued offer (IFP Energies nouvelles 
 - 11 Oct: sync round: both wipe scenarios pass in the sandbox, mirror matches Neon, daily PC backup added.
 - 11 Oct: scheduling round: cron gaps covered by the PC; interview stories fixed (wrong companies).
 - 11 Oct: data model round: company matching, apply log cleanup. PC run with the new sources: Welcome to the Jungle 26, Duunitori 22, Emploi.ma 14; 63 of 70 PC offers with full text.
+- 11 Oct: Bain "Lead" scored as entry level fixed at the root (mentoring juniors); data map updated with 11 Oct counts, PC backups and alert markers; Poli jobs confirmed stored (99, merged).
