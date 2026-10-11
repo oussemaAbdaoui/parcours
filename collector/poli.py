@@ -222,6 +222,80 @@ def run(store, dry=False, force=False):
     return {"ok": not bad, "count": len(companies), **({"error": ", ".join(bad) + " failed"} if bad else {})}
 
 
+def _flat(r):
+    """One CSV row: scalars as they are, nested values as JSON."""
+    return {k: (json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v) for k, v in r.items()}
+
+
+def _write(out, name, rows):
+    """rows -> out/raw/name.json (every field Poli returned) and out/name.csv (one row per record)."""
+    import csv
+    os.makedirs(os.path.join(out, "raw"), exist_ok=True)
+    with open(os.path.join(out, "raw", name + ".json"), "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False)
+    if isinstance(rows, list) and rows and all(isinstance(r, dict) for r in rows):
+        cols = list(dict.fromkeys(k for r in rows for k in r))
+        with open(os.path.join(out, name + ".csv"), "w", encoding="utf-8-sig", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=cols)
+            w.writeheader()
+            w.writerows(_flat(r) for r in rows)
+    print(f"  {name}: {len(rows)}", flush=True)
+
+
+def export(out, max_job_pages=2500):
+    """The full Poli data as datasets, before the Pro account ends: the raw records of every endpoint the collector
+    uses (not the trimmed copies kept in Redis), and the whole jobs feed instead of its first 30 pages.
+    Jobs are written every 100 pages, so a run cut short still leaves what it read."""
+    s = session()
+    if not s:
+        raise SystemExit("no Poli account (POLI_EMAIL / POLI_PASSWORD)")
+    report = {"at": int(time.time() * 1000)}
+    _write(out, "stats", {k: call(s, "stats/" + k) for k in ("sponsored-jobs", "visa-sponsors", "sponsored-employees", "employees")})
+    companies = call(s, "companies", {}).get("companies") or []
+    _write(out, "companies", companies)
+    employees = []
+    for c in companies:
+        if not c.get("sponsored_employees_count"):
+            continue
+        offset = 0
+        while True:
+            data = call(s, "company/employees", {"companyId": c["id"], "offset": offset})
+            batch = data.get("employees") or []
+            employees += [{**p, "_companyId": c["id"], "_company": c.get("trading_name")} for p in batch]
+            offset += len(batch)
+            if not data.get("hasMore") or not batch:
+                break
+    _write(out, "company_employees", employees)
+    network, i = {}, 0
+    while i < 500:
+        data = call(s, "employees/network", {"initialFetch": i == 0})
+        for p in data.get("employees") or []:
+            network[p["id"]] = p
+        i += 1
+        if not data.get("moreEmployeesExist"):
+            break
+    _write(out, "network", list(network.values()))
+    jobs_raw, empty = {}, 0
+    for i in range(max_job_pages):
+        try:
+            data = call(s, "jobs/", {"initialFetch": i == 0})
+        except Exception as e:
+            report["jobsError"] = f"page {i}: {e}"[:200]
+            break
+        new = [j for j in data.get("jobs") or [] if j.get("id") not in jobs_raw]
+        jobs_raw.update((j["id"], j) for j in new)
+        empty = 0 if new else empty + 1
+        if (i + 1) % 100 == 0:
+            _write(out, "jobs", list(jobs_raw.values()))
+        if not data.get("moreJobsExist") or empty >= 5:
+            break
+    report["jobPages"] = i + 1
+    _write(out, "jobs", list(jobs_raw.values()))
+    report.update(companies=len(companies), companyEmployees=len(employees), network=len(network), jobs=len(jobs_raw))
+    _write(out, "report", report)
+    return report
+
+
 if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding="utf-8")
@@ -230,6 +304,9 @@ if __name__ == "__main__":
     for a in sys.argv[1:]:
         if a.startswith("--env="):
             load_env(a.split("=", 1)[1])
+        if a.startswith("--export="):
+            print(export(a.split("=", 1)[1]))
+            sys.exit(0)
     s = session()
     print("signed in" if s else "no account", call(s, "auth/status") if s else "")
     js = jobs(s, pages=3) if s else []
