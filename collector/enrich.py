@@ -21,7 +21,7 @@ def _norm(s):
     s = unicodedata.normalize("NFD", str(s or "").lower())
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     # Legal forms and country words are dropped (same list as coNorm in index.html).
-    s = re.sub(r"\b(sas|sa|sarl|gmbh|ag|inc|ltd|llc|plc|limited|bv|nv|ab|oy|srl|spa|group|groupe|france|deutschland|germany|"
+    s = re.sub(r"\b(sas|sa|sarl|gmbh|ag|inc|ltd|llc|llp|plc|limited|bv|nv|ab|oy|srl|spa|group|groupe|france|deutschland|germany|"
                r"tunisie|tunisia|maroc|morocco|nederland|netherlands|belgium|belgique|uk|sweden|sverige|danmark|denmark|suisse|"
                r"switzerland|luxembourg|canada)\b", " ", s)
     # Exact match only: a looser rule (shorter name prefixes) was tested on the Poli directory and matched wrong

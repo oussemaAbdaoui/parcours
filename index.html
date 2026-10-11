@@ -2930,7 +2930,7 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 /* ---------- Companies ---------- */
 const coKey=name=>coNorm(name).replace(/\s+/g,'-'); // "KPMG Nederland" and "KPMG" share one company page
 // Legal forms and country words are dropped (same list as _norm in collector/enrich.py).
-const coNorm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(sas|sa|sarl|gmbh|ag|inc|ltd|llc|plc|limited|bv|nv|ab|oy|srl|spa|group|groupe|france|deutschland|germany|tunisie|tunisia|maroc|morocco|nederland|netherlands|belgium|belgique|uk|sweden|sverige|danmark|denmark|suisse|switzerland|luxembourg|canada)\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim();
+const coNorm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(sas|sa|sarl|gmbh|ag|inc|ltd|llc|llp|plc|limited|bv|nv|ab|oy|srl|spa|group|groupe|france|deutschland|germany|tunisie|tunisia|maroc|morocco|nederland|netherlands|belgium|belgique|uk|sweden|sverige|danmark|denmark|suisse|switzerland|luxembourg|canada)\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim();
 let coData=null;
 async function loadCompanyData(){if(!coData&&caps.online){try{coData=await api('/api/opps?set=companies');}catch(e){coData={at:0,companies:{}};}}return coData||{at:0,companies:{}};}
 const coRating=name=>{const c=coData&&coData.companies&&coData.companies[coNorm(name)];return c&&c.rating?c.rating:null;};
