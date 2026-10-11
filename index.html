@@ -2928,8 +2928,9 @@ function peopleHtml(name,offers,role){
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-copy]');if(!b)return;
   navigator.clipboard.writeText(b.dataset.copy).then(()=>{b.textContent='Copied';},()=>{b.textContent='Select and copy';});});
 /* ---------- Companies ---------- */
-const coKey=name=>normOrg(name).replace(/\s+/g,'-');
-const coNorm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(sas|sa|sarl|gmbh|ag|inc|ltd|llc|group|groupe|france|deutschland|tunisie|tunisia)\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim();
+const coKey=name=>coNorm(name).replace(/\s+/g,'-'); // "KPMG Nederland" and "KPMG" share one company page
+// Legal forms and country words are dropped (same list as _norm in collector/enrich.py).
+const coNorm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(sas|sa|sarl|gmbh|ag|inc|ltd|llc|plc|limited|bv|nv|ab|oy|srl|spa|group|groupe|france|deutschland|germany|tunisie|tunisia|maroc|morocco|nederland|netherlands|belgium|belgique|uk|sweden|sverige|danmark|denmark|suisse|switzerland|luxembourg|canada)\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim();
 let coData=null;
 async function loadCompanyData(){if(!coData&&caps.online){try{coData=await api('/api/opps?set=companies');}catch(e){coData={at:0,companies:{}};}}return coData||{at:0,companies:{}};}
 const coRating=name=>{const c=coData&&coData.companies&&coData.companies[coNorm(name)];return c&&c.rating?c.rating:null;};
@@ -3240,7 +3241,7 @@ async function loadPoli(){
 function poliCo(name){
   if(!poliData||!name)return null;
   if(!poliIdx){poliIdx=new Map();(poliData.companies||[]).forEach(c=>{[c.name,c.legalName].forEach(n=>{const k=coNorm(n);if(k&&!poliIdx.has(k))poliIdx.set(k,c);});});}
-  return poliIdx.get(coNorm(name))||null;
+  return poliIdx.get(coNorm(name))||null; // exact only: shorter-prefix matching picked wrong companies in tests
 }
 const poliPeopleAt=c=>(poliData&&poliData.people||[]).filter(p=>p.companyId===c.id||coNorm(p.company)===coNorm(c.name));
 const liBtn=u=>safeUrl(u)?`<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">LinkedIn</a>`:'';
