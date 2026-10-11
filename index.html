@@ -117,6 +117,12 @@ svg.ic{width:18px;height:18px;flex:none}
 .topbar .sp{flex:1}
 /* The goal bar (every page but Home) and Home's goal card already show today's count: no third copy in the top bar. */
 .topbar .goalpill{display:none}
+/* Less used offer actions (Log, Stories, Hide) behind a "..." menu: three buttons on the row instead of six. */
+.oa .more{position:relative;display:inline-block}
+.oa .more>summary{list-style:none;cursor:pointer;min-width:36px;text-align:center}
+.oa .more>summary::-webkit-details-marker{display:none}
+.oa .more .menu{position:absolute;right:0;top:calc(100% + 4px);z-index:20;display:flex;flex-direction:column;align-items:stretch;gap:2px;min-width:170px;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.oa .more .menu .btn{justify-content:flex-start;text-align:left;width:100%}
 .iconbtn{display:inline-grid;place-items:center;width:32px;height:32px;border:0;background:transparent;border-radius:var(--r);color:var(--muted);transition:background-color .12s,color .12s}
 .iconbtn:hover{background:var(--soft);color:var(--ink-strong)}
 .theme{display:none}
@@ -2141,6 +2147,7 @@ function letterBodyWords(t){
     b=L.findIndex((l,i)=>i>a&&/^\s*(sincerely|best|kind regards|regards|yours|cordialement|bien cordialement|je vous prie|veuillez agr|mit freundlichen|viele gr)/i.test(l));
   return L.slice(a<0?0:a,b<0?L.length:b).join(' ').split(/\s+/).filter(Boolean).length;
 }
+document.addEventListener('click',e=>{document.querySelectorAll('details.more[open]').forEach(d=>{if(!d.contains(e.target)||e.target.closest('.menu'))d.open=false;});});
 async function qImprove(q,btn,msg){
   if(!q)return;
   const ta=$(`[data-qletter="${CSS.escape(q.id)}"]`),p=prof();
@@ -2665,7 +2672,7 @@ function renderCollected(){
       ${(x.contacts||[]).length?`<div class="meta ctc">Contact: ${x.contacts.map(c=>`${c.name?esc(c.name)+(c.role?` (${esc(c.role)})`:'')+' · ':''}<span class="mono">${esc(c.email)}</span>`).join(' · ')}</div>`:''}
       ${scoreWhy(x.m,x)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
-      <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm" data-coqueue="${esc(x.id)}" ${inQueue(x.id)?'disabled':''}>${inQueue(x.id)?'Queued':'Queue'}</button><button class="btn sm ghost" data-colog="${esc(x.id)}">Log</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Stories</a>`:''}<button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></article>`;}).join('')+'</div>'
+      <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm" data-coqueue="${esc(x.id)}" ${inQueue(x.id)?'disabled':''}>${inQueue(x.id)?'Queued':'Queue'}</button><details class="more"><summary class="btn sm ghost" aria-label="More actions">⋯</summary><div class="menu"><button class="btn sm ghost" data-colog="${esc(x.id)}">Log as applied</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Interview stories</a>`:''}<button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></details></div></article>`;}).join('')+'</div>'
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
     :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 6 hours.'}</p>`);
   const k=$('#coS');if(k){if($('#coK'))$('#coK').value=colF.k;if($('#coC'))$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
