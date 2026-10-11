@@ -117,6 +117,8 @@ svg.ic{width:18px;height:18px;flex:none}
 .topbar .sp{flex:1}
 /* The goal bar (every page but Home) and Home's goal card already show today's count: no third copy in the top bar. */
 .topbar .goalpill{display:none}
+/* Desktop offer filters: search, sort, match, kind and country on one row; the other seven behind "Filters". */
+@media(min-width:901px){.toolbar .fbtn{display:inline-flex}.toolbar .xd{display:none}.toolbar.open label.xd{display:inline-flex}.toolbar.open select.xd{display:block}}
 /* Less used offer actions (Log, Stories, Hide) behind a "..." menu: three buttons on the row instead of six. */
 .oa .more{position:relative;display:inline-block}
 .oa .more>summary{list-style:none;cursor:pointer;min-width:36px;text-align:center}
@@ -2656,14 +2658,14 @@ function renderCollected(){
       <select class="xf" id="coM" aria-label="Minimum match"><option value="0">Any match</option><option value="55">Match 55+</option><option value="65">Match 65+</option><option value="75">Match 75+</option></select>
       ${colLock&&colLock.k?'':`<select class="xf" id="coK" aria-label="Kind"><option value="">All kinds</option><option value="job">Jobs</option><option value="phd">PhD</option><option value="master">Master's</option></select>`}
       ${colLock&&colLock.c?'':`<select class="xf" id="coC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>`}
-      <select class="xf" id="coT" aria-label="Topic"><option value="">Any topic</option>${TOPICS.map(([id,l])=>`<option value="${id}">${l}</option>`).join('')}</select>
-      <select class="xf" id="coSrc" aria-label="Source"><option value="">All sources</option>${sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
-      <select class="xf" id="coE" aria-label="Experience asked">${EXP_FILTERS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
-      <select class="xf" id="coD" aria-label="Posted within"><option value="0">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
-      <label class="sc xf"><input type="checkbox" id="coN"> New only (${nNew})</label>
-      <label class="sc xf"><input type="checkbox" id="coR"> Remote only</label>
-      <label class="sc xf"><input type="checkbox" id="coB"> Hide dealbreakers (${nBlock})</label>
-      <label class="sc xf"><input type="checkbox" id="coA"> Hide already applied (${nApplied})</label></div>
+      <select class="xf xd" id="coT" aria-label="Topic"><option value="">Any topic</option>${TOPICS.map(([id,l])=>`<option value="${id}">${l}</option>`).join('')}</select>
+      <select class="xf xd" id="coSrc" aria-label="Source"><option value="">All sources</option>${sources.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>
+      <select class="xf xd" id="coE" aria-label="Experience asked">${EXP_FILTERS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+      <select class="xf xd" id="coD" aria-label="Posted within"><option value="0">Any date</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option></select>
+      <label class="sc xf xd"><input type="checkbox" id="coN"> New only (${nNew})</label>
+      <label class="sc xf xd"><input type="checkbox" id="coR"> Remote only</label>
+      <label class="sc xf xd"><input type="checkbox" id="coB"> Hide dealbreakers (${nBlock})</label>
+      <label class="sc xf xd"><input type="checkbox" id="coA"> Hide already applied (${nApplied})</label></div>
     <p class="hint" style="margin:0 0 8px">${l.length} of ${all.length} shown${when?` · last run ${esc(when)}, ${run.new} new`:''}${failed?` · failed: ${failed}`:''}</p>`:'')
     +(l.length?'<div class="offers"><div class="thead"><span>Match</span><span>Offer</span><span>Actions</span></div>'+l.slice(0,colMax).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:'',name:''},v=DOM[x.kind]||DOM.job;
       const dl=x.deadline?`Apply by ${esc(x.deadline)}`:(x.posted?`Posted ${esc(rel(x.posted))}`:'');

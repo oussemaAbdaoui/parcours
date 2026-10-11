@@ -148,7 +148,7 @@ Open:
 - [ ] An offer's state lives in four places (hidden setting, queue, saved, applications) that could disagree. Measured: no conflict in your data today. Low priority.
 - [x] Offer rows had six buttons plus Why and Offer details. Now Apply, Save, Queue and a "⋯" menu (Log as applied, Interview stories, Hide); fits one row on a phone. Sandboxed: menu opens, Log still opens its dialog, menu closes after.
 - [x] The daily goal showed up to three times (top-bar pill, goal bar, Home's goal card). The top-bar pill is gone; checked on phone screenshots of Home and Discover.
-- [ ] Filters take two rows of twelve controls on desktop.
+- [x] Desktop filters took three rows of twelve controls. Now search, sort, match, kind and country on one row; topic, source, experience, date and the four checkboxes behind "Filters" (as on phones). Screenshots closed and open.
 - [x] "Lead, AI Engineering" at Bain scored 77 as entry level. Cause: the text says "mentoring more junior team members", and "junior" anywhere made the offer entry level, overriding the "Lead" title. Now juniors you would mentor, coach or manage do not count, and an entry-level guess from words never overrides a senior or lead title. 9 of 735 offers changed, each checked: Bain, ClearRoute, DoubleVerify "Sr" are now too senior (40); IKEA, Booking.com, La Fosse, Metsä, Harmattan, Storyteller lose 6 to 9 points (all "mentor junior engineers"). 2 new test cases, 23/23 pass.
 
 ## 9. Alerts ✅
