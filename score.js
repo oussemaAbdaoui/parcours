@@ -627,9 +627,11 @@
     ['no', /\b(norway|norge|norvege|oslo|bergen|trondheim|stavanger)\b/],
     ['ma', /\b(morocco|maroc|casablanca|rabat|marrakech|marrakesh|tangier|tanger|fes|fez|agadir|benguerir|ben guerir)\b/],
     ['ie', /\b(ireland|irlande|irland|dublin|cork|galway|limerick)\b/],
+    ['uk', /\b(united kingdom|uk|u\.k\.|great britain|england|scotland|wales|northern ireland|royaume.uni|london|londres|manchester|cambridge|oxford|edinburgh|bristol|birmingham|leeds|glasgow|belfast|reading)\b/],
   ];
   const WORLDWIDE = /\b(anywhere|worldwide|global|international|emea|europe|africa|mena)\b/;
-  const ABROAD_SOURCES = { 'jobs.ac.uk': 'United Kingdom' }; // its location field holds only the town
+  // Sources whose location field holds only the town (or 'Remote / UK'): the country is the source's.
+  const SOURCE_COUNTRY = { 'jobs.ac.uk': ['uk', 'United Kingdom'], Poli: ['uk', 'United Kingdom'] };
   function offerCountry(offer, p) {
     const loc = norm(offer.location), mine = p.countries || [];
     const named = PLACE_WORDS.filter(([, re]) => re.test(loc)).map(([c]) => c);
@@ -637,7 +639,8 @@
     if (yours.length) return { c: yours[0] };
     if (offer.c !== 'gl') return { c: offer.c };
     if (named.length) return { c: named[0] };
-    if (ABROAD_SOURCES[offer.source]) return { c: 'xx', where: ABROAD_SOURCES[offer.source] };
+    const sc = SOURCE_COUNTRY[offer.source];
+    if (sc) return mine.includes(sc[0]) ? { c: sc[0] } : { c: 'xx', where: sc[1] };
     if (WORLDWIDE.test(loc) || !loc.replace(/\b(remote|full|fully|teletravail|hybrid|home office|homeoffice)\b/g, '').replace(/[^a-z]+/g, '')) return { c: 'gl' };
     return { c: 'xx', where: String(offer.location).trim() };
   }

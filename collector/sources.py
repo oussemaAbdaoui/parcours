@@ -391,7 +391,7 @@ POST_PLACES = {"fr": ("fr", "(France OR Paris OR Lyon OR Toulouse)"), "de": ("de
                "tn": ("tn", "(Tunisie OR Tunisia OR Tunis OR Sfax)"), "be": ("be", "(Belgium OR Belgique OR Brussels OR Bruxelles OR Antwerp)"),
                "nl": ("nl", "(Netherlands OR Amsterdam OR Rotterdam OR Eindhoven OR Utrecht)"), "lu": ("lu", "(Luxembourg)"),
                "se": ("se", "(Sweden OR Stockholm OR Gothenburg)"), "dk": ("dk", "(Denmark OR Copenhagen)"),
-               "fi": ("fi", "(Finland OR Helsinki)"), "no": ("no", "(Norway OR Oslo)"), "ma": ("ma", "(Maroc OR Morocco OR Casablanca OR Rabat)"), "ie": ("ie", "(Ireland OR Dublin OR Cork)")}
+               "fi": ("fi", "(Finland OR Helsinki)"), "no": ("no", "(Norway OR Oslo)"), "ma": ("ma", "(Maroc OR Morocco OR Casablanca OR Rabat)"), "ie": ("ie", "(Ireland OR Dublin OR Cork)"), "uk": ("uk", "(\"United Kingdom\" OR London OR UK)")}
 POST_COUNTRIES, POST_QUERIES = list(POST_PLACES), ["machine learning engineer", "AI engineer"]
 HIRING = '("hiring" OR "we\'re hiring" OR "je recrute" OR "nous recrutons" OR "on recrute" OR "wir suchen" OR "join our team")'
 
@@ -490,9 +490,10 @@ PLACES = {
     "no": ("norway", "oslo", "bergen", "trondheim"),
     "ma": ("morocco", "maroc", "casablanca", "rabat", "marrakech"),
     "ie": ("ireland", "dublin", "cork", "galway", "limerick"),
+    "uk": ("united kingdom", "london", "manchester", "cambridge", "oxford", "edinburgh", "bristol", "england", "scotland"),
 }
 _REMOTE = re.compile(r"\b(remote|anywhere|worldwide|global|télétravail)\b", re.I)
-_ELSEWHERE = re.compile(r"\b(us|usa|u\.s\.|united states|uk|united kingdom|london|india|brazil|latam|apac|asia|australia|"
+_ELSEWHERE = re.compile(r"\b(us|usa|u\.s\.|united states|india|brazil|latam|apac|asia|australia|"
                         r"singapore|japan|new york|san francisco|americas?|seattle|austin|boston|chicago|spain|"
                         r"barcelona|madrid|italy|portugal|lisbon|poland|warsaw|"
                         r"austria|vienna|bulgaria|israel|mexico|argentina|colombia|china|korea|dubai|uae|"
@@ -810,7 +811,8 @@ SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": 
 COUNTRY_WORDS = (("france", "fr"), ("germany", "de"), ("deutschland", "de"), ("switzerland", "ch"), ("schweiz", "ch"),
                  ("suisse", "ch"), ("canada", "ca"), ("tunisia", "tn"), ("tunisie", "tn"), ("belgium", "be"), ("belgique", "be"),
                  ("netherlands", "nl"), ("luxembourg", "lu"), ("sweden", "se"), ("denmark", "dk"), ("finland", "fi"),
-                 ("norway", "no"), ("morocco", "ma"), ("maroc", "ma"), ("ireland", "ie"))
+                 ("norway", "no"), ("morocco", "ma"), ("maroc", "ma"), ("ireland", "ie"),
+                 ("united kingdom", "uk"), ("england", "uk"), ("scotland", "uk"))
 
 
 def _country(text):

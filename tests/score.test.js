@@ -74,6 +74,9 @@ const cases = [
   ['an English offer in Sweden needs no Swedish',
     job({ c: 'se', title: 'Machine Learning Engineer', desc: long('We are looking for a machine learning engineer to join our team in Stockholm. You will work with Python, LLM and RAG, and our working language is English.') }),
     (r) => !r.blockers.includes('Required language missing')],
+  ['a UK job is in your countries once the UK is (jobs.ac.uk names only the town)',
+    job({ c: 'gl', source: 'jobs.ac.uk', location: 'Manchester', title: 'Research Assistant in Machine Learning', desc: long('Python, LLM.') }),
+    (r) => !r.blockers.includes('Outside your countries'), { countries: ['fr', 'uk'] }],
   ['a junior AI engineer job read in full is a strong match',
     job({ title: 'Junior AI Engineer (LLM, RAG)', desc: long('Profil : diplôme d\'ingénieur ou master en informatique. Python, LLM, RAG, LangChain, FastAPI, Docker. Débutant accepté. Anglais courant.'),
       req: req({ degree_level: 'master', degree_fields: ['computer_science', 'data_ai'], min_years: 0, seniority: 'entry', languages: [{ lang: 'en', level: 'fluent', required: true }] }) }),
@@ -81,8 +84,8 @@ const cases = [
 ];
 
 let failed = 0;
-for (const [name, offer, ok] of cases) {
-  const r = S.score(offer, profile, NOW);
+for (const [name, offer, ok, change] of cases) {
+  const r = S.score(offer, { ...profile, ...change }, NOW); // a case may change the profile (its 4th item)
   const pass = ok(r);
   if (!pass) failed++;
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${pass ? '' : `\n      score ${r.score}, checked ${r.checked}, blockers [${r.blockers}], sure [${r.sureBlockers}], seniority: ${r.parts.seniority.note}, field: ${r.parts.field.note}`}`);
