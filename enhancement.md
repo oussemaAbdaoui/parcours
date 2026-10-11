@@ -147,7 +147,7 @@ Inspected: 539 master's programmes and scholarships, 299 professors.
 
 Done:
 - [x] 37 duplicate master's programmes: Mon Master lists a programme once per variant (work-study, another session). One entry now, marked work-study if any variant is; a fresh fetch gives 196 programmes and no duplicate (commit `2c75e42`).
-- [x] Professors covered 5 fixed countries while you target 15: they now follow your profile (the UK included). Dry run for Sweden: relevant explainable-AI professors with emails; about 2 minutes a country, within the weekly job's limit (commit after `2c75e42`).
+- [x] Professors covered 5 fixed countries while you target 15: they now follow your profile (the UK included). Dry run for Sweden: relevant explainable-AI professors with emails; about 2 minutes a country, within the weekly job's limit (commit `e3b49a4`).
 - Expired deadlines (138 of 539) are hidden by the app's default filter: fine as is.
 
 Open:
