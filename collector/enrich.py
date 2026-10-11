@@ -75,14 +75,48 @@ def linkedin_details(items, limit=40, stealth=False, proxy=None, meter=None):
                 continue
             _linkedin_fill(x, page)
             time.sleep(0.3 if proxy else 1.5)
+        if proxy:
+            recheck_applicants(items, proxy, meter)
     finally:
         if ctx:
             ctx.__exit__(None, None, None)
     return done, ""
 
 
-def _linkedin_fill(x, page):
+RECHECK_MIN, RECHECK_DAYS, RECHECK_LIMIT = 50, 2, 120
+
+
+def recheck_applicants(items, proxy, meter=None):
+    """A count is read once, but applicants keep coming: an offer seen at 141 can pass the 150 dealbreaker unseen.
+    Offers counted between 50 and 150 more than 2 days ago are counted again (counts only: the description and
+    Claude's reading stay), most crowded first, up to 120 pages a run (about 5 MB of proxy data)."""
+    old = int(time.time() * 1000) - RECHECK_DAYS * 86400000
+    todo = sorted((x for x in items if x.get("source") == "LinkedIn" and isinstance(x.get("applicants"), int)
+                   and RECHECK_MIN <= x["applicants"] <= 150 and not x.get("applicantsCapped") and x.get("applicantsAt", 0) < old
+                   and re.search(r"li-(\d+)", x.get("id", ""))), key=lambda x: -x["applicants"])[:RECHECK_LIMIT]
+    n, crossed = 0, 0
+    for x in todo:
+        if meter and meter.get("used", 0) >= meter["left"]:
+            break
+        jid = re.search(r"li-(\d+)", x["id"]).group(1)
+        page = Fetcher.get(f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{jid}", stealthy_headers=True, timeout=30, proxy=proxy)
+        if meter is not None:
+            meter["used"] = meter.get("used", 0) + len(page.body or b"") + 2000
+        if page.status != 200:
+            continue
+        before = x["applicants"]
+        _linkedin_fill(x, page, counts_only=True)
+        n += 1
+        crossed += before <= 150 < (x.get("applicants") or 0)
+        time.sleep(0.3)
+    if todo:
+        print(f"  applicants re-counted: {n}/{len(todo)}, {crossed} now over 150")
+
+
+def _linkedin_fill(x, page, counts_only=False):
+    """Applicants (and, unless counts_only, the description and seniority) from a LinkedIn job page."""
     text = _t(" ".join(page.css("::text").getall()))
+    x["applicantsAt"] = int(time.time() * 1000)
     a = re.search(r"(Over\s+)?(\d[\d,.]*)\s+applicants", text, re.I)
     first = re.search(r"Be among the first (\d+) applicants", text, re.I)
     if a:
@@ -90,8 +124,10 @@ def _linkedin_fill(x, page):
         x["applicantsCapped"] = bool(a.group(1))
     elif first:
         x["applicants"] = max(1, int(first.group(1)) // 2)  # "among the first 25" = fewer than 25 so far
-    else:
+    elif not counts_only:
         x["applicants"] = None
+    if counts_only:
+        return
     desc = page.css(".show-more-less-html__markup")
     if desc:
         x["desc"] = _keep(_t(desc[0].get_all_text()))

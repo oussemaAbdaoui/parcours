@@ -289,7 +289,8 @@ def load_all(store):
     return migrated
 
 
-ENRICHED = ("desc", "req", "applicants", "applicantsCapped", "contacts")
+ENRICHED = ("desc", "req", "applicants", "applicantsCapped", "applicantsAt", "contacts")
+COUNT = ("applicants", "applicantsCapped", "applicantsAt")
 
 
 def keep_enriched(store, items):
@@ -304,6 +305,7 @@ def keep_enriched(store, items):
             if not raw:
                 continue
             s = json.loads(raw)
+            mine = {k: x[k] for k in COUNT if k in x} if x.get("applicantsAt", 0) > s.get("applicantsAt", 0) else None
             if len(s.get("desc") or "") > len(x.get("desc") or ""):
                 for k in ENRICHED:
                     if k in s:
@@ -312,6 +314,8 @@ def keep_enriched(store, items):
                         x.pop(k, None)
             elif "applicants" in s and "applicants" not in x:
                 x["applicants"] = s["applicants"]
+            if mine:  # this run counted the applicants more recently: its count wins
+                x.update(mine)
 
 
 def save_items(store, items, removed):
