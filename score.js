@@ -236,7 +236,7 @@
     const words = title == null;
     if ((words && (/\b(principal|staff|head of|director|chef de|leiter)\b/.test(t) || /\blead\b(?! to)/.test(t))) || (y !== null && y >= 8)) return { lvl: 4, label: 'lead', years: y };
     if ((words && /\b(senior|sr\.?|confirme|experimente|erfahren)\b/.test(t)) || (y !== null && y >= 5)) return { lvl: 3, label: 'senior', years: y };
-    if (/\b(junior|jr\.?|graduate|debutant|entry.level|jeune diplome|berufseinsteiger|new grad)\b/.test(t) || (y !== null && y <= 2)) return { lvl: 1, label: 'junior', years: y };
+    if (/\b(junior|jr\.?|graduate|debutant|entry.level|jeune diplome|berufseinsteiger|new grad)\b/.test(othersJunior(t)) || (y !== null && y <= 2)) return { lvl: 1, label: 'junior', years: y };
     if (y !== null) return { lvl: 2, label: 'mid', years: y };
     return { lvl: null, label: 'not stated' };
   }
@@ -263,9 +263,11 @@
       const f = found.reduce((a, b) => (b.min > a.min ? b : a));
       return { min: f.min, max: f.max, label: f.min === 0 && f.max ? `0–${f.max} yrs` : f.max != null ? `${f.min}–${f.max} yrs` : `${f.min}+ yrs` };
     }
-    if (/\b(no experience (?:required|needed)|sans experience|debutant(?:e)?s? acceptes?|jeunes? diplomes?|entry.level|new grads?|graduate program|berufseinsteiger|keine berufserfahrung|junior)\b/.test(t)) return { min: 0, max: 2, label: 'Entry level' };
+    if (/\b(no experience (?:required|needed)|sans experience|debutant(?:e)?s? acceptes?|jeunes? diplomes?|entry.level|new grads?|graduate program|berufseinsteiger|keine berufserfahrung|junior)\b/.test(othersJunior(t))) return { min: 0, max: 2, label: 'Entry level', words: true };
     return null;
   }
+  // "Mentoring more junior team members", "encadrer des juniors": the juniors are other people, not the hire.
+  const othersJunior = (t) => t.replace(/\b(?:more|other|our) juniors?\b|\b(?:mentor|coach|supervis|manag|guid|lead|train|encadr|accompagn|onboard)\w*[^.;]{0,40}?\bjuniors?\b/g, ' ');
 
   // Internships open to graduates: Tunisian pre-hire and SIVP contracts, graduate schemes.
   const GRADUATE_STAGE = /\b(pre.?embauche|sivp|stage d.insertion|contrat d.insertion|stage de perfectionnement|graduate (?:program\w*|scheme|internship)|post.?(?:graduate|diploma) internship)\b/;
@@ -723,6 +725,8 @@
     let asked = offerYears(body);
     const mineY = p.years ?? 0;
     if (R && R.min_years >= 0) asked = R.min_years === 0 ? { min: 0, max: null, label: 'Entry level' } : { min: R.min_years, max: null, label: `${R.min_years}+ years` };
+    // An entry-level guess from words alone never overrides a senior or lead title ("Lead, AI Engineering").
+    else if (asked && asked.words && lv.lvl >= 3) asked = null;
     const gradStage = GRADUATE_STAGE.test(title);
     if (R && R.seniority === 'intern' && !gradStage) lv = { ...lv, lvl: 0, label: 'Internship' };
     else if (R && REQ_SENIORITY[R.seniority] && lv.lvl == null) lv = { ...lv, lvl: REQ_SENIORITY[R.seniority], label: R.seniority === 'entry' ? 'Entry level' : R.seniority };

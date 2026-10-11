@@ -81,6 +81,13 @@ const cases = [
     job({ title: 'Junior AI Engineer (LLM, RAG)', desc: long('Profil : diplôme d\'ingénieur ou master en informatique. Python, LLM, RAG, LangChain, FastAPI, Docker. Débutant accepté. Anglais courant.'),
       req: req({ degree_level: 'master', degree_fields: ['computer_science', 'data_ai'], min_years: 0, seniority: 'entry', languages: [{ lang: 'en', level: 'fluent', required: true }] }) }),
     (r) => !r.blockers.length && r.score >= 75],
+  ['"mentoring more junior team members" does not make a Lead job entry level (Bain, scored 82)',
+    job({ title: 'Lead, AI Engineering', desc: long('Design and ship generative AI systems, RAG and agents for clients. An opportunity to begin mentoring more junior team members.'),
+      req: req({ seniority: 'senior' }) }),
+    (r) => r.blockers.includes('Too senior for your experience') && r.score < 60],
+  ['a junior job that mentions juniors stays junior',
+    job({ title: 'Développeur Python', desc: long('Poste junior, débutant accepté. Python, FastAPI, Docker.') }),
+    (r) => !r.blockers.includes('Too senior for your experience')],
 ];
 
 let failed = 0;
