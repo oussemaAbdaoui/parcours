@@ -80,11 +80,20 @@ module.exports = async (req, res) => {
     }
   }
   try {
-    if (notModified(req, res, ['o', ...await version(u, [['GET', 'parcours:opps:meta'], ['HLEN', 'parcours:opps:items']])])) return;
-    const [flat, metaRaw] = await Promise.all([redis(u, ['HGETALL', 'parcours:opps:items']), redis(u, ['GET', 'parcours:opps:meta'])]);
-    const arr = (flat && flat.result) || [];
-    let items = [];
-    for (let i = 1; i < arr.length; i += 2) { try { items.push(JSON.parse(arr[i])); } catch (e) { /* skip a bad record */ } }
+    // Offers from Postgres (api/_offerspg.js); the Redis hash only when no database is configured or it fails.
+    let pg = null;
+    try { pg = await require('./_offerspg').offers(); } catch (e) { pg = null; }
+    if (notModified(req, res, ['o', ...await version(u, [['GET', 'parcours:opps:meta'], ...(pg ? [] : [['HLEN', 'parcours:opps:items']])]), pg ? pg.version : ''])) return;
+    let items = [], metaRaw;
+    if (pg) {
+      try { [items, metaRaw] = await Promise.all([pg.load(), redis(u, ['GET', 'parcours:opps:meta'])]); } catch (e) { pg = null; }
+    }
+    if (!pg) {
+      const [flat, m] = await Promise.all([redis(u, ['HGETALL', 'parcours:opps:items']), redis(u, ['GET', 'parcours:opps:meta'])]);
+      metaRaw = m;
+      const arr = (flat && flat.result) || [];
+      for (let i = 1; i < arr.length; i += 2) { try { items.push(JSON.parse(arr[i])); } catch (e) { /* skip a bad record */ } }
+    }
     let runsByOrigin = {};
     if (items.length) {
       const meta = metaRaw && metaRaw.result ? JSON.parse(metaRaw.result) : {};
