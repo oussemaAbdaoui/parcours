@@ -166,6 +166,8 @@ Done:
 - [x] Professors covered 5 fixed countries while you target 15: they now follow your profile (the UK included). Dry run for Sweden: relevant explainable-AI professors with emails; about 2 minutes a country, within the weekly job's limit (commit `e3b49a4`).
 - Expired deadlines (138 of 539) are hidden by the app's default filter: fine as is.
 
+- [x] Master's sources follow the profile's countries (Italy kept on purpose: your choice; EU-wide always). National scholarships added for Switzerland (ETH ESOP: full costs, window 1-30 Nov 2026), Ireland (GOI-IES: EUR 10,000 + fee waiver), Netherlands (NL Scholarship: EUR 5,000) and Belgium (Master Mind: EUR 10,225 + fee waiver), each checked on its official page. Left out after checking: Chevening (two years of work needed) and the Swedish Institute (Tunisia off recent lists, 3,000 work hours).
+
 Open:
 - [ ] Master's cover France, Germany, Italy and Erasmus Mundus only: no source yet for the Nordics, the Netherlands, Belgium, the UK or Canada.
 - [ ] Some institutions are a sub-unit ("Formation Continue UNIL-EPFL" for an EPFL professor): prefer the parent institution.

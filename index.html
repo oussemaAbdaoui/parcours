@@ -2473,7 +2473,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
   openDlg({org:p.inst||p.name,role:`PhD contact: ${p.name}`,c:c?c[0]:'gl',d:'phd',p:'',link:safeUrl(p.openalex||''),notes:`Supervisor lead from the finder (${labQ.q}). Latest paper: ${p.latest?p.latest.title:''}`});});
 /* master's programmes and scholarships (Germany, France, Italy, Erasmus Mundus), collected once a day */
 let msData=null,msF={t:'',c:'',lang:'',q:'',sort:'fit',closed:false},msMax=40;
-const MS_C={de:['🇩🇪','Germany'],fr:['🇫🇷','France'],it:['🇮🇹','Italy'],eu:['🇪🇺','Several countries (Erasmus Mundus)']};
+const MS_C={de:['🇩🇪','Germany'],fr:['🇫🇷','France'],it:['🇮🇹','Italy'],ch:['🇨🇭','Switzerland'],nl:['🇳🇱','Netherlands'],be:['🇧🇪','Belgium'],ie:['🇮🇪','Ireland'],eu:['🇪🇺','Several countries (Erasmus Mundus)']};
 async function loadMasters(){if(!msData)msData=await cachedApi('/api/opps?set=masters',j=>{msData=j;if(/masters/.test(location.hash))refreshView();});return msData;}
 const msDays=x=>x.deadline?Math.round((tms(x.deadline)-tms(today()))/864e5):null;
 const MS_AI=/artificial intelligence|machine learning|ai|data|comput|informati|software|robot|cyber/i,MS_ON=/digital|engineering|technolog|mathemat|stem/i,MS_OFF=/architecture|music|arts?|medic|drug|pharma|clinical|health|nursing|theolog|law|journalis|film|dance|agricult/i;
@@ -2483,7 +2483,7 @@ function mastersHubCards(){
   if(!caps.online){box.innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return;}
   loadMasters().then(d=>{if(!$('#hubMasters'))return;
     const p=d.items.filter(x=>x.type==='program'),s=d.items.filter(x=>x.type==='scholarship');
-    const by=l=>['de','fr','it','eu'].filter(c=>l.some(x=>x.country===c)).map(c=>`${MS_C[c][0]} ${l.filter(x=>x.country===c).length}`).join(' · ');
+    const by=l=>Object.keys(MS_C).filter(c=>l.some(x=>x.country===c)).map(c=>`${MS_C[c][0]} ${l.filter(x=>x.country===c).length}`).join(' · ');
     box.innerHTML=`<a class="card dom" style="--accent:var(--master);--tint:var(--master-t)" href="#/opps/masters/program"><span class="big">Master's programmes</span><span class="meta"><b>${p.length}</b> programmes matching your profile</span><p class="hint" style="margin:6px 0 0">${by(p)}</p></a>
       <a class="card dom" style="--accent:var(--job);--tint:var(--job-t)" href="#/opps/masters/scholarship"><span class="big">Scholarships</span><span class="meta"><b>${s.length}</b> open to Tunisian graduates</span><p class="hint" style="margin:6px 0 0">${by(s)}</p></a>
       <a class="card" href="#/opps/masters"><span class="big">Everything, one list</span><span class="meta">Refreshed ${d.updatedAt?esc(rel(new Date(d.updatedAt).toISOString().slice(0,10))):'daily'}</span><p class="hint" style="margin:6px 0 0">DAAD, Mon Master, Campus France, Universitaly, Erasmus Mundus</p></a>`;

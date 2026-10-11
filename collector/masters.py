@@ -258,6 +258,37 @@ def italy_schemes():
             for title, org, city, url, desc in ITALY_SCHEMES]
 
 
+# ---------- Other target countries: national schemes checked on their official pages (11 Oct 2026) ----------
+# (country, title, org, city, url, description, deadline text, deadline ISO or "", eligibility)
+# Left out after checking: Chevening (UK, needs two years of work experience) and the Swedish Institute scholarship
+# (Tunisia no longer on its recent country lists, needs 3,000 hours of work).
+SCHEMES = [
+    ("ie", "Government of Ireland International Education Scholarship (GOI-IES)", "Higher Education Authority", "Ireland",
+     "https://hea.ie/policy/internationalisation/goi-ies/",
+     "EUR 10,000 stipend for one year of a master's or PhD, plus a full tuition fee waiver from the Irish host institution. Needs an offer of admission from an eligible institution.",
+     "Yearly call; the 2026 call closed on 12 March 2026", "", "Domiciled outside the EU/EEA, Switzerland and the UK"),
+    ("nl", "NL Scholarship (formerly Holland Scholarship)", "Dutch Ministry of Education and Dutch universities", "Netherlands",
+     "https://www.studyinnl.org/finances/scholarships/highlighted-scholarships/holland-scholarship",
+     "EUR 5,000 in the first year of a full-time master's at a participating Dutch university (not full tuition). Applications open each 1 November; each university sets its own deadline.",
+     "Opens 1 November; deadline set by each university", "", "Non-EEA nationals without a Dutch degree"),
+    ("ch", "ETH Excellence Scholarship & Opportunity Programme (ESOP)", "ETH Zurich", "Zurich",
+     "https://ethz.ch/en/studies/financial/scholarships/excellencescholarship.html",
+     "Full study and living costs for the whole master's: CHF 12,000 per semester (13,500 from autumn 2027) plus a tuition waiver. Needs a top-10% bachelor's result, a master's thesis pre-proposal and two professors as referees. Applied for together with the master's application in eApply.",
+     "1 to 30 November 2026, for autumn 2027", "2026-11-30", "Any nationality; not for holders of a master's degree"),
+    ("be", "Master Mind Scholarships (Flanders and Brussels)", "Flemish Government", "Flanders",
+     "https://www.studyinflanders.be/scholarships/master-mind-scholarships",
+     "EUR 10,225 a year plus a tuition fee waiver for a master's at a Flemish university or university college, one or two years. Each host institution sets its own deadline; the scheme may change for 2027-2028.",
+     "2027-2028 call not yet published", "", "Outstanding students from any country"),
+]
+
+
+def country_schemes(country):
+    return [{"id": f"{c}sch:" + re.sub(r"\W+", "-", org.lower())[:60], "type": "scholarship", "country": c, "source": "National schemes",
+             "title": title, "org": org, "city": city, "lang": "", "url": url, "desc": desc, "deadline": dl,
+             "deadlineText": dlt, "eligible": elig, "terms": []}
+            for c, title, org, city, url, desc, dlt, dl, elig in SCHEMES if c == country]
+
+
 # ---------- EU ----------
 
 def erasmus_mundus(fams):
@@ -310,7 +341,21 @@ SOURCES = [
     ("Universitaly", lambda f, l: universitaly(f, l)),
     ("Italy schemes", lambda f, l: italy_schemes()),
     ("Erasmus Mundus", lambda f, l: erasmus_mundus(f)),
-]
+] + [(f"Schemes {c.upper()}", (lambda c: lambda f, l: country_schemes(c))(c)) for c in sorted({x[0] for x in SCHEMES})]
+# The country each source covers: a source runs only when its country is in the profile ("eu" always runs).
+SOURCE_COUNTRY = {"DAAD programmes": "de", "DAAD scholarships": "de", "Mon Master": "fr", "Campus France": "fr",
+                  "Universitaly": "it", "Italy schemes": "it", "Erasmus Mundus": "eu", **{f"Schemes {x[0].upper()}": x[0] for x in SCHEMES}}
+
+
+# Master's countries searched even when they are not job countries: EU-wide programmes, and Italy (your choice,
+# 11 Oct 2026: Italian master's are welcome though Italy is not in the job search).
+MASTERS_ALWAYS = {"eu", "it"}
+
+
+def wanted(profile):
+    """Country codes the master's search covers: the profile's countries, plus MASTERS_ALWAYS."""
+    cs = set((profile or {}).get("countries") or [])
+    return (cs | MASTERS_ALWAYS) if cs else None
 
 
 # DAAD answers 403 to GitHub's servers: the PC refreshes these two (masters.py --home), the cloud the rest.
@@ -320,8 +365,9 @@ HOME_SOURCES = {"DAAD programmes", "DAAD scholarships"}
 def collect(profile, only=None):
     fams, langs = profile_fields(profile), languages(profile)
     items, status = [], {}
+    keep = wanted(profile)
     for name, fn in SOURCES:
-        if only and name not in only:
+        if (only and name not in only) or (keep and SOURCE_COUNTRY.get(name, "eu") not in keep):
             continue
         try:
             found = fn(fams, langs)
@@ -361,8 +407,10 @@ def run(store, state, dry=False, force=False, only=None):
     if batch:
         store.cmd("HSET", ITEMS_KEY, *batch)
     ok_sources = {x["source"] for x in items}
-    # Drop entries a source no longer lists, but only for sources that answered this time.
-    gone = [i for i, x in old.items() if i not in fresh and x.get("source") in ok_sources]
+    # Drop entries a source no longer lists, but only for sources that answered this time; and entries in countries
+    # no longer in the profile (they come back when the country is ticked again).
+    keep = wanted(state.get("profile"))
+    gone = [i for i, x in old.items() if i not in fresh and (x.get("source") in ok_sources or (keep and x.get("country") not in keep))]
     for i in range(0, len(gone), 100):
         store.cmd("HDEL", ITEMS_KEY, *gone[i:i + 100])
     meta["sources"] = {**meta.get("sources", {}), **status}
