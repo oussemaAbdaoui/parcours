@@ -80,7 +80,10 @@ Done:
 
 Audit on real data (11 Oct, 735 offers):
 - [x] **Claude's readings stopped**: the 11:40 cloud run read 0 of 400 offers, the run before failed 29. Cause: Anthropic credits used up (the API answers "credit balance too low"; the collector only logged "HTTP 400" and tried all 400). 174 offers with full text have no reading, so they are scored with caution. Fixed: the collector stops at the first credit or key error and the offers page says so plainly (commit after `82e6ede`). **Your step: top up credits at console.anthropic.com.** Cover letters and Improve with AI need it too.
-- [ ] Cost: a cloud run reads up to 400 offers, about 1.27 M input tokens. Read only offers that can still matter (score 50+ before reading) to cut it.
+- [x] Cost: a cloud run read 400 offers for about 1.27 M input tokens ($0.19 on Haiku 5.5). About 2,500 of the ~3,200 tokens of each call are the fixed instructions and schema: now cached (billed at a tenth after the first call). The run log shows "+N from cache" to prove it on the first run after the top-up.
+- [x] Sending Claude only the mission and profile parts was tried again (your request, 11 Oct), with section headings found inside flat text and requirement sentences rescued: it cut only 9% of the text and dropped 57 required skills and 11 of 361 evidence quotes (LinkedIn mixes skills into "about us" and "what we offer"). Rejected; caching saves far more with no loss.
+- [x] **App scores ignored Claude's reading**: `matchOf` never passed `req` to score.js, so the app scored from raw text while the collector used the reading. 360 of 491 read offers scored differently; 15 were wrongly blocked for "Required language missing" (German only a plus) and 3 for degree field. Fixed (commit `ad60c0d`).
+- [ ] Applicant counts are read once: an offer seen at 141 can pass 150 unseen. Re-check counts of strong offers on later runs.
 - Duplicates: 6 extra copies of the same job across sources (Telavox on Platsbanken and LinkedIn). Low.
 - Missing basics: 60 offers with no text, 53 with no date, 11 with no company.
 - Company links: 512 companies in offers; 379 have a rating, 44 are Poli sponsors, 11 have interview stories.
@@ -169,6 +172,8 @@ Open:
 
 ## 11. Letters ✅
 
+- [x] Improve with AI (commit `ad60c0d`): gets a brief (what the offer asks from Claude's reading, the skills the CV matches, those it lacks, the strongest CV evidence) and rules for a strong letter (lead with real matches backed by CV facts, no stock openings, never claim a missing skill). Runs on Sonnet 5.5 (about 2 cents a letter) instead of Haiku. Prompt checked in the sandbox; a real letter waits for the credit top-up.
+
 Inspected: "Improve with AI" run on a real queued offer (IFP Energies nouvelles PhD), sandboxed; only the AI call went out.
 - Good: the offer's specifics (Méso-NH simulations, diffusion and transformer approaches) tied to real CV facts; every name (Sayadi, Noël, Enchéry) is in the offer; no placeholder; nothing invented.
 - [x] The date line kept the draft's old date (10 October on the 11th): Claude is now given today's date. Checked: "11 October 2026".
@@ -185,3 +190,4 @@ Inspected: "Improve with AI" run on a real queued offer (IFP Energies nouvelles 
 - 11 Oct: scheduling round: cron gaps covered by the PC; interview stories fixed (wrong companies).
 - 11 Oct: data model round: company matching, apply log cleanup. PC run with the new sources: Welcome to the Jungle 26, Duunitori 22, Emploi.ma 14; 63 of 70 PC offers with full text.
 - 11 Oct: Bain "Lead" scored as entry level fixed at the root (mentoring juniors); data map updated with 11 Oct counts, PC backups and alert markers; Poli jobs confirmed stored (99, merged).
+- 11 Oct: Claude credits ran out (0 of 400 offers read): the collector now stops and says so; reading calls cached; app scores now use Claude's reading (18 offers wrongly blocked); better Improve with AI; Poli full export (5,000 network people, raw fields) saved to the PC, bigger run going.
