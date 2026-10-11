@@ -267,7 +267,7 @@ def export(out, max_job_pages=2500):
                 break
     _write(out, "company_employees", employees)
     network, i = {}, 0
-    while i < 500:
+    while i < 3000:  # 10 a page; Poli counts about 20,000 employees
         data = call(s, "employees/network", {"initialFetch": i == 0})
         for p in data.get("employees") or []:
             network[p["id"]] = p
@@ -296,6 +296,22 @@ def export(out, max_job_pages=2500):
     return report
 
 
+def import_export(store, out):
+    """Loads an export (out/raw/*.json) into the hashes the app reads: companies, people (sponsored employees and the
+    whole network) and the jobs archive. Merged like a normal run: adds and updates, never deletes or blanks."""
+    raw = lambda n: json.load(open(os.path.join(out, "raw", n + ".json"), encoding="utf-8"))
+    now = int(time.time() * 1000)
+    companies = [company(c) for c in raw("companies")]
+    people = {p["id"]: person(p, p.get("_companyId"), p.get("_company") or "") for p in raw("company_employees")}
+    for p in raw("network"):
+        people[p["id"]] = {**people.get(p["id"], {}), **{k: v for k, v in person(p).items() if v not in ("", None)}, "network": True}
+    jobs_ = [offer(j) for j in raw("jobs") if j.get("url")]
+    _merge_hash(store, COMPANIES_KEY, companies, now)
+    _merge_hash(store, PEOPLE_KEY, list(people.values()), now)
+    _merge_hash(store, JOBS_KEY, jobs_, now)
+    return {"companies": len(companies), "people": len(people), "jobs": len(jobs_)}
+
+
 if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding="utf-8")
@@ -304,6 +320,10 @@ if __name__ == "__main__":
     for a in sys.argv[1:]:
         if a.startswith("--env="):
             load_env(a.split("=", 1)[1])
+        if a.startswith("--import="):
+            from collect import Store
+            print(import_export(Store(), a.split("=", 1)[1]))
+            sys.exit(0)
         if a.startswith("--export="):
             print(export(a.split("=", 1)[1]))
             sys.exit(0)
