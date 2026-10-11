@@ -18,3 +18,15 @@ async function offers() {
 }
 
 module.exports = { offers };
+
+// Hiring log for company pages, compact like the Redis version: [[norm, name, [[day, kind, src], ...]], ...].
+// Keys are the current normalised names, so they match coNorm in the app.
+async function history() {
+  const pool = db();
+  if (!pool) return null;
+  const r = await pool.query(`select c.norm, c.name, json_agg(json_build_array(to_char(s.day, 'YYYY-MM-DD'), s.kind, s.src) order by s.day) seen
+    from company_seen s join companies c on c.id = s.company_id group by c.id`);
+  return r.rows.map((x) => [x.norm, x.name, x.seen]);
+}
+
+module.exports.history = history;

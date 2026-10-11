@@ -27,6 +27,8 @@ module.exports = async (req, res) => {
     // Hiring log (collector/history.py): per company, the date and kind of every offer seen. Sent compact:
     // [[key, name, [[day, kind], ...]], ...]
     try {
+      const pgHist = await require('./_offerspg').history().catch(() => null);
+      if (pgHist) return res.status(200).json({ companies: pgHist });
       const flat = (await redis(u, ['HGETALL', 'parcours:companies:history'])).result || [];
       const out = [];
       for (let i = 0; i < flat.length; i += 2) {
