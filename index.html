@@ -115,6 +115,8 @@ svg.ic{width:18px;height:18px;flex:none}
 .topbar .where{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);min-width:0}
 .topbar .where b{color:var(--ink-strong);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar .sp{flex:1}
+/* The goal bar (every page but Home) and Home's goal card already show today's count: no third copy in the top bar. */
+.topbar .goalpill{display:none}
 .iconbtn{display:inline-grid;place-items:center;width:32px;height:32px;border:0;background:transparent;border-radius:var(--r);color:var(--muted);transition:background-color .12s,color .12s}
 .iconbtn:hover{background:var(--soft);color:var(--ink-strong)}
 .theme{display:none}
