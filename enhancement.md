@@ -9,7 +9,7 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 | 1 | Scoring | Ranks offers against the profile, drops dealbreakers | ✅ | `node tests/score.test.js` (21 cases) |
 | 2 | Sources | Fetches offers from job boards | ✅ | `python tests/sources_check.py [--home]` |
 | 3 | Enrichment | Full descriptions, applicants, company ratings | 🔧 | coverage table below |
-| 4 | Data model | How records are stored and linked | 🔧 | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
+| 4 | Data model | How records are stored and linked | ✅ | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
 | 5 | Requirements (AI) | Claude reads what each offer asks, and the salary | ✅ | part of the scoring cases |
 | 6 | Scheduling | PC tasks and GitHub cron | ⏳ | |
 | 7 | Sync and storage | Your data across devices | ⏳ | |
@@ -67,14 +67,17 @@ Coverage (11 Oct, before the fixes): 249 of 541 offers with full text; LinkedIn 
 
 ## 4. Data model 🔧
 
-Found while drawing the [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD):
-- [ ] Leftovers from the removed auto-apply: `parcours:applylog`, an `autoApply` field on a queue item, recommendation letters in the profile. Delete after a backup.
-- [ ] Companies are matched by exact name across offers, ratings, hiring log, insights and Poli ("Société Générale" and "Societe Generale Corporate" count as two). Use one normalized company key.
-- [ ] An offer's state lives in four places (hidden setting, queue, saved, applications) that can disagree. One state per offer id.
-- [ ] Applications keep only role, company and link: the offer's text, requirements and salary are lost when it ages out. Keep a copy on the application.
+Found while drawing the [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD).
 
 Done:
 - [x] Poli data protected before the Pro account ends: merged, never deleted; snapshot in `parcours:poli:archive:*` and on the PC; jobs feed archived (commit `40254f7`).
+- [x] Company matching (commits `d967ea9`, `6f596c9`): measured first, 13 of 412 companies split under two names, and offers reached 29 Poli sponsors. Legal forms and country words (plc, LLP, BV, AB, Maroc, Nederland, UK...) are now dropped on both sides, and company pages use the same key: KPMG Nederland, AXA and GlobalLogic now reach their sponsor. A looser prefix rule was tested and rejected: 6 of its 7 extra matches were wrong companies ("Board Intelligence" to "Board").
+- [x] `parcours:applylog` (removed auto-apply) backed up to the PC (`backups/applylog-2026-10-11.json`) and deleted.
+
+Open:
+- [ ] The `autoApply` field on one queue item and the recommendation letters in the profile are unused, but they sit in your synced data; changed only through the app, never from outside (that is how the data was once wiped).
+- [ ] An offer's state lives in four places (hidden setting, queue, saved, applications) that can disagree. One state per offer id. Moved to App pages.
+- [ ] Applications keep only role, company and link: the offer's text, requirements and salary are lost when it ages out. Keep a copy on the application. Moved to App pages.
 
 ## 5. Requirements (AI) ✅
 
@@ -106,3 +109,4 @@ UX audit: to do (pages walked through with your data in a sandbox, writes interc
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.
+- 11 Oct: data model round: company matching, apply log cleanup. PC run with the new sources: Welcome to the Jungle 26, Duunitori 22, Emploi.ma 14; 63 of 70 PC offers with full text.
