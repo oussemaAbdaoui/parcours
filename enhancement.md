@@ -6,10 +6,10 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 
 | # | Engine | What it does | Status | Check that guards it |
 |---|---|---|---|---|
-| 1 | Scoring | Ranks offers against the profile, drops dealbreakers | ✅ | `node tests/score.test.js` (21 cases) |
+| 1 | Scoring | Ranks offers against the profile, drops dealbreakers | ✅ | `node tests/score.test.js` (23 cases) |
 | 2 | Sources | Fetches offers from job boards | ✅ | `python tests/sources_check.py [--home]` |
 | 3 | Enrichment | Full descriptions, applicants, company ratings | ✅ | coverage figures below |
-| 4 | Data model | How records are stored and linked | ✅ | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
+| 4 | Data model | How records are stored and linked | 🔧 | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
 | 5 | Requirements (AI) | Claude reads what each offer asks, and the salary | ✅ | part of the scoring cases |
 | 6 | Scheduling | PC tasks, GitHub cron, interview stories | ✅ | `python collector/insights.py "Company" "Role"` |
 | 7 | Sync and storage | Your data across devices | ✅ | `python tests/sync_test.py` (sandboxed) |
@@ -77,6 +77,15 @@ Done:
 - [x] Poli data protected before the Pro account ends: merged, never deleted; snapshot in `parcours:poli:archive:*` and on the PC; jobs feed archived (commit `40254f7`).
 - [x] Company matching (commits `d967ea9`, `6f596c9`): measured first, 13 of 412 companies split under two names, and offers reached 29 Poli sponsors. Legal forms and country words (plc, LLP, BV, AB, Maroc, Nederland, UK...) are now dropped on both sides, and company pages use the same key: KPMG Nederland, AXA and GlobalLogic now reach their sponsor. A looser prefix rule was tested and rejected: 6 of its 7 extra matches were wrong companies ("Board Intelligence" to "Board").
 - [x] `parcours:applylog` (removed auto-apply) backed up to the PC (`backups/applylog-2026-10-11.json`) and deleted.
+
+Audit on real data (11 Oct, 735 offers):
+- [x] **Claude's readings stopped**: the 11:40 cloud run read 0 of 400 offers, the run before failed 29. Cause: Anthropic credits used up (the API answers "credit balance too low"; the collector only logged "HTTP 400" and tried all 400). 174 offers with full text have no reading, so they are scored with caution. Fixed: the collector stops at the first credit or key error and the offers page says so plainly (commit after `82e6ede`). **Your step: top up credits at console.anthropic.com.** Cover letters and Improve with AI need it too.
+- [ ] Cost: a cloud run reads up to 400 offers, about 1.27 M input tokens. Read only offers that can still matter (score 50+ before reading) to cut it.
+- Duplicates: 6 extra copies of the same job across sources (Telavox on Platsbanken and LinkedIn). Low.
+- Missing basics: 60 offers with no text, 53 with no date, 11 with no company.
+- Company links: 512 companies in offers; 379 have a rating, 44 are Poli sponsors, 11 have interview stories.
+- Links hold: 16 of 17 applications point to a stored offer; 4 of 18 queue items point to offers that aged out (the queue keeps its own copy).
+- [ ] Poli export (raw records, whole jobs feed) running; then shown in the app.
 
 Open:
 - [ ] The `autoApply` field on one queue item and the recommendation letters in the profile are unused, but they sit in your synced data; changed only through the app, never from outside (that is how the data was once wiped).
