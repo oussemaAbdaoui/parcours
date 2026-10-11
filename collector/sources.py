@@ -801,13 +801,123 @@ def academics_de(keywords):
     return out
 
 
+def _english(keywords, n=3):
+    """Search words for boards in countries where tech offers are mostly in English (Nordics, EU research)."""
+    plain = [k for k in keywords if k.isascii()]
+    return list(dict.fromkeys(plain[:n] + ["machine learning", "data scientist"]))[:n + 1]
+
+
+def platsbanken(keywords):
+    """Platsbanken, the Swedish Public Employment Service board, through its open JobSearch API (no key):
+    full descriptions included."""
+    out = []
+    for kw in _english(keywords):
+        r = requests.get("https://jobsearch.api.jobtechdev.se/search", params={"q": kw, "limit": 50},
+                         headers={"accept": "application/json"}, timeout=30)
+        r.raise_for_status()
+        for h in r.json().get("hits") or []:
+            addr = h.get("workplace_address") or {}
+            out.append({
+                "id": "platsbanken:" + str(h.get("id")), "title": _t(h.get("headline")), "org": _t((h.get("employer") or {}).get("name")),
+                "location": _t(addr.get("municipality") or addr.get("region") or "Sverige"), "c": "se", "kind": "job",
+                "source": "Platsbanken", "url": h.get("webpage_url") or f"https://arbetsformedlingen.se/platsbanken/annonser/{h.get('id')}",
+                "posted": (h.get("publication_date") or "")[:10], "deadline": (h.get("application_deadline") or "")[:10],
+                "type": _t((h.get("employment_type") or {}).get("label")), "desc": _t((h.get("description") or {}).get("text"))[:4000],
+            })
+        time.sleep(UA_PAUSE)
+    return out
+
+
+def _find_results(o):
+    """The list of job records (dicts with 'tid' and 'headline') wherever Jobindex nests it."""
+    if isinstance(o, list) and o and isinstance(o[0], dict) and "tid" in o[0] and "headline" in o[0]:
+        return o
+    for v in (o.values() if isinstance(o, dict) else o if isinstance(o, list) else []):
+        found = _find_results(v)
+        if found:
+            return found
+    return []
+
+
+def _dmy(s):
+    """'8 Nov 2026' or '10 October 2026' -> ISO date."""
+    m = re.search(r"(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{4})", s or "")
+    return date(int(m.group(3)), MONTHS[m.group(2).lower()], int(m.group(1))).isoformat() if m and m.group(2).lower() in MONTHS else ""
+
+
+def jobindex(keywords):
+    """Jobindex, the main Danish job board: the results page embeds its data (var Stash = {...}). Its search
+    matches any word ("LLM engineer" returns every engineer), so it gets precise phrases instead of the keywords."""
+    out = []
+    for kw in ['"machine learning"', '"artificial intelligence"', '"data scientist"', '"python developer"']:
+        page = _get("https://www.jobindex.dk/jobsoegning?q=" + requests.utils.quote(kw))
+        h = str(page.html_content)
+        i = h.find("var Stash")
+        if i < 0:
+            continue
+        stash, _ = json.JSONDecoder().raw_decode(h[h.find("{", i):])
+        for j in _find_results(stash):
+            if not j.get("tid"):
+                continue
+            out.append({
+                "id": "jobindex:" + j["tid"], "title": _t(j.get("headline")), "org": _t(j.get("companytext")),
+                "location": _t(j.get("area") or "Danmark"), "c": "dk", "kind": "phd" if is_phd(j.get("headline")) else "job", "source": "Jobindex",
+                "url": j.get("share_url") or j.get("url"), "posted": j.get("firstdate") or "", "deadline": j.get("lastdate") or "",
+                "type": "", "desc": _t(re.sub(r"<[^>]+>", " ", j.get("html") or ""))[:4000],
+            })
+    return out
+
+
+def euraxess(keywords, limit=20):
+    """EURAXESS, the European Commission's research jobs portal: first-stage researcher (R1) posts, which are
+    PhD positions and research jobs open without a doctorate. Each one's page is read for the full text."""
+    cards = {}
+    # Facet filters in the URL: the keywords, and first-stage researcher (R1 = job_research_profile 447).
+    pages = [_get("https://euraxess.ec.europa.eu/jobs/search?" + requests.utils.quote(f"f[0]=keywords:{kw}&f[1]=job_research_profile:447", safe="=&")
+                  + (f"&page={n}" if n else "")) for kw in _english(keywords, 2) for n in range(2)]
+    for page in pages:
+        for a in page.css("a"):
+            href = a.attrib.get("href", "")
+            if not re.match(r"^/jobs/\d+$", href) or href in cards:
+                continue
+            card = a
+            for _ in range(6):
+                card = card.parent
+                if card is None or len(card.get_all_text()) > 250:
+                    break
+            if card is not None:
+                cards[href] = (_t(a.get_all_text()), _t(card.get_all_text()))  # the link text is the offer's title
+    out = []
+    for href, (title, text) in cards.items():
+        if "(R1)" not in text or len(out) >= limit:
+            continue
+        place = re.search(r"Work Locations:.*?Number of offers: \d+,\s*([^,]+),\s*([^,]+)", text)
+        country = next((c for w, c in COUNTRY_WORDS if place and w in place.group(1).lower()), "xx")
+        deadline = re.search(r"Application Deadline:\s*(\d{1,2} \w+ \d{4})", text)
+        posted = re.search(r"Posted on:\s*(\d{1,2} \w+ \d{4})", text)
+        try:
+            detail = _get("https://euraxess.ec.europa.eu" + href)
+        except RuntimeError:
+            continue
+        body = _t((detail.css("main") or [detail])[0].get_all_text())
+        out.append({
+            "id": "euraxess:" + href.rsplit("/", 1)[1], "title": title, "org": _t(text.split(" Posted on:")[0])[:80],
+            # Other countries go under gl with the country named: score.js then ranks them as abroad (PhDs stay, lower).
+            "location": _t(f"{place.group(2)}, {place.group(1)}" if place else ""), "c": country if country != "xx" else "gl",
+            "kind": "phd" if is_phd(title) else "job",  # the title: a postdoc's text also says "PhD"
+            "source": "EURAXESS", "url": "https://euraxess.ec.europa.eu" + href, "posted": _dmy(posted.group(1)) if posted else "",
+            "deadline": _dmy(deadline.group(1)) if deadline else "", "type": "First-stage researcher (R1)", "desc": body[:4000],
+        })
+    return out
+
+
 SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
             "jobs.ch": jobs_ch, "Job Bank": jobbank, "CNRS": cnrs, "Max Planck": max_planck, "jobRxiv": jobrxiv,
             "Farojob": farojob, "Himalayas": himalayas, "Jobicy": jobicy, "Working Nomads": working_nomads,
             "We Work Remotely": we_work_remotely, "Poli": poli, "LinkedIn posts": linkedin_posts,
             "Company boards": company_boards, "HN Who is hiring": hn_hiring, "Free-Work": free_work,
             "Berlin Startup Jobs": berlin_startup_jobs, "Remote First Jobs": remote_first_jobs, "ETH Zurich": eth_zurich,
-            "academics.de": academics_de}
+            "academics.de": academics_de, "Platsbanken": platsbanken, "Jobindex": jobindex, "EURAXESS": euraxess}
 COUNTRY_WORDS = (("france", "fr"), ("germany", "de"), ("deutschland", "de"), ("switzerland", "ch"), ("schweiz", "ch"),
                  ("suisse", "ch"), ("canada", "ca"), ("tunisia", "tn"), ("tunisie", "tn"), ("belgium", "be"), ("belgique", "be"),
                  ("netherlands", "nl"), ("luxembourg", "lu"), ("sweden", "se"), ("denmark", "dk"), ("finland", "fi"),

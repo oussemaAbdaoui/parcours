@@ -298,6 +298,20 @@
     if (top >= 4) { const w = top === de ? 'de' : top === fr ? 'fr' : 'en'; if (!need[w]) need[w] = 3; }
     return need;
   }
+  /* The language an offer is written in when it is one of the local languages the language check would otherwise
+     miss (Swedish, Danish/Norwegian, Dutch, Finnish): counted by their common short words, which English, French and
+     German texts do not use. Returns the code, or '' for English, French, German or too little text. */
+  const LOCAL_LANGS = ['sv', 'da', 'nl', 'fi', 'other'];
+  // Accent-stripped like the text they are matched on ("för" -> "for" is English too, so it is left out).
+  const LOCAL_WORDS = { sv: /\b(och|att|som|med|vi|har|inom|eller|kommer|ska|hos)\b/g, da: /\b(og|som|af|med|vi|har|inden|eller|kommer|skal|hos)\b/g,
+    nl: /\b(het|van|een|voor|wij|zijn|bij|naar|ervaring|werk)\b/g, fi: /\b(ja|etta|seka|tai|myos|olemme|sinulla|meilla|tyo)\b/g };
+  function writtenIn(t) {
+    if (t.length < 300) return '';
+    const big = Math.max(...[/\b(and|the|with|you|our|will)\b/g, /\b(et|les|des|pour|vous|nous|avec|une)\b/g, /\b(und|der|die|das|mit|wir|sie|ihre)\b/g].map((re) => (t.match(re) || []).length));
+    const [l, n] = Object.entries(LOCAL_WORDS).map(([k, re]) => [k, (t.match(re) || []).length]).sort((a, b) => b[1] - a[1])[0];
+    // Swedish and Danish share words: whichever counts more names it; both are languages you would need.
+    return n >= 8 && n > big * 1.5 ? l : '';
+  }
   // Splits the offer into required and nice-to-have parts by the usual phrases.
   function requirementParts(t) {
     const nice = /(nice to have|would be a plus|is a plus|are a plus|bonus|preferred|souhaite|souhaitable|serait un plus|un plus|idealement|apprecie|wunschenswert|von vorteil)/;
@@ -763,10 +777,14 @@
     }
 
     // 5. Languages
-    const needL = R ? Object.fromEntries((R.languages || []).filter((l) => l.required && ['en', 'fr', 'de'].includes(l.lang)).map((l) => [l.lang, REQ_LANG[l.level] || 3]))
+    // Every required language counts, not only English, French and German: Claude's reading names Dutch, Italian,
+    // Spanish, and "other" for the Nordic ones. An offer written in a language you do not list asks for it too.
+    const needL = R ? Object.fromEntries((R.languages || []).filter((l) => l.required).map((l) => [l.lang, REQ_LANG[l.level] || 3]))
       : offerLanguages(body), langs = p.languages || {};
+    const written = writtenIn(body);
+    if (written && !needL[written] && !(written === 'other' && Object.keys(needL).some((l) => LOCAL_LANGS.includes(l)))) needL[written] = 3;
     const needs = Object.entries(needL);
-    const names = { en: 'English', fr: 'French', de: 'German' };
+    const names = { en: 'English', fr: 'French', de: 'German', nl: 'Dutch', it: 'Italian', es: 'Spanish', ar: 'Arabic', sv: 'Swedish', da: 'Danish', fi: 'Finnish', other: 'A local language' };
     if (!needs.length) parts.languages = { v: 0.5, known: false, note: 'No language requirement found' };
     else {
       const worst = Math.min(...needs.map(([l, req]) => clamp((LVL[langs[l] || ''] || 0) / req)));
