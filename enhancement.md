@@ -132,7 +132,7 @@ Inspected (sandboxed, every write captured and never sent; commit `930093d`):
 - [x] Daily backup of your synced data on the PC, 30 days kept (`parcours-collector/backups/state-YYYY-MM-DD.json`). Before this there was no copy outside the devices.
 
 Open:
-- [ ] The server's mass-deletion refusal is checked by reading the code only; a test against a throwaway database would prove it.
+- [x] The server's mass-deletion refusal is proven by `tests/state_guard.test.js` (round 4).
 
 ## 8. App pages and UX 🔧
 
@@ -211,6 +211,10 @@ Audit: 102 of 104 company-board readings, all 10 Jobindex and all 5 We Work Remo
 - [x] **Enrichment and requirements, listing excerpts**: about twenty sources keep the listing's excerpt cut at 600 characters and count on the details step to open the page, but that step only opened offers under 400 characters. So a 400-600 character excerpt passed for the whole offer: scored as read (Free-Work "Développeur Python IA" at 87 on 600 characters), read by Claude on a company blurb, and its page never opened. Now an excerpt is a teaser until its page is tried (190 offers: company boards 115, HN 22, Free-Work 15, ETH 7...; Jobindex cards always), opened in order of promise, scored as unread (capped at 65), not read by Claude; when the page brings the full text, the excerpt's reading is dropped and Claude reads the whole offer. New test case (27).
 - [x] **Sources, duplicates**: copies of one job were compared by the raw company name ("Odido" and "Odido Nederland", "Telavox AB" and "Telavox", "ALTEN" and "ALTEN MAROC"), so 5 jobs were stored twice. Now the normalised company key everyone else uses; the stored copies fold into the one with the longer text on the next run.
 - Checked, fine: proxy pacing (5.4 MB in the last run, 161 of 800 MB this month); alerts fire (1-2 a run); Poli's failing step was a timeout before the retry was pushed.
+
+### Round 4
+- [x] **App, UK offers**: each UK offer row says "UK visa sponsor" (on the Home Office register) or "no UK sponsor licence found" (with a hint that the employer may be registered under another name), instead of only a line in the score breakdown.
+- [x] **Sync, wipe guards proven**: the server's refusals were checked by reading the code only. `tests/state_guard.test.js` runs the real `api/state.js` against an in-memory stand-in for Postgres (nothing real touched): deleting 12 of 20 items at once is refused and nothing is written, 3 of 20 and 10 of 100 go through, blanking a filled profile is refused, an old client sending an empty whole state deletes nothing, older edits never overwrite newer ones. Part of CI now (6/6).
 
 ## Log
 

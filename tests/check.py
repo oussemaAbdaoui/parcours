@@ -1,5 +1,5 @@
 """Every check that must pass before a deploy (run by .github/workflows/ci.yml on each push, or by hand):
-- the scoring regression cases (node tests/score.test.js);
+- the scoring regression cases (node tests/score.test.js) and the sync server's wipe guards (tests/state_guard.test.js);
 - the app's inline scripts, sw.js, score.js and every api/*.js parse;
 - every Python file in collector/, api/ and tests/ compiles.
 Exit code 1 on any failure. Run: python tests/check.py
@@ -35,10 +35,11 @@ for f in sorted(glob.glob(os.path.join(ROOT, "collector", "*.py")) + glob.glob(o
         py_compile.compile(f, doraise=True, cfile=os.path.join(tempfile.gettempdir(), "parcours_check.pyc"))
     except py_compile.PyCompileError as e:
         failed.append(f"{os.path.relpath(f, ROOT)}: {str(e)[:300]}")
-r = subprocess.run(["node", os.path.join(ROOT, "tests", "score.test.js")], capture_output=True, text=True)
-print(r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "score tests: no output")
-if r.returncode:
-    failed.append("scoring cases:\n" + "\n".join(l for l in r.stdout.splitlines() if not l.startswith("PASS")))
+for test, label in (("score.test.js", "scoring cases"), ("state_guard.test.js", "sync guards")):
+    r = subprocess.run(["node", os.path.join(ROOT, "tests", test)], capture_output=True, text=True)
+    print(f"{label}: " + (r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "no output"))
+    if r.returncode:
+        failed.append(f"{label}:\n" + "\n".join(l for l in r.stdout.splitlines() if not l.startswith("PASS")))
 
 print("\n".join(failed) if failed else "all checks passed")
 sys.exit(1 if failed else 0)

@@ -614,7 +614,7 @@ textarea{height:auto}
 .pjf .ck{display:inline-flex;gap:6px;align-items:center;margin:0 14px 6px 0;font-size:13.5px;cursor:pointer}
 .pjf .pjsub{display:block;margin:0 0 6px 22px}
 .pjacts{margin-top:10px}
-.acems{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:13.5px}.acem small{color:var(--muted)}.acem.guess .mono,.acem.old .mono{color:var(--muted);font-style:italic}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
+.acems{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:13.5px}.acem small{color:var(--muted)}.visaok{color:var(--ok);font-weight:600}.visano{color:var(--muted)}.acem.guess .mono,.acem.old .mono{color:var(--muted);font-style:italic}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
 .new{background:var(--red-t);color:var(--red-ink)}
 .score{width:48px;height:48px;border-radius:16px;font-weight:800;font-size:15px}
 .score.weak{border:0;background:var(--surface-2);font-size:20px}
@@ -2670,7 +2670,7 @@ function renderCollected(){
     +(l.length?'<div class="offers"><div class="thead"><span>Match</span><span>Offer</span><span>Actions</span></div>'+l.slice(0,colMax).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:'',name:''},v=DOM[x.kind]||DOM.job;
       const dl=x.deadline?`Apply by ${esc(x.deadline)}`:(x.posted?`Posted ${esc(rel(x.posted))}`:'');
       return `<article class="offer" style="--accent:var(${v.color});--tint:var(${v.tint})">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.foundAt>colPrev?' <span class="new">New</span>':''}${x.m&&x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
-      <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${coLink(x.org)}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}</div>
+      <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${coLink(x.org)}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}${x.c==='uk'&&typeof x.ukSponsor==='boolean'?(x.ukSponsor?' · <span class="visaok" title="On the Home Office register of licensed sponsors (Skilled Worker)">UK visa sponsor</span>':' · <span class="visano" title="Not found on the Home Office register of licensed sponsors: the employer may be registered under another name, check before applying">no UK sponsor licence found</span>'):''}</div>
       ${(x.contacts||[]).length?`<div class="meta ctc">Contact: ${x.contacts.map(c=>`${c.name?esc(c.name)+(c.role?` (${esc(c.role)})`:'')+' · ':''}<span class="mono">${esc(c.email)}</span>`).join(' · ')}</div>`:''}
       ${scoreWhy(x.m,x)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
