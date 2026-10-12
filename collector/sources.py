@@ -491,18 +491,29 @@ def _where(text):
     return "gl" if _REMOTE.search(low) and not _ELSEWHERE.search(low) else None
 
 
-# Company career boards on Greenhouse, Lever, Ashby and Workable: their public job-board APIs, made for career sites
+# Company career boards on Greenhouse, Lever, Ashby, Workable and SmartRecruiters: their public job-board APIs, made for career sites
 # to embed. AI and tech employers hiring in France, Germany, Switzerland, Canada or remotely; add a board by its
 # name in the board URL (boards.greenhouse.io/<name>, jobs.lever.co/<name>, jobs.ashbyhq.com/<name>).
 COMPANY_BOARDS = {
     "greenhouse": ["anthropic", "helsing", "dataiku", "doctolib", "datadog", "mirakl", "celonis", "algolia", "getyourguide",
-                   "n26", "sumup", "parloa", "proton", "dialpad"],
-    "lever": ["contentsquare", "blablacar", "qonto", "pigment", "swile", "sonarsource", "waabi"],
+                   "n26", "sumup", "parloa", "proton", "dialpad",
+                   "dnascript", "shifttechnology", "flowdesk", "platformsh"],
+    "lever": ["contentsquare", "blablacar", "qonto", "pigment", "swile", "sonarsource", "waabi",
+              "malt", "verkor", "vestiairecollective", "younited", "360learning", "agicap", "brevo", "ekimetrics", "gojob",
+              "playplay", "equativ"],
     "ashby": ["cohere", "deepl", "alephalpha", "photoroom", "alan", "owkin", "backmarket", "poolside", "n8n", "wealthsimple",
               "openai", "dust", "nabla", "ledger", "sorare", "langdock", "black-forest-labs", "elevenlabs", "synthesia",
-              "wayve", "hopper"],
+              "wayve", "hopper",
+              "mistral.ai", "pennylane", "voodoo", "seyna", "lifen", "ankorstore"],
     "workable": ["huggingface"],
+    "smartrecruiters": ["ecovadis", "iad", "lecollectionist", "worldia"],
 }
+# French Tech Next40 / 120 boards (data/french-tech-120.csv), found from their careers pages and checked by company
+# name on 12 Oct 2026; same-named boards of other companies (Comet, Swan, Sweep in the US) were left out.
+# Lever and Ashby return no company name: the board name is shown unless named here.
+BOARD_NAMES = {"mistral.ai": "Mistral AI", "openai": "OpenAI", "n8n": "n8n", "deepl": "DeepL", "vestiairecollective": "Vestiaire Collective", "360learning": "360Learning",
+               "playplay": "PlayPlay", "backmarket": "Back Market", "blablacar": "BlaBlaCar", "elevenlabs": "ElevenLabs",
+               "alephalpha": "Aleph Alpha", "photoroom": "Photoroom", "contentsquare": "Contentsquare", "sonarsource": "SonarSource"}
 
 
 def _board(ats, name):
@@ -513,17 +524,22 @@ def _board(ats, name):
                  (j.get("first_published") or j.get("updated_at") or "")[:10], "") for j in r.get("jobs", [])]
     if ats == "lever":
         r = requests.get(f"https://api.lever.co/v0/postings/{name}?mode=json", timeout=30).json()
-        return [(j["text"], name.title(), " / ".join((j.get("categories") or {}).get("allLocations") or [(j.get("categories") or {}).get("location", "")])
+        return [(j["text"], BOARD_NAMES.get(name) or name.title(), " / ".join((j.get("categories") or {}).get("allLocations") or [(j.get("categories") or {}).get("location", "")])
                  + (" remote" if j.get("workplaceType") == "remote" else ""), j["hostedUrl"],
                  datetime.fromtimestamp(j["createdAt"] / 1000, timezone.utc).date().isoformat() if j.get("createdAt") else "",
                  j.get("descriptionPlain") or "") for j in r if isinstance(j, dict)]
     if ats == "ashby":
         r = requests.get(f"https://api.ashbyhq.com/posting-api/job-board/{name}", timeout=30).json()
-        return [(j["title"], name.replace("-", " ").title(),
+        return [(j["title"], BOARD_NAMES.get(name) or name.replace("-", " ").title(),
                  " / ".join([j.get("location") or ""] + [s.get("location", "") for s in j.get("secondaryLocations") or []])
                  + (" remote" if j.get("isRemote") and not j.get("secondaryLocations") else ""),
                  j["jobUrl"], (j.get("publishedAt") or "")[:10], j.get("descriptionPlain") or "")
                 for j in r.get("jobs", []) if j.get("isListed", True)]
+    if ats == "smartrecruiters":
+        r = requests.get(f"https://api.smartrecruiters.com/v1/companies/{name}/postings?limit=100", timeout=30).json()
+        return [(j["name"], (j.get("company") or {}).get("name") or name, ((j.get("location") or {}).get("fullLocation") or "")
+                 + (" remote" if (j.get("location") or {}).get("remote") else ""), f"https://jobs.smartrecruiters.com/{name}/{j['id']}",
+                 (j.get("releasedDate") or "")[:10], "") for j in r.get("content", [])]
     r = requests.get(f"https://apply.workable.com/api/v1/widget/accounts/{name}", timeout=30).json()
     return [(j["title"], r.get("name") or name, f'{j.get("city", "")} {j.get("country", "")}' + (" remote" if j.get("telecommuting") else ""),
              j.get("url") or j.get("application_url", ""), j.get("published_on", ""), "") for j in r.get("jobs", [])]
