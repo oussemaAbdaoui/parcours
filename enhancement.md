@@ -6,13 +6,13 @@ The app is split into engines. Each one is inspected on real data, fixed, and gi
 
 | # | Engine | What it does | Status | Check that guards it |
 |---|---|---|---|---|
-| 1 | Scoring | Ranks offers against the profile, drops dealbreakers | ✅ | `node tests/score.test.js` (23 cases) |
+| 1 | Scoring | Ranks offers against the profile, drops dealbreakers | ✅ | `node tests/score.test.js` (27 cases) |
 | 2 | Sources | Fetches offers from job boards | ✅ | `python tests/sources_check.py [--home]` |
 | 3 | Enrichment | Full descriptions, applicants, company ratings | ✅ | coverage figures below |
-| 4 | Data model | How records are stored and linked | 🔧 | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
+| 4 | Data model | How records are stored and linked (all in Postgres) | ✅ | [data map](https://claude.ai/artifact/LUUtbQKuCtYYH5AbEeXqVD) |
 | 5 | Requirements (AI) | Claude reads what each offer asks, and the salary | ✅ | part of the scoring cases |
 | 6 | Scheduling | PC tasks, GitHub cron, interview stories | ✅ | `python collector/insights.py "Company" "Role"` |
-| 7 | Sync and storage | Your data across devices | ✅ | `python tests/sync_test.py` (sandboxed) |
+| 7 | Sync and storage | Your data across devices | ✅ | `python tests/sync_test.py` (sandboxed), `node tests/state_guard.test.js` |
 | 8 | App pages and UX | Offers, queue, tracker, profile | 🔧 | screenshots of every page, sandboxed |
 | 9 | Alerts | Notifications and weekly digest | ✅ | |
 | 10 | Academia and masters | Professors, PhDs, master's, scholarships | 🔧 | `python collector/academia.py --dry-run --only=se` |
@@ -216,6 +216,16 @@ Audit: 102 of 104 company-board readings, all 10 Jobindex and all 5 We Work Remo
 - [x] **App, UK offers**: each UK offer row says "UK visa sponsor" (on the Home Office register) or "no UK sponsor licence found" (with a hint that the employer may be registered under another name), instead of only a line in the score breakdown.
 - [x] **Sync, wipe guards proven**: the server's refusals were checked by reading the code only. `tests/state_guard.test.js` runs the real `api/state.js` against an in-memory stand-in for Postgres (nothing real touched): deleting 12 of 20 items at once is refused and nothing is written, 3 of 20 and 10 of 100 go through, blanking a filled profile is refused, an old client sending an empty whole state deletes nothing, older edits never overwrite newer ones. Part of CI now (6/6).
 
+### Round 5
+Audit after rounds 1-4, and the first PC run on the Postgres-only code (03:40): it saved offers, 18 readings (most of the input from the cache), 30 ratings and the hiring log to Postgres, and filled 150 LinkedIn descriptions (offers without text 300 → 150; LinkedIn 236 → 86). Nothing lost: all 879 offers of the morning archive are there, plus 6 new; 149 that the new descriptions show as dealbreakers go on the next cloud run, as designed.
+- [x] **Academia, emails** (round 2) checked on Sweden: 28 of 37 professors with an email now have one at their current school first (Halmstad's Tiwari: hh.se before ieee.org); the 9 with only an old address are labelled.
+- [x] **Data map** updated to the Postgres structure: 12 tables, real keys (offers to companies, companies to UK sponsor records and the register), what stays in Redis, the PC archives.
+
+Left open after the five rounds (each needs you or a later run):
+- [ ] Deploy, then delete the retired Redis copies (Data model, phase 3).
+- [ ] Check the next cloud run: UK register loaded, teasers opened in order of promise, "skipped N offers already read and dropped", duplicates folded, Finland master's in.
+- [ ] Optional keys: `OPENALEX_API_KEY` (faster professors), `SERPER_API_KEY` (LinkedIn posts).
+
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.
@@ -228,3 +238,4 @@ Audit: 102 of 104 company-board readings, all 10 Jobindex and all 5 We Work Remo
 - 11 Oct: data model round: company matching, apply log cleanup. PC run with the new sources: Welcome to the Jungle 26, Duunitori 22, Emploi.ma 14; 63 of 70 PC offers with full text.
 - 11 Oct: Bain "Lead" scored as entry level fixed at the root (mentoring juniors); data map updated with 11 Oct counts, PC backups and alert markers; Poli jobs confirmed stored (99, merged).
 - 11 Oct: Claude credits ran out (0 of 400 offers read): the collector now stops and says so; reading calls cached; app scores now use Claude's reading (18 offers wrongly blocked); better Improve with AI; Poli full export (5,000 network people, raw fields) saved to the PC, bigger run going.
+- 12 Oct: Postgres phase 3 (everything collected in Postgres; PC lacked the driver, fixed). Five weak-spot rounds: UK sponsor register (77 of 127 UK offers at licensed sponsors), listing excerpts no longer pass for full offers (190), read-and-dropped offers not re-read, pages opened by promise, Academic Positions text, professors in every country within OpenAlex's allowance, current-school emails, Finland master's, duplicates folded, sync guards tested in CI, data map redrawn.
