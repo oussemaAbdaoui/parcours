@@ -367,9 +367,15 @@ def linkedin_cloud(items, store):
         return linkedin_details(items)
     key = PROXY_KEY + time.strftime("%Y-%m")
     spent = int(store.cmd("GET", key) or 0)
-    meter = {"left": int(os.environ.get("PROXY_MB_MONTH") or 800) * 1024 * 1024 - spent}
-    if meter["left"] <= 0:
+    left_month = int(os.environ.get("PROXY_MB_MONTH") or 800) * 1024 * 1024 - spent
+    if left_month <= 0:
         return 0, "proxy allowance used up this month"
+    # Paced over the month: each run gets an even share of what is left (about 6 runs a day: cloud and PC triggers),
+    # so the allowance lasts to the 1st instead of running out in the first week (20 MB a run spent 138 MB in a day).
+    import calendar
+    today = time.gmtime()
+    days_left = calendar.monthrange(today.tm_year, today.tm_mon)[1] - today.tm_mday + 1
+    meter = {"left": min(left_month, max(3 * 1024 * 1024, left_month // (days_left * 6)))}
     try:
         n, err = linkedin_details(items, limit=400, proxy=proxy, meter=meter)
     finally:

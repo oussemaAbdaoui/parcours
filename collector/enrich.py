@@ -41,6 +41,11 @@ def linkedin_details(items, limit=40, stealth=False, proxy=None, meter=None):
     month's proxy allowance is used up (meter["used"] gets the bytes spent). A new description drops
     requirements read from the title alone, so Claude reads them again from the full text."""
     done, session, ctx, refused = 0, None, None, 0
+    if proxy:  # applicant re-counts first, with up to a third of this run's proxy share (they decide dealbreakers)
+        sub = {"left": meter["left"] // 3} if meter else None
+        recheck_applicants(items, proxy, sub)
+        if meter and sub:
+            meter["used"] = meter.get("used", 0) + sub.get("used", 0)
     try:
         for x in items:
             if done >= limit or (meter and meter.get("used", 0) >= meter["left"]):
@@ -75,15 +80,13 @@ def linkedin_details(items, limit=40, stealth=False, proxy=None, meter=None):
                 continue
             _linkedin_fill(x, page)
             time.sleep(0.3 if proxy else 1.5)
-        if proxy:
-            recheck_applicants(items, proxy, meter)
     finally:
         if ctx:
             ctx.__exit__(None, None, None)
     return done, ""
 
 
-RECHECK_MIN, RECHECK_DAYS, RECHECK_LIMIT = 50, 2, 120
+RECHECK_MIN, RECHECK_DAYS, RECHECK_LIMIT = 50, 2, 60
 
 
 def recheck_applicants(items, proxy, meter=None):
