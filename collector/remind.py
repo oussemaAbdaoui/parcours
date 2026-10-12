@@ -8,6 +8,7 @@ Times are local to REMIND_TZ (default Africa/Tunis). python collector/remind.py 
 import json
 import os
 import sys
+import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -17,6 +18,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from notify import SUBS, _sender  # noqa: E402
 
 DONE_KEY = "parcours:push:goal-done"
+LAST_KEY = "parcours:push:goal-last"  # when the last reminder went out: GitHub runs late and the PC fills skipped runs
+MIN_GAP = 90 * 60  # so two runs close together send one reminder
 DAY_START, DAY_END = 9, 21  # the hours the goal is paced over
 
 
@@ -86,6 +89,10 @@ def main():
     if kind == "done" and store.cmd("GET", DONE_KEY) == day and not force:
         print("goal met, already congratulated today")
         return
+    last = int(store.cmd("GET", LAST_KEY) or 0)
+    if kind == "remind" and not force and time.time() - last < MIN_GAP:
+        print(f"{now:%H:%M}: last reminder {int((time.time() - last) / 60)} min ago, nothing sent")
+        return
     print(f"{now:%Y-%m-%d %H:%M} {payload['title']} | {payload['body']}")
     if dry:
         return
@@ -104,6 +111,7 @@ def main():
             store.cmd("HDEL", SUBS, flat[i])
     if kind == "done":
         store.cmd("SET", DONE_KEY, day)
+    store.cmd("SET", LAST_KEY, int(time.time()), "EX", 86400)
     print(f"sent to {sent} device{'s' if sent != 1 else ''}")
 
 
