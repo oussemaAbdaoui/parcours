@@ -48,6 +48,18 @@ module.exports = async (req, res) => {
       return res.status(502).json({ error: 'Storage is unavailable right now.' });
     }
   }
+  if ((req.query || {}).set === 'tunisia') {
+    // Tunisian employers to write to directly (collector/tn_startups.py): the APII startup catalogue and the
+    // partner companies directory.
+    try {
+      if (notModified(req, res, ['t', await pgsets.datasetVersion(['tn-startups', 'tn-companies'])])) return;
+      const [startups, companies] = await Promise.all([pgsets.dataset('tn-startups'), pgsets.dataset('tn-companies')]);
+      if (!startups) return res.status(501).json({ error: 'The database is not configured.' });
+      return res.status(200).json({ startups, companies: companies || [] });
+    } catch (e) {
+      return res.status(502).json({ error: 'Storage is unavailable right now.' });
+    }
+  }
   if ((req.query || {}).set === 'poli-people') {
     try { return await require('./_polipg').people(req, res); } catch (e) { return res.status(502).json({ error: 'The database is unavailable right now.' }); }
   }

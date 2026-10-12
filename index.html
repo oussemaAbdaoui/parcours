@@ -3649,6 +3649,82 @@ function acOffers(){
     if(hit){const r=acIdx.get(hit.s.id)||{programs:[],scholarships:[]};(x.type==='scholarship'?r.scholarships:r.programs).push(x);acIdx.set(hit.s.id,r);}});
   return acIdx;
 }
+/* Tunisian employers to write to directly (collector/tn_startups.py): the APII startup catalogue (2022) and the
+   partner companies directory, kept for IT, ICT, engineering and electronics. */
+let tnData=null,tnF={tab:'startups',q:'',sector:'',email:false,up:true,city:''},tnMax=40;
+const TN_AI=/\b(ai|artificial intelligence|intelligence artificielle|machine learning|deep learning|data|computer vision|nlp|iot|robot\w*|chatbot|analytics|algorithm\w*)\b/gi;
+function tnFit(x){
+  const t=' '+`${x.about} ${x.tech} ${x.sector}`.toLowerCase()+' ',hits=new Set();
+  prof().skills.forEach(k=>{if(k.length>2&&t.includes(' '+k.toLowerCase()))hits.add(k);});
+  (t.match(TN_AI)||[]).forEach(w=>hits.add(w.toLowerCase()));
+  return [...hits];
+}
+function tnStartupRow(x){
+  const fit=tnFit(x),ref='tn:'+x.id,done=(state.contacts||[]).some(c=>c.ref===ref),site=x.site?'https://'+x.site:'';
+  return `<div class="offer"><span class="score ${fit.length>=3?'s-hi':fit.length?'s-mid':'s-lo'}" title="Words from your profile in what they do">${fit.length}</span><div>
+    <h3>${esc(x.name)} <span class="xp">since ${x.founded}</span> <span class="xp">${esc(x.sector||'')}</span></h3>
+    <p style="margin:6px 0 0">${esc(x.about)}</p>${x.tech?`<p class="hint" style="margin:4px 0 0">Tech: ${esc(x.tech)}</p>`:''}
+    ${fit.length?`<div class="meta" style="margin-top:6px">${fit.slice(0,6).map(k=>`<span class="xp">${esc(k)}</span>`).join('')}</div>`:''}
+    <div class="acems">${x.email?`<span class="acem"><span class="mono">${esc(x.email)}</span> <button class="linkbtn" type="button" data-copy="${esc(x.email)}">Copy</button> <small>${esc(x.founders||'')}</small></span>`:`<span class="hint">No email in the catalogue${x.founders?`. Founder: ${esc(x.founders)}`:''}.</span>`}
+      ${x.address?`<small>${esc(x.address)}</small>`:''}${x.alive===false?'<small class="visano">The website did not answer: the startup may have closed since 2022.</small>':''}</div>
+    <div class="row" style="margin-top:8px">${site&&x.alive!==false?`<a class="btn sm" href="${esc(site)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}
+      <a class="btn sm" href="https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(x.name)}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      ${x.founders?`<a class="btn sm" href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(x.founders.split('/')[0].trim()+' '+x.name)}" target="_blank" rel="noopener noreferrer">Founder on LinkedIn</a>`:''}</div></div>
+    <div class="oa"><button class="btn sm" type="button" data-tncontact="${esc(x.id)}">${done?'Contacted ✓':'Mark contacted'}</button></div></div>`;
+}
+function tnCompanyRow(x){
+  const ref='tnco:'+x.id,done=(state.contacts||[]).some(c=>c.ref===ref);
+  return `<div class="offer"><div><h3>${esc(x.name)} <span class="xp">${esc(x.sector)}</span></h3>
+    <div class="acline"><span>${esc(x.city)}</span><span>${esc(x.address)}</span>${x.phone?`<span><span class="mono">${esc(x.phone)}</span> <button class="linkbtn" type="button" data-copy="${esc(x.phone)}">Copy</button></span>`:''}</div>
+    <div class="row" style="margin-top:8px"><a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(x.name+' '+x.city+' Tunisie')}" target="_blank" rel="noopener noreferrer">Find website</a>
+      <a class="btn sm" href="https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(x.name.replace(/^(Societe|Ste)\s+/i,''))}" target="_blank" rel="noopener noreferrer">LinkedIn</a></div></div>
+    <div class="oa"><button class="btn sm" type="button" data-tnco="${esc(x.id)}">${done?'Contacted ✓':'Mark contacted'}</button></div></div>`;
+}
+function tunisiaPage(tab){
+  if(tab==='startups'||tab==='companies')tnF.tab=tab;
+  const T=tnF.tab;
+  $('#view').innerHTML=`<h1>Tunisian employers</h1>
+    <p class="sub">Companies to write to directly. Startups come from the official APII catalogue (2022), with their contact email; the directory lists IT, ICT, engineering and electronics companies with their phone and address. Marking one contacted counts toward your daily goal.</p>
+    <div class="toolbar"><span class="seg" id="tnTabs" role="group" aria-label="Show"><button type="button" data-tn="startups" aria-pressed="${T==='startups'}">Startups</button><button type="button" data-tn="companies" aria-pressed="${T==='companies'}">Companies directory</button></span>
+      <input type="search" id="tnQ" placeholder="${T==='startups'?'Search name, what they do…':'Search name, city…'}" aria-label="Search" value="${esc(tnF.q)}">
+      <select id="tnS" aria-label="Sector"><option value="">All sectors</option></select>
+      ${T==='startups'?`<select id="tnE" aria-label="Contact"><option value="">With or without email</option><option value="1" ${tnF.email?'selected':''}>With an email</option></select><select id="tnU" aria-label="Website"><option value="1" ${tnF.up?'selected':''}>Website answers</option><option value="" ${tnF.up?'':'selected'}>Include closed websites</option></select>`:`<select id="tnC" aria-label="City"><option value="">All cities</option></select>`}
+    </div><div id="tnBox"><p class="hint">Loading…</p></div>`;
+  $('#tnTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tn]');if(!b||b.dataset.tn===tnF.tab)return;tnF={...tnF,tab:b.dataset.tn,sector:'',q:''};tnMax=40;location.hash='#/tunisia/'+tnF.tab;});
+  const upd=()=>{tnF.q=$('#tnQ').value.trim();tnF.sector=$('#tnS').value;if(T==='startups'){tnF.email=!!$('#tnE').value;tnF.up=!!$('#tnU').value;}else tnF.city=$('#tnC').value;tnMax=40;renderTunisia();};
+  $('#tnQ').addEventListener('input',upd);['tnS','tnE','tnU','tnC'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('change',upd);});
+  if(!caps.online){$('#tnBox').innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return;}
+  (tnData?Promise.resolve(tnData):cachedApi('/api/opps?set=tunisia',j=>{tnData=j;if(/tunisia/.test(location.hash))renderTunisia();})).then(d=>{tnData=d;
+    const list=(T==='startups'?d.startups:d.companies)||[],opts=(sel,vals,cur)=>{const el=$(sel);if(el)el.innerHTML=el.options[0].outerHTML+vals.map(v=>`<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(v)}</option>`).join('');};
+    opts('#tnS',[...new Set(list.map(x=>x.sector).filter(Boolean))].sort(),tnF.sector);
+    if(T==='companies')opts('#tnC',[...new Set(list.map(x=>x.city).filter(Boolean))].sort(),tnF.city);
+    renderTunisia();
+  }).catch(e=>{$('#tnBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Neon Postgres and Upstash Redis in Vercel.'},'Could not load Tunisian employers.'))}</p>`;});
+}
+function renderTunisia(){
+  const box=$('#tnBox'),d=tnData;if(!box||!d)return;
+  const words=tnF.q.toLowerCase().split(/\s+/).filter(Boolean),has=t=>{t=t.toLowerCase();return words.every(w=>t.includes(w));};
+  let rows,html;
+  if(tnF.tab==='startups'){
+    rows=(d.startups||[]).filter(x=>(!tnF.sector||x.sector===tnF.sector)&&(!tnF.email||x.email)&&(!tnF.up||x.alive!==false)&&has(`${x.name} ${x.about} ${x.tech} ${x.sector}`))
+      .map(x=>[x,tnFit(x).length]).sort((a,b)=>b[1]-a[1]||b[0].founded-a[0].founded).map(([x])=>x);
+    html=rows.slice(0,tnMax).map(tnStartupRow).join('');
+  }else{
+    rows=(d.companies||[]).filter(x=>(!tnF.sector||x.sector===tnF.sector)&&(!tnF.city||x.city===tnF.city)&&has(`${x.name} ${x.city} ${x.address}`))
+      .sort((a,b)=>(a.sector==='IT services'?0:1)-(b.sector==='IT services'?0:1)||a.name.localeCompare(b.name));
+    html=rows.slice(0,tnMax).map(tnCompanyRow).join('');
+  }
+  box.innerHTML=rows.length?`<p class="hint">${rows.length.toLocaleString('en')} ${tnF.tab==='startups'?'startups, best fit with your profile first':'companies, IT services first'}${rows.length>tnMax?`, showing ${tnMax}`:''}.</p>
+    <div class="offers">${html}</div>${rows.length>tnMax?`<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" type="button" id="tnMore">Show more</button></div>`:''}`:'<p class="hint">Nothing matches.</p>';
+  const m=$('#tnMore');if(m)m.addEventListener('click',()=>{tnMax+=40;renderTunisia();});
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-tncontact],[data-tnco]');if(!b||!tnData)return;
+  const st=!!b.dataset.tncontact,id=st?b.dataset.tncontact:b.dataset.tnco,x=((st?tnData.startups:tnData.companies)||[]).find(y=>y.id===id);if(!x)return;
+  const ref=(st?'tn:':'tnco:')+id;
+  if((state.contacts||[]).some(c=>c.ref===ref&&c.date===today())){removeContact(ref);b.textContent='Mark contacted';}
+  else{addContact({name:st?(x.founders||'').split('/')[0].trim():'',org:x.name,kind:'company',channel:st?(x.email?'email':'other'):'phone',ref,note:st?x.email||'':x.phone||''});b.textContent='Contacted ✓';}
+});
 function academiaPage(tab){
   if(tab==='professors'||tab==='schools')acF.tab=tab;
   const T=acF.tab;
@@ -3763,10 +3839,10 @@ document.addEventListener('click',e=>{
 });
 
 const SECTION_LABEL={overview:'Home',discover:'Discover',track:'Track',notes:'Notes',profile:'Profile'};
-const SECTION_OF=(t,seg)=>['opps','sponsors','academia','search'].includes(t)?'discover':['apps','queue','companies','company'].includes(t)?'track':['notes','profile'].includes(t)?t:'overview';
+const SECTION_OF=(t,seg)=>['opps','sponsors','academia','search','tunisia'].includes(t)?'discover':['apps','queue','companies','company'].includes(t)?'track':['notes','profile'].includes(t)?t:'overview';
 const SUBTABS={
   discover:[['#/search','Search',t=>t==='search'],['#/opps','Jobs',(t,s)=>t==='opps'&&!['masters','labs','radar'].includes(s[1])],['#/opps/masters',"Master's & scholarships",(t,s)=>t==='opps'&&s[1]==='masters'],
-    ['#/academia','Professors & schools',(t,s)=>t==='academia'||(t==='opps'&&s[1]==='labs')],['#/sponsors','Poli (UK)',t=>t==='sponsors'],['#/opps/radar','Radar',(t,s)=>t==='opps'&&s[1]==='radar']],
+    ['#/academia','Professors & schools',(t,s)=>t==='academia'||(t==='opps'&&s[1]==='labs')],['#/sponsors','Poli (UK)',t=>t==='sponsors'],['#/tunisia','Tunisia',t=>t==='tunisia'],['#/opps/radar','Radar',(t,s)=>t==='opps'&&s[1]==='radar']],
   track:[['#/apps','Applications',t=>t==='apps'],['#/queue','Apply queue',t=>t==='queue'],['#/companies','Companies',t=>t==='companies'||t==='company']]};
 // Detail drawer: a side panel on wide screens, a full-screen sheet on phones.
 function openDrawer(html,label){
@@ -4107,6 +4183,7 @@ function route(){
   else if(t==='companies')companiesPage();
   else if(t==='sponsors')sponsorsPage(seg[1]);
   else if(t==='academia')academiaPage(seg[1]);
+  else if(t==='tunisia')tunisiaPage(seg[1]);
   else if(t==='search')searchPage(qs);
   else if(t==='company')companyPage(seg[1],qs);
   else if(t==='explore'){location.replace('#/');return;}
