@@ -491,7 +491,7 @@ def _where(text):
     return "gl" if _REMOTE.search(low) and not _ELSEWHERE.search(low) else None
 
 
-# Company career boards on Greenhouse, Lever, Ashby, Workable and SmartRecruiters: their public job-board APIs, made for career sites
+# Company career boards on Greenhouse, Lever, Ashby, Workable, SmartRecruiters, BambooHR and Teamtailor: their public job-board APIs, made for career sites
 # to embed. AI and tech employers hiring in France, Germany, Switzerland, Canada or remotely; add a board by its
 # name in the board URL (boards.greenhouse.io/<name>, jobs.lever.co/<name>, jobs.ashbyhq.com/<name>).
 COMPANY_BOARDS = {
@@ -505,15 +505,28 @@ COMPANY_BOARDS = {
               "openai", "dust", "nabla", "ledger", "sorare", "langdock", "black-forest-labs", "elevenlabs", "synthesia",
               "wayve", "hopper",
               "mistral.ai", "pennylane", "voodoo", "seyna", "lifen", "ankorstore"],
-    "workable": ["huggingface"],
+    "workable": ["huggingface", "homa-games", "corwave-1"],
     "smartrecruiters": ["ecovadis", "iad", "lecollectionist", "worldia"],
+    "bamboohr": ["dentalmonitoring"],
+    # Teamtailor career sites, by host: their public RSS feed (/jobs.rss) carries every open job with its full text.
+    "teamtailor": ["careers.deepki.com", "careers.prophesee.ai", "careers.akeneo.com", "careers.exotrail.com", "join.driiveme.com",
+                   "careers.libon.com", "job.lumapps.com", "careers.madbox.io", "careers.mooncard.co", "jobs.mylight150.com",
+                   "careers.sipearl.com", "careers.tap-nation.io", "careers.planity.com", "www.wemaintain-jobs.com",
+                   "career.spendesk.com", "macarriere.hoppen.care", "careers.go-electra.com", "brutfrance.teamtailor.com",
+                   "leocare.teamtailor.com"],
 }
+COMPANY_BOARDS["lever"].append("aqemia.com")
+# Company careers pages with no job board behind them, read by the address pattern of their job pages: (company, page,
+# pattern, country when the title names none). The job text comes from the job page itself (enrich.details opens it).
+CAREER_PAGES = [("InstaDeep", "https://instadeep.com/careers/", r"/job-offer/\d+", "tn"),
+                ("Intigo", "https://www.intigo.net/careers/", r"/careers/\d+/?$", "tn")]
 # French Tech Next40 / 120 boards (data/french-tech-120.csv), found from their careers pages and checked by company
 # name on 12 Oct 2026; same-named boards of other companies (Comet, Swan, Sweep in the US) were left out.
 # Lever and Ashby return no company name: the board name is shown unless named here.
 BOARD_NAMES = {"mistral.ai": "Mistral AI", "openai": "OpenAI", "n8n": "n8n", "deepl": "DeepL", "vestiairecollective": "Vestiaire Collective", "360learning": "360Learning",
                "playplay": "PlayPlay", "backmarket": "Back Market", "blablacar": "BlaBlaCar", "elevenlabs": "ElevenLabs",
-               "alephalpha": "Aleph Alpha", "photoroom": "Photoroom", "contentsquare": "Contentsquare", "sonarsource": "SonarSource"}
+               "alephalpha": "Aleph Alpha", "aqemia.com": "Aqemia", "huggingface": "Hugging Face", "homa-games": "Homa", "corwave-1": "CorWave",
+               "dentalmonitoring": "DentalMonitoring", "photoroom": "Photoroom", "contentsquare": "Contentsquare", "sonarsource": "SonarSource"}
 
 
 def _board(ats, name):
@@ -540,15 +553,53 @@ def _board(ats, name):
         return [(j["name"], (j.get("company") or {}).get("name") or name, ((j.get("location") or {}).get("fullLocation") or "")
                  + (" remote" if (j.get("location") or {}).get("remote") else ""), f"https://jobs.smartrecruiters.com/{name}/{j['id']}",
                  (j.get("releasedDate") or "")[:10], "") for j in r.get("content", [])]
-    r = requests.get(f"https://apply.workable.com/api/v1/widget/accounts/{name}", timeout=30).json()
-    return [(j["title"], r.get("name") or name, f'{j.get("city", "")} {j.get("country", "")}' + (" remote" if j.get("telecommuting") else ""),
-             j.get("url") or j.get("application_url", ""), j.get("published_on", ""), "") for j in r.get("jobs", [])]
+    if ats == "bamboohr":
+        r = requests.get(f"https://{name}.bamboohr.com/careers/list", timeout=30).json()
+        return [(j["jobOpeningName"], BOARD_NAMES.get(name) or name, ", ".join(filter(None, [(j.get("location") or {}).get("city"),
+                 (j.get("location") or {}).get("state"), (j.get("location") or {}).get("addressCountry")])) + (" remote" if j.get("isRemote") else ""),
+                 f"https://{name}.bamboohr.com/careers/{j['id']}", "", "") for j in r.get("result", [])]
+    if ats == "teamtailor":
+        from html import unescape
+        x = requests.get(f"https://{name}/jobs.rss", headers={"User-Agent": "Mozilla/5.0"}, timeout=30).text
+        org = unescape((re.search(r"<title>(.*?)</title>", x, re.S) or [None, name])[1]).strip()
+        tag = lambda it, t: unescape((re.search(rf"<{t}>(.*?)</{t}>", it, re.S) or [None, ""])[1]).strip()
+        out = []
+        for it in re.findall(r"<item>(.*?)</item>", x, re.S):
+            places = "; ".join(f"{tag(l, 'tt:city')}, {tag(l, 'tt:country')}" for l in re.findall(r"<tt:location>(.*?)</tt:location>", it, re.S))
+            posted = tag(it, "pubDate")
+            try:
+                posted = datetime.strptime(posted[:16], "%a, %d %b %Y").date().isoformat()
+            except ValueError:
+                posted = ""
+            out.append((tag(it, "title"), org, places + (" remote" if tag(it, "remoteStatus") in ("fully", "temporary") else ""),
+                        tag(it, "link"), posted, re.sub(r"<[^>]+>", " ", unescape(tag(it, "description")))))
+        return out
+    if ats == "page":
+        org, page, pattern, home = next(c for c in CAREER_PAGES if c[0] == name)
+        from html import unescape
+        from urllib.parse import urljoin
+        h = requests.get(page, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128 Safari/537.36"}, timeout=30).text
+        jobs = {}
+        for a, t in re.findall(r'<a[^>]*href="([^"#]+)"[^>]*>(.*?)</a>', h, re.S):
+            title = re.sub(r"\s+", " ", unescape(re.sub(r"<[^>]+>", " ", t))).strip()
+            # Cards often hold more than the title: "01 Agent de recouvrement Salarié — Centrale Tunis — …"
+            title = re.split(r"\s+[—|→]\s*", re.sub(r"^\d{1,3}\s+", "", title))[0].strip()
+            title = re.sub(r"\s+(?:salari[ée]e?|cdi|cdd|freelance|contrat)$", "", title, flags=re.I)
+            if re.search(pattern, a) and title:
+                jobs[urljoin(page, a)] = title
+        # The country is the place the title names, else the company's own.
+        return [(t, org, t if _where(t) else {"tn": "Tunisia", "fr": "France"}.get(home, home), u, "", "") for u, t in jobs.items()]
+    r = requests.post(f"https://apply.workable.com/api/v3/accounts/{name}/jobs", json={"query": ""}, timeout=30).json()
+    return [(j["title"], BOARD_NAMES.get(name) or name.replace("-", " ").title(),
+             "; ".join(f'{l.get("city", "")} {l.get("country", "")}' for l in j.get("locations") or [j.get("location") or {}])
+             + (" remote" if j.get("remote") else ""), f"https://apply.workable.com/{name}/j/{j['shortcode']}/",
+             (j.get("published") or "")[:10], "") for j in r.get("results", [])]
 
 
 def company_boards(keywords):
     """Open jobs at the companies in COMPANY_BOARDS, kept when they are in your countries or remote."""
     from concurrent.futures import ThreadPoolExecutor
-    tasks = [(ats, name) for ats, names in COMPANY_BOARDS.items() for name in names]
+    tasks = [(ats, name) for ats, names in COMPANY_BOARDS.items() for name in names] + [("page", c[0]) for c in CAREER_PAGES]
 
     def one(t):
         try:
