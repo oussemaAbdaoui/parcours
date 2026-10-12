@@ -200,6 +200,18 @@ Audit: 879 offers; UK 127 offers but 6 strong; 21 Academic Positions offers and 
 - [x] **Enrichment, order**: about 70 pages are opened per run for about 400 new offers, in listing order. Now the offers whose listing promises most are opened first (the score before the "unread" cap: up to 84 today), and the store cap ranks unread offers by that too.
 - [x] **Sources, re-work**: offers read and dropped as dealbreakers (236 and 434 in the last two cloud runs) were found again as new, and opened, proxied and read by Claude again. They are remembered with a fingerprint of the profile that judged them (`offers_dropped`) and skipped for 30 days unless the profile changes.
 
+### Round 2
+Audit: professors for 11 of your 16 countries were missing; master's only for France, Germany, Italy and Erasmus Mundus; some professors' first email was at a university they left.
+- [x] **Academia, OpenAlex allowance**: OpenAlex now allows 1,000 requests a day without a key and a country takes 130-200; the weekly run stopped at the sixth country with HTTP 429, so NL, LU, SE, DK, TN, NO, FI, MA, IE and the UK never had professors. Now daily, stalest countries first, stopping cleanly before the allowance runs out and keeping what is stored; a dropped connection is retried. Optional: a free OpenAlex key as the `OPENALEX_API_KEY` secret makes it faster.
+- [x] **Academia, emails**: ORCID often lists an address at a former university (a Chalmers professor with an @fau.de one). Addresses at the current school's domain now come first, the homepage and arXiv are tried when ORCID has none there, and the app marks the others "not at their current school, maybe an old address".
+- [x] **Master's, Finland**: Studyinfo (opintopolku.fi) through its public API: 30 English-taught university master's in your fields (Aalto, Helsinki, Tampere, Oulu, Jyväskylä...), with the application window (mostly 7 Dec 2026 to 5-21 Jan 2027), the tuition fee and the scholarship range (up to 100% at most). Universities of applied sciences left out: their master's need two years of work.
+
+### Round 3
+Audit: 102 of 104 company-board readings, all 10 Jobindex and all 5 We Work Remotely found no requirement; 5 jobs stored twice.
+- [x] **Enrichment and requirements, listing excerpts**: about twenty sources keep the listing's excerpt cut at 600 characters and count on the details step to open the page, but that step only opened offers under 400 characters. So a 400-600 character excerpt passed for the whole offer: scored as read (Free-Work "Développeur Python IA" at 87 on 600 characters), read by Claude on a company blurb, and its page never opened. Now an excerpt is a teaser until its page is tried (190 offers: company boards 115, HN 22, Free-Work 15, ETH 7...; Jobindex cards always), opened in order of promise, scored as unread (capped at 65), not read by Claude; when the page brings the full text, the excerpt's reading is dropped and Claude reads the whole offer. New test case (27).
+- [x] **Sources, duplicates**: copies of one job were compared by the raw company name ("Odido" and "Odido Nederland", "Telavox AB" and "Telavox", "ALTEN" and "ALTEN MAROC"), so 5 jobs were stored twice. Now the normalised company key everyone else uses; the stored copies fold into the one with the longer text on the next run.
+- Checked, fine: proxy pacing (5.4 MB in the last run, 161 of 800 MB this month); alerts fire (1-2 a run); Poli's failing step was a timeout before the retry was pushed.
+
 ## Log
 
 - 11 Oct: scoring, sources, requirements and part of enrichment done; Poli protected; UK added; this file started.

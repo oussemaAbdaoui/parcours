@@ -94,7 +94,8 @@ def extract(items, limit=400, budget=480, workers=4):
     # from now on. Raise MIN_VERSION only when old readings are wrong, not merely incomplete.
     # Only offers with their full text: a title alone tells Claude next to nothing, and score.js caps such offers
     # until their description arrives (they are read then).
-    todo = [x for x in items if (x.get("req") or {}).get("v", 0) < MIN_VERSION and len(x.get("desc") or "") >= 400][:limit]
+    todo = [x for x in items if (x.get("req") or {}).get("v", 0) < MIN_VERSION and len(x.get("desc") or "") >= 400
+            and not x.get("teaser")][:limit]
     t0, done, errors, tokens = time.time(), 0, 0, [0, 0, 0]
     stop = []  # set on an error every later call would hit too (credits used up, bad key): no point trying 400 times
 

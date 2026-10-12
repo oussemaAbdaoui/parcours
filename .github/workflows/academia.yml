@@ -2,7 +2,7 @@ name: Refresh schools and professors
 
 on:
   schedule:
-    - cron: "10 3 * * 0" # weekly, Sunday 04:10 in Tunis
+    - cron: "10 3 * * *" # daily 04:10 in Tunis: about four countries a day within OpenAlex's free allowance, stalest first
   workflow_dispatch:
     inputs:
       dry_run:
@@ -35,5 +35,6 @@ jobs:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
           PYTHONUNBUFFERED: "1"
         run: python collector/academia.py ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.only && format('--only={0}', inputs.only) || '' }}

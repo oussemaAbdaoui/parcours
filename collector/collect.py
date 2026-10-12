@@ -207,8 +207,9 @@ def _dup_keys(x):
     """Keys that identify one posting across sites: title and org, and a long title alone, since aggregators
     (jobRxiv's "Jobfront Academia") repost PhDs under their own name. Short titles ("Software Engineer") need the org."""
     plain = lambda s: re.sub(r"[^a-z0-9]+", " ", unicodedata.normalize("NFD", (s or "").lower()).encode("ascii", "ignore").decode()).strip()
+    from enrich import _norm  # the company key everything else uses: "Odido Nederland" and "Telavox AB" are Odido, Telavox
     title = plain(x.get("title"))
-    keys = [(title, plain(x.get("org")))]
+    keys = [(title, _norm(x.get("org")))]
     if len(title.split()) >= 6:
         keys.append((title, ""))
     return keys
@@ -236,9 +237,18 @@ def merge(mine, others, found, now, origin):
             x["foundAt"], x["origin"] = now, origin
             by_id[x["id"]] = x
             new += 1
+    # Copies stored twice before company names were compared normalised ("Odido" and "Odido Nederland"): the one
+    # with the longer text stays.
+    first, twice = {}, set()
+    for x in sorted(by_id.values(), key=lambda x: -len(x.get("desc") or "")):
+        k = _dup_keys(x)[0]
+        if k[1] and k in first:
+            twice.add(x["id"])
+        first.setdefault(k, x["id"])
     today = date.today().isoformat()
     cutoff = int((datetime.now(timezone.utc) - timedelta(days=MAX_AGE_DAYS)).timestamp() * 1000)
-    kept = [x for x in by_id.values() if x.get("foundAt", now) >= cutoff and not (x.get("deadline") and x["deadline"] < today)]
+    kept = [x for x in by_id.values() if x.get("foundAt", now) >= cutoff and not (x.get("deadline") and x["deadline"] < today)
+            and x["id"] not in twice]
     kept.sort(key=lambda x: x["foundAt"], reverse=True)  # the store cap applies later, by score (keep_best)
     kept_ids = {x["id"] for x in kept}
     removed = [i for i in by_id if i not in kept_ids]
@@ -483,7 +493,8 @@ def main():
     items, new, removed = merge(mine, others, found, now, origin)
     print(f"{len(found)} found, {new} new, {len(items)} kept")
 
-    from enrich import company_ratings, details
+    from enrich import company_ratings, details, mark_teasers
+    mark_teasers(items)  # listing excerpts count as unread until their page is tried
     # Pages are opened in the order of what each listing promises (the score before the unread cap), so the offers
     # most likely to be strong are read first instead of whichever came first.
     early, early_pot = {}, {}

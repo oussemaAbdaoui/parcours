@@ -278,14 +278,41 @@ PROMISING = re.compile(r"\b(ai|ia|ml|machine learning|deep learning|llm|genai|da
                        r"engineer|ing[ée]nieur\w*|backend|full.?stack|devops|cloud|nlp|vision|research|recherche|phd|doctora\w*|th[èe]se)\b", re.I)
 
 
+TEASER_MAX = 600  # boards' listing excerpts are cut at 600 characters (sources.py)
+FULL_LISTING = {"LinkedIn", "Indeed"}  # their listings carry the whole description (JobSpy, the LinkedIn page)
+EXCERPT_SOURCES = {"Jobindex"}  # listing cards longer than 600 characters that are still only an excerpt
+
+
+def mark_teasers(items):
+    """x["teaser"] for offers whose text is only the listing's excerpt (600 characters at most) and whose page was
+    never tried: a 400-600 character excerpt passed for the full text, so it was scored as read, read by Claude
+    (102 of 104 company-board readings found no requirement) and its page never opened."""
+    for x in items:
+        short = len(x.get("desc") or "") <= TEASER_MAX or x.get("source") in EXCERPT_SOURCES
+        if x.get("source") not in FULL_LISTING and short and not x.get("detailed"):
+            x["teaser"] = True
+        else:
+            x.pop("teaser", None)
+
+
+def _after_attempt(x, before):
+    """One attempt per offer. When the page brought a much longer text, the reading made on the excerpt is dropped,
+    so Claude reads the whole offer."""
+    x["detailed"] = True
+    x.pop("teaser", None)
+    if len(x.get("desc") or "") > before + 300:
+        x.pop("req", None)
+
+
 def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, budget=360, priority=None):
     """Opens offer pages whose stored description is short and fills desc, deadline, salary, type.
     Stops when the time budget (seconds) runs out; the rest is picked up on later runs."""
     t0 = time.time()
     # Short descriptions, academic offers read once more for the contact they usually name at the bottom, and
     # descriptions cut at the old 2500-character limit (read again once, to get their candidate requirements).
-    # An offer still short after its attempt is tried once more when the page reader improves (READER_V).
-    short = lambda x: len(x.get("desc") or "") < 400 and (not x.get("detailed") or x.get("readerV", 1) < READER_V)
+    # An offer still short after its attempt is tried once more when the page reader improves (READER_V). A teaser
+    # (the listing's excerpt, see mark_teasers) is opened like a short text.
+    short = lambda x: (len(x.get("desc") or "") < 400 or x.get("teaser")) and (not x.get("detailed") or x.get("readerV", 1) < READER_V)
     todo = [x for x in items if x.get("source") != "LinkedIn" and x.get("url", "").startswith("http")
             and (only_sources is None or x.get("source") in only_sources)
             and (short(x) or (x.get("source") in ACADEMIC and not x.get("contactsChecked"))
@@ -304,6 +331,7 @@ def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, 
     for x in plain:
         if time.time() - t0 > budget * 0.5:
             break
+        before = len(x.get("desc") or "")
         try:
             page = Fetcher.get(x["url"], stealthy_headers=True, timeout=20, follow_redirects=True)
             if page.status == 429:
@@ -314,7 +342,7 @@ def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, 
                 failed += 1
         except Exception:
             failed += 1
-        x["detailed"] = True  # one attempt per offer
+        _after_attempt(x, before)
         time.sleep(1.2)
     if hard:
         from scrapling.fetchers import StealthySession
@@ -323,6 +351,7 @@ def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, 
                 for x in hard:
                     if time.time() - t0 > budget:
                         break
+                    before = len(x.get("desc") or "")
                     try:
                         page = session.fetch(x["url"], network_idle=False, timeout=30000)
                         if page.status == 200 and _apply_page(x, page):
@@ -331,7 +360,7 @@ def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, 
                             failed += 1
                     except Exception:
                         failed += 1
-                    x["detailed"] = True
+                    _after_attempt(x, before)
                     time.sleep(1.2)
         except Exception as e:
             return done, f"stealth browser: {str(e)[:80]}"

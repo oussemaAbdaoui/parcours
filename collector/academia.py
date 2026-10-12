@@ -12,7 +12,7 @@
    neither allows automated reading.
 
 Stored in Postgres (datasets sets academia-schools and academia-people), the run report in parcours:academia:meta; refreshed
-weekly by .github/workflows/academia.yml (python collector/academia.py [--dry-run] [--only=fr,ca] [--out=preview.json]).
+daily by .github/workflows/academia.yml, stalest countries first within OpenAlex's free allowance (python collector/academia.py [--dry-run] [--only=fr,ca] [--out=preview.json]).
 """
 import io
 import json
@@ -46,9 +46,30 @@ http = requests.Session()
 http.headers.update(UA)
 
 
+class OutOfCredits(Exception):
+    """OpenAlex's daily allowance is spent (1,000 requests without a key): the rest waits for the next run."""
+
+
+CREDITS = {"left": None}  # OpenAlex requests left today, from its X-RateLimit-Remaining header
+COUNTRY_COST = 250  # about what one country takes (measured 130 for Sweden, about 200 for France)
+
+
 def get_json(url, params=None, pause=0.15, tries=3):
+    openalex = "api.openalex.org" in url
+    if openalex and os.environ.get("OPENALEX_API_KEY"):  # a free key raises the daily allowance
+        params = {**(params or {}), "api_key": os.environ["OPENALEX_API_KEY"]}
     for i in range(tries):
-        r = http.get(url, params=params, timeout=45)
+        try:
+            r = http.get(url, params=params, timeout=45)
+        except (requests.ConnectionError, requests.Timeout):  # a dropped connection is retried like a 5xx
+            if i == tries - 1:
+                raise
+            time.sleep(2 + 3 * i)
+            continue
+        if openalex and r.headers.get("X-RateLimit-Remaining", "").isdigit():
+            CREDITS["left"] = int(r.headers["X-RateLimit-Remaining"])
+        if openalex and r.status_code == 429 and CREDITS["left"] == 0:
+            raise OutOfCredits("OpenAlex daily allowance used up")
         if r.status_code == 429 or r.status_code >= 500:
             time.sleep(2 + 3 * i)
             continue
@@ -263,19 +284,34 @@ def from_arxiv(author_id, name, limit=2):
     return [], None
 
 
-def contacts(p):
-    """Fills p["emails"] with {email, source, url} and p["homepage"]."""
+def root_domain(url):
+    """chalmers.se from https://www.chalmers.se/en/ (three labels for ac.uk-style domains)."""
+    host = re.sub(r"^https?://", "", str(url or "")).split("/")[0].split(":")[0].lower()
+    labels = [x for x in host.split(".") if x]
+    if len(labels) >= 3 and labels[-2] in ("ac", "co", "edu", "gov", "org") and len(labels[-1]) == 2:
+        return ".".join(labels[-3:])
+    return ".".join(labels[-2:]) if len(labels) >= 2 else ""
+
+
+def contacts(p, domain=""):
+    """Fills p["emails"] with {email, source, url} and p["homepage"]. With the school's domain, addresses there come
+    first and the next source is tried when ORCID lists only addresses elsewhere (an old university's)."""
+    here = lambda e: bool(domain) and (e["email"].endswith("@" + domain) or e["email"].endswith("." + domain))
     found = []
     o_emails, o_urls = from_orcid(p.get("orcid"))
     found += [{"email": e.lower(), "source": "ORCID (public)", "url": f"https://orcid.org/{p['orcid']}"} for e in o_emails]
     home = next((u for u in o_urls if not re.search(r"linkedin|twitter|x\.com|github|scholar\.google|researchgate|orcid", u, re.I)), "")
     p["homepage"] = home
     p["links"] = [u for u in o_urls if u != home][:4]
-    if not found and home:
+    if not any(map(here, found)) and home and (not found or domain):
         found += [{"email": e, "source": "Homepage", "url": home} for e in from_page(home, p["name"])]
-    if not found:
+    if not any(map(here, found)) and (not found or domain):
         es, src = from_arxiv(p["id"], p["name"])
         found += [{"email": e, "source": "Their arXiv paper", "url": src} for e in es]
+    for e in found:
+        if domain and not here(e):
+            e["elsewhere"] = True  # not at their current school: possibly an old address
+    found.sort(key=lambda e: not here(e))
     p["emails"] = list({e["email"]: e for e in found}.values())[:3]
 
 
@@ -339,7 +375,7 @@ def run_country(c, topics, since, log):
         p["score"], p["parts"] = score(p, max_papers)
     keep = sorted(keep, key=lambda p: -p["score"])[:PER_COUNTRY]
     for i, p in enumerate(keep):
-        contacts(p)
+        contacts(p, root_domain((schools.get(p.get("ror")) or {}).get("website")))
         if i % 10 == 9:
             log(f"    {c}: contacts for {i + 1}/{len(keep)}")
     for p in keep:
@@ -376,14 +412,26 @@ def main():
     only = only or [c for c in (state.get("profile") or {}).get("countries", []) if c in COUNTRIES] or list(COUNTRIES)
     topics = topics_for(state)
     since = date(date.today().year - 3, 1, 1).isoformat()
-    print(f"topics: {topics}, since {since}, countries: {only}")
+    # Stalest countries first: OpenAlex allows about four countries a day without a key, so each daily run takes
+    # the ones refreshed longest ago and the others keep what is stored.
+    meta = (store.get_json(META_KEY) if store else None) or {}
+    before = meta.get("countries") or {}
+    only = sorted(only, key=lambda c: (before.get(c) or {}).get("at", meta.get("at", 0)) if (before.get(c) or {}).get("ok") else 0)
+    print(f"topics: {topics}, since {since}, countries (stalest first): {only}")
     schools, people, status = [], [], {}
     for c in only:
+        if CREDITS["left"] is not None and CREDITS["left"] < COUNTRY_COST:
+            status[c] = {**(before.get(c) or {}), "waiting": "OpenAlex allowance for today used: next run"}
+            continue
         try:
             s, p = run_country(c, topics, since, print)
             schools += s
             people += p
-            status[c] = {"ok": True, "schools": len(s), "people": len(p), "emails": sum(1 for x in p if x.get("emails"))}
+            status[c] = {"ok": True, "at": int(time.time() * 1000), "schools": len(s), "people": len(p), "emails": sum(1 for x in p if x.get("emails"))}
+        except OutOfCredits as e:  # this country stays as stored; the next run starts with it
+            status[c] = {**(before.get(c) or {}), "waiting": str(e)}
+            CREDITS["left"] = 0
+            print(f"  {c}: {e}, kept as stored")
         except Exception as e:
             status[c] = {"ok": False, "error": str(e)[:200]}
             print(f"  {c}: ERROR {e}")
@@ -397,7 +445,7 @@ def main():
         for p in sorted(people, key=lambda p: -p["score"])[:12]:
             print(f"  [{p['c']}] {p['score']:3} {p['name'][:28]:28} {p['instName'][:34]:34} h{p.get('h')} th{(p.get('theses') or {}).get('count', '-')} {[e['email'] for e in p.get('emails') or []]}")
         return
-    ok = [c for c, s in status.items() if s["ok"]]
+    ok = [c for c, s in status.items() if s.get("ok") and not s.get("waiting")]
     # Countries that failed keep what was stored for them last time.
     if ok:
         import pg
@@ -406,7 +454,8 @@ def main():
         keep_p = [r for r in pg.dataset(PEOPLE).values() if r.get("c") not in ok]
         save_set(SCHOOLS, keep_s + schools, now)
         save_set(PEOPLE, keep_p + people, now)
-    store.cmd("SET", META_KEY, json.dumps({"at": int(time.time() * 1000), "topics": topics, "since": since, "countries": status}))
+    store.cmd("SET", META_KEY, json.dumps({"at": int(time.time() * 1000), "topics": topics, "since": since, "countries": {**before, **status},
+                                           **({"creditsLeft": CREDITS["left"]} if CREDITS["left"] is not None else {})}))
     print("saved")
 
 

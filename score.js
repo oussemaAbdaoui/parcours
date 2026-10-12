@@ -888,7 +888,7 @@
     if (!blockers.length && offRegister && total > STRETCH_CAP) { total = STRETCH_CAP; capped = 'employer not on the UK visa sponsor register'; }
     // Requirements unread (no full description yet): degree, experience and languages are unknown, so the offer
     // cannot rank as a strong match on its title alone. Read once its description arrives.
-    const checked = (offer.desc || '').length >= UNCHECKED_DESC;
+    const checked = (offer.desc || '').length >= UNCHECKED_DESC && !offer.teaser; // a listing excerpt is not the offer
     const potential = Math.round(total); // what the listing alone suggests, before the unread cap: the collector keeps and reads these first
     if (!checked && !blockers.length && total > UNCHECKED_CAP) { total = UNCHECKED_CAP; capped = 'requirements not read yet'; }
     // Before the full text is read, only reasons that are certain from the title and listing rule an offer out (a

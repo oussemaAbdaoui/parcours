@@ -614,7 +614,7 @@ textarea{height:auto}
 .pjf .ck{display:inline-flex;gap:6px;align-items:center;margin:0 14px 6px 0;font-size:13.5px;cursor:pointer}
 .pjf .pjsub{display:block;margin:0 0 6px 22px}
 .pjacts{margin-top:10px}
-.acems{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:13.5px}.acem small{color:var(--muted)}.acem.guess .mono{color:var(--muted);font-style:italic}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
+.acems{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:13.5px}.acem small{color:var(--muted)}.acem.guess .mono,.acem.old .mono{color:var(--muted);font-style:italic}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
 .new{background:var(--red-t);color:var(--red-ink)}
 .score{width:48px;height:48px;border-radius:16px;font-weight:800;font-size:15px}
 .score.weak{border:0;background:var(--surface-2);font-size:20px}
@@ -2473,7 +2473,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
   openDlg({org:p.inst||p.name,role:`PhD contact: ${p.name}`,c:c?c[0]:'gl',d:'phd',p:'',link:safeUrl(p.openalex||''),notes:`Supervisor lead from the finder (${labQ.q}). Latest paper: ${p.latest?p.latest.title:''}`});});
 /* master's programmes and scholarships (Germany, France, Italy, Erasmus Mundus), collected once a day */
 let msData=null,msF={t:'',c:'',lang:'',q:'',sort:'fit',closed:false},msMax=40;
-const MS_C={de:['🇩🇪','Germany'],fr:['🇫🇷','France'],it:['🇮🇹','Italy'],ch:['🇨🇭','Switzerland'],nl:['🇳🇱','Netherlands'],be:['🇧🇪','Belgium'],ie:['🇮🇪','Ireland'],eu:['🇪🇺','Several countries (Erasmus Mundus)']};
+const MS_C={de:['🇩🇪','Germany'],fr:['🇫🇷','France'],it:['🇮🇹','Italy'],ch:['🇨🇭','Switzerland'],nl:['🇳🇱','Netherlands'],be:['🇧🇪','Belgium'],ie:['🇮🇪','Ireland'],fi:['🇫🇮','Finland'],eu:['🇪🇺','Several countries (Erasmus Mundus)']};
 async function loadMasters(){if(!msData)msData=await cachedApi('/api/opps?set=masters',j=>{msData=j;if(/masters/.test(location.hash))refreshView();});return msData;}
 const msDays=x=>x.deadline?Math.round((tms(x.deadline)-tms(today()))/864e5):null;
 const MS_AI=/artificial intelligence|machine learning|ai|data|comput|informati|software|robot|cyber/i,MS_ON=/digital|engineering|technolog|mathemat|stem/i,MS_OFF=/architecture|music|arts?|medic|drug|pharma|clinical|health|nursing|theolog|law|journalis|film|dance|agricult/i;
@@ -3679,7 +3679,7 @@ function acPersonRow(p,withSchool=true){
   const th=p.theses&&p.theses.count,flag=(AC_C[p.c]||[''])[0],q=encodeURIComponent(p.name);
   const parts=p.parts||{},tip=`Topic fit ${parts.fit||0}/45 · Supervision ${parts.supervision||0}/25 · Activity ${parts.activity||0}/10 · Impact ${parts.impact||0}/20`;
   const sc=p.score>=70?'s-hi':p.score>=50?'s-mid':'s-lo';
-  const em=(p.emails||[]).map(e=>`<span class="acem${e.guess?' guess':''}"><span class="mono">${esc(e.email)}</span> <button class="linkbtn" type="button" data-copy="${esc(e.email)}">Copy</button> <small>${safeUrl(e.url)?`<a href="${esc(e.url)}" target="_blank" rel="noopener noreferrer">${esc(e.source)}</a>`:esc(e.source)}</small></span>`).join('');
+  const em=(p.emails||[]).map(e=>`<span class="acem${e.guess?' guess':e.elsewhere?' old':''}"><span class="mono">${esc(e.email)}</span> <button class="linkbtn" type="button" data-copy="${esc(e.email)}">Copy</button> <small>${safeUrl(e.url)?`<a href="${esc(e.url)}" target="_blank" rel="noopener noreferrer">${esc(e.source)}</a>`:esc(e.source)}${e.elsewhere?' · not at their current school, maybe an old address':''}</small></span>`).join('');
   const links=[safeUrl(p.homepage)?[p.homepage,'Homepage']:null,p.orcid?['https://orcid.org/'+p.orcid,'ORCID']:null,['https://openalex.org/'+p.id,'Papers'],
     p.theses&&p.theses.id?['https://theses.fr/'+p.theses.id,'Theses directed']:null,
     ['https://scholar.google.com/citations?view_op=search_authors&mauthors='+q,'Google Scholar'],

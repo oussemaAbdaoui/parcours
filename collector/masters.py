@@ -289,6 +289,60 @@ def country_schemes(country):
             for c, title, org, city, url, desc, dlt, dl, elig in SCHEMES if c == country]
 
 
+# ---------- Finland ----------
+
+STUDYINFO = "https://opintopolku.fi/konfo-backend/"
+
+
+def studyinfo_fi(fams, limit=40):
+    """Studyinfo (opintopolku.fi), Finland's national admissions service, through its public search API: university
+    master's taught in English, with the application window, tuition fee and the scholarship range. Universities of
+    applied sciences are left out (their master's need two years of work after the bachelor's), as are combined
+    bachelor's and master's."""
+    terms = terms_for(fams, "en")
+    hits = {}
+    for t in terms[:6]:
+        j = _get(STUDYINFO + "search/koulutukset", params={"keyword": t, "lng": "en", "size": 50, "page": 1, "koulutustyyppi": "yo",
+                                                           "opetuskieli": "oppilaitoksenopetuskieli_4", "sort": "score", "order": "desc"}).json()
+        for h in j.get("hits") or []:
+            degrees = [((d.get("nimi") or {}).get("en") or "") for d in h.get("tutkintonimikkeet") or []]
+            name = (h.get("nimi") or {}).get("en") or ""
+            if any(d.startswith("Master") for d in degrees) and not any(d.startswith("Bachelor") for d in degrees) \
+                    and not NOISE.search(name) and h.get("oid") not in hits:
+                hits[h["oid"]] = (h, _matches(name, terms + ["data", "software", "computing", "intelligen", "machine", "robot"]))
+        time.sleep(0.5)
+    out = []
+    for oid, (h, hit) in list(hits.items())[:limit]:
+        if not hit:
+            continue
+        try:
+            k = _get(STUDYINFO + f"koulutus/{oid}").json()
+            t = _get(STUDYINFO + f"toteutus/{k['toteutukset'][0]['oid']}").json() if k.get("toteutukset") else {}
+        except Exception:
+            continue
+        today = time.strftime("%Y-%m-%dT%H:%M")
+        windows = sorted(((w.get("alkaa") or ""), (w.get("paattyy") or "")) for hk in t.get("hakutiedot") or []
+                         for ht in hk.get("hakukohteet") or [] for w in ht.get("hakuajat") or [] if (w.get("paattyy") or "") > today)
+        meta = t.get("metadata") or {}
+        opetus = meta.get("opetus") or {}
+        fee = _clean((opetus.get("maksullisuusKuvaus") or {}).get("en"))
+        grant = opetus.get("apuraha") or {}
+        name = (h.get("nimi") or {}).get("en") or ""
+        place = (((t.get("tarjoajat") or [{}])[0].get("paikkakunta") or {}).get("nimi") or {})
+        when = f"Applications {windows[0][0][:10]} to {windows[0][1][:10]}" if windows else "Application dates not announced yet"
+        out.append({
+            "id": "fi:" + oid, "type": "program", "country": "fi", "source": "Studyinfo (Finland)", "title": name,
+            "org": (((h.get("toteutustenTarjoajat") or {}).get("nimi")) or {}).get("en") or "", "city": place.get("fi") or place.get("sv") or "",
+            "lang": "English", "url": f"https://opintopolku.fi/konfo/en/koulutus/{oid}", "terms": hit,
+            "scholarship": bool(grant.get("max")),
+            "desc": " ".join(x for x in [_clean((h.get("kuvaus") or {}).get("en"))[:500], fee[:260],
+                                          f"Scholarships: {grant.get('min', 0)} to {grant['max']}% of the tuition fee." if grant.get("max") else ""] if x),
+            "deadline": windows[0][1][:10] if windows else "", "deadlineText": when,
+        })
+        time.sleep(0.3)
+    return out
+
+
 # ---------- EU ----------
 
 def erasmus_mundus(fams):
@@ -341,10 +395,11 @@ SOURCES = [
     ("Universitaly", lambda f, l: universitaly(f, l)),
     ("Italy schemes", lambda f, l: italy_schemes()),
     ("Erasmus Mundus", lambda f, l: erasmus_mundus(f)),
+    ("Studyinfo (Finland)", lambda f, l: studyinfo_fi(f)),
 ] + [(f"Schemes {c.upper()}", (lambda c: lambda f, l: country_schemes(c))(c)) for c in sorted({x[0] for x in SCHEMES})]
 # The country each source covers: a source runs only when its country is in the profile ("eu" always runs).
 SOURCE_COUNTRY = {"DAAD programmes": "de", "DAAD scholarships": "de", "Mon Master": "fr", "Campus France": "fr",
-                  "Universitaly": "it", "Italy schemes": "it", "Erasmus Mundus": "eu", **{f"Schemes {x[0].upper()}": x[0] for x in SCHEMES}}
+                  "Universitaly": "it", "Italy schemes": "it", "Erasmus Mundus": "eu", "Studyinfo (Finland)": "fi", **{f"Schemes {x[0].upper()}": x[0] for x in SCHEMES}}
 
 
 # Master's countries searched even when they are not job countries: EU-wide programmes, and Italy (your choice,
