@@ -97,7 +97,9 @@ def offer(j):
 
 
 def jobs(s, pages=JOB_PAGES):
-    """The signed-in "For you" feed. The server keeps the paging position for the session."""
+    """The signed-in "For you" feed. The server keeps the paging position for the session. It only shows jobs matching
+    the preferences saved in the Poli account (99 for Software Engineering, of Poli's 19,500), so all_jobs() adds
+    the visitor feed, asked for in narrow slices."""
     out, seen = [], set()
     for i in range(pages):
         data = call(s, "jobs/", {"initialFetch": i == 0})
@@ -108,6 +110,48 @@ def jobs(s, pages=JOB_PAGES):
         if not data.get("moreJobsExist"):
             break
     return out
+
+
+# The visitor feed returns 10 jobs per set of preferences and no further page, so it is asked once per category,
+# seniority, location and sponsorship need: 144 requests, about 300 jobs (3 times the signed-in feed).
+# Ids from app.withpoli.com/api/jobs/{categories,seniorities,locations}.
+CATEGORIES = (6, 8, 3)  # Engineering (Software), Data, Research (Technical)
+SENIORITIES = (1, 2, 3, 5)  # Entry-level, Junior, Mid-level, Unclear (Senior left out)
+LOCATIONS = (1, 2, 3, 4, 5, 6)  # London, Scotland, Wales, Northern Ireland, Rest of UK, Other (remote)
+
+
+def visitor_jobs():
+    import itertools
+    out, failed = {}, 0
+    for cat, sen, loc, spon in itertools.product(CATEGORIES, SENIORITIES, LOCATIONS, (True, False)):
+        prefs = {"jobTypes": [1, 3], "jobCategories": [cat], "jobSeniorities": [sen], "jobLocations": [loc],
+                 "immediateSponsorshipRequired": spon}
+        try:
+            r = requests.post(BASE + "jobs", json={"initialFetch": True, "visitorPreferences": prefs}, headers=UA, timeout=30)
+            r.raise_for_status()
+            for j in (r.json().get("data") or {}).get("jobs") or []:
+                if j.get("active", True) and j.get("url"):
+                    out[j["id"]] = j
+        except (requests.RequestException, ValueError):
+            failed += 1
+        time.sleep(0.3)
+    if failed > 20:
+        raise RuntimeError(f"Poli visitor feed: {failed} of 144 requests failed")
+    return [offer(j) for j in out.values()]
+
+
+_all = None
+
+
+def all_jobs():
+    """The signed-in feed (when there is an account) and the visitor slices, once per run (the offers source and the
+    jobs archive both use it)."""
+    global _all
+    if _all is None:
+        s = session()
+        mine = jobs(s) if s else []
+        _all = list({x["id"]: x for x in visitor_jobs() + mine}.values())
+    return _all
 
 
 def company(c):
@@ -207,7 +251,7 @@ def run(store, dry=False, force=False):
     pg.poli_companies(companies, now)
     pg.poli_people(people, now)
     try:  # the jobs feed too, kept in its own table (the offer store ages offers out after 45 days)
-        pg.poli_jobs(jobs(session()), now)
+        pg.poli_jobs(all_jobs(), now)
     except Exception as e:
         status["Jobs archive"] = {"ok": False, "count": 0, "error": str(e)[:160]}
     store.cmd("SET", META_KEY, json.dumps({"at": now, "companies": len(companies), "people": len(people),
@@ -322,6 +366,6 @@ if __name__ == "__main__":
             sys.exit(0)
     s = session()
     print("signed in" if s else "no account", call(s, "auth/status") if s else "")
-    js = jobs(s, pages=3) if s else []
+    js = all_jobs()
     print(len(js), "jobs, e.g.", [(x["title"], x["org"]) for x in js[:3]])
     print(run(None, dry=True, force=True))

@@ -442,33 +442,11 @@ def linkedin_posts(keywords):
     return out
 
 
-# Poli category ids: Engineering (Software), Data, Research (Technical). Seniority ids: entry-level, junior, mid-level.
-POLI_CATEGORIES, POLI_SENIORITIES = (6, 8, 3), (1, 2, 3)
-
-
 def poli(keywords):
-    """Poli (withpoli.com), UK jobs at licensed visa sponsors. With a Poli account (POLI_EMAIL / POLI_PASSWORD) reads
-    the signed-in feed (poli.py); without one, the feed shown to signed-out visitors, which returns 10 offers per set
-    of preferences, so each category and seniority is asked for separately."""
+    """Poli (withpoli.com), UK jobs at licensed visa sponsors: the signed-in feed when there is a Poli account
+    (POLI_EMAIL / POLI_PASSWORD), and the signed-out visitor feed asked for in narrow slices (poli.all_jobs)."""
     import poli as poli_api
-    s = poli_api.session()
-    if s:
-        return poli_api.jobs(s)
-    out, seen = [], set()
-    for cat in POLI_CATEGORIES:
-        for sen in POLI_SENIORITIES:
-            prefs = {"jobTypes": [1], "jobCategories": [cat], "jobSeniorities": [sen],
-                     "jobLocations": [1, 2, 3, 4, 5, 6], "immediateSponsorshipRequired": True}
-            page = Fetcher.post(poli_api.BASE + "jobs", json={"initialFetch": True, "visitorPreferences": prefs},
-                                stealthy_headers=True, timeout=30)
-            if page.status != 200:
-                raise RuntimeError(f"HTTP {page.status} from app.withpoli.com")
-            time.sleep(UA_PAUSE)
-            for j in (page.json().get("data") or {}).get("jobs") or []:
-                if j.get("id") not in seen and j.get("active", True) and j.get("url"):
-                    seen.add(j["id"])
-                    out.append(poli_api.offer(j))
-    return out
+    return poli_api.all_jobs()
 
 
 # Places in your countries, for sources that list jobs worldwide (company boards, Hacker News): an offer is kept
