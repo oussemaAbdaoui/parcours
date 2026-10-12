@@ -519,7 +519,8 @@ COMPANY_BOARDS["lever"].append("aqemia.com")
 # Company careers pages with no job board behind them, read by the address pattern of their job pages: (company, page,
 # pattern, country when the title names none). The job text comes from the job page itself (enrich.details opens it).
 CAREER_PAGES = [("InstaDeep", "https://instadeep.com/careers/", r"/job-offer/\d+", "tn"),
-                ("Intigo", "https://www.intigo.net/careers/", r"/careers/\d+/?$", "tn")]
+                ("Intigo", "https://www.intigo.net/careers/", r"/careers/\d+/?$", "tn"),
+                ("Kumulus Water", "https://www.kumuluswater.com/careers", r"/careers/[a-z0-9-]+$", "tn")]
 # French Tech Next40 / 120 boards (data/french-tech-120.csv), found from their careers pages and checked by company
 # name on 12 Oct 2026; same-named boards of other companies (Comet, Swan, Sweep in the US) were left out.
 # Lever and Ashby return no company name: the board name is shown unless named here.
@@ -579,6 +580,29 @@ def _board(ats, name):
         from html import unescape
         from urllib.parse import urljoin
         h = requests.get(page, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128 Safari/537.36"}, timeout=30).text
+        # Job postings embedded in the page (schema.org JobPosting) give each job's title, address and place.
+        posted = []
+
+        def walk(o):
+            if isinstance(o, list):
+                for v in o:
+                    walk(v)
+            elif isinstance(o, dict):
+                if o.get("@type") == "JobPosting" and o.get("title"):
+                    locs = o.get("jobLocation") or []
+                    addr = [(l.get("address") or {}) for l in (locs if isinstance(locs, list) else [locs]) if isinstance(l, dict)]
+                    place = "; ".join(f'{a.get("addressLocality", "")}, {a.get("addressCountry", "")}' for a in addr)
+                    posted.append((o["title"], org, place.replace(", TN", ", Tunisia").replace(", FR", ", France") or "Tunisia",
+                                   urljoin(page, o.get("url") or page), str(o.get("datePosted") or "")[:10], o.get("description") or ""))
+                for v in o.values():
+                    walk(v)
+        for b in re.findall(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>', h, re.S):
+            try:
+                walk(json.loads(b))
+            except ValueError:
+                pass
+        if posted:
+            return posted
         jobs = {}
         for a, t in re.findall(r'<a[^>]*href="([^"#]+)"[^>]*>(.*?)</a>', h, re.S):
             title = re.sub(r"\s+", " ", unescape(re.sub(r"<[^>]+>", " ", t))).strip()
