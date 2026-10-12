@@ -2292,7 +2292,7 @@ async function ensureCollected(box){
   if(colData&&!Array.isArray(colData.items))colData=null;
   if(colData)return true;
   if(!caps.online){if(box)box.innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return false;}
-  try{colData=await cachedApi('/api/opps',j=>{if(Array.isArray(j.items)){colData=j;refreshView();}});if(!Array.isArray(colData.items))throw {code:'bad',message:'Collected offers came back empty.'};}catch(e){colData=null;if(box)box.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load collected offers.'))}</p>`;return false;}
+  try{colData=await cachedApi('/api/opps',j=>{if(Array.isArray(j.items)){colData=j;refreshView();}});if(!Array.isArray(colData.items))throw {code:'bad',message:'Collected offers came back empty.'};}catch(e){colData=null;if(box)box.innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Neon Postgres and Upstash Redis in Vercel.'},'Could not load collected offers.'))}</p>`;return false;}
   if(colPrev===null){colPrev=state.oppsSeenAt||0;const mx=Math.max(0,...colData.items.map(x=>x.foundAt||0));if(mx>(state.oppsSeenAt||0)&&!demo){state.oppsSeenAt=mx;save();}}
   return true;
 }
@@ -2506,7 +2506,7 @@ function mastersPage(t){
   ['msT','msC','msL','msS','msX'].forEach(id=>$('#'+id).addEventListener('change',upd));
   $('#msQ').addEventListener('input',upd);
   if(!caps.online){$('#msBox').innerHTML='<p class="hint">Available in the deployed app once you are signed in.</p>';return;}
-  loadMasters().then(renderMasters).catch(e=>{$('#msBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load master\'s programmes.'))}</p>`;});
+  loadMasters().then(renderMasters).catch(e=>{$('#msBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Neon Postgres and Upstash Redis in Vercel.'},'Could not load master\'s programmes.'))}</p>`;});
 }
 function renderMasters(){
   const b=$('#msBox');if(!b||!msData)return;
@@ -2617,7 +2617,7 @@ async function loadCollected(){
   const b=$('#colBox');if(!b)return;
   if(!caps.online){b.innerHTML='<p class="hint" style="margin:0">Available in the deployed app once you are signed in.</p>';return;}
   if(!colData){b.innerHTML='<p class="hint" style="margin:0">Loading…</p>';
-    try{colData=await api('/api/opps');}catch(e){b.innerHTML=`<p class="hint" style="margin:0">${esc(errText(e,{http_501:'Needs Upstash Redis: add it in Vercel (Storage) to turn on collection.'},'Could not load collected opportunities.'))}</p>`;return;}
+    try{colData=await api('/api/opps');}catch(e){b.innerHTML=`<p class="hint" style="margin:0">${esc(errText(e,{http_501:'Needs Neon Postgres and Upstash Redis: add them in Vercel (Storage) to turn on collection.'},'Could not load collected opportunities.'))}</p>`;return;}
     if(colPrev===null){colPrev=state.oppsSeenAt||0;const mx=Math.max(0,...colData.items.map(x=>x.foundAt||0));if(mx>(state.oppsSeenAt||0)&&!demo){state.oppsSeenAt=mx;save();}}}
   renderCollected();
 }
@@ -3372,7 +3372,7 @@ function sponsorsPage(tab){
     if(z){const sizes=[...new Set((d.companies||[]).map(c=>c.size).filter(Boolean))].sort();z.innerHTML='<option value="">Any size</option>'+sizes.map(s=>`<option ${poliF.size===s?'selected':''}>${esc(s)}</option>`).join('');}
     stats(d);renderSponsors();
     if(T==='companies')poliMarks().then(renderSponsors);
-  }).catch(e=>{$('#spBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load the sponsor directory.'))}</p>`;});
+  }).catch(e=>{$('#spBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Neon Postgres and Upstash Redis in Vercel.'},'Could not load the sponsor directory.'))}</p>`;});
 }
 
 /* Live Poli jobs (api/_poli.js, served at /api/opps?set=poli-live): the account's feed, every detail Poli has, and each company's jobs and sponsored staff */
@@ -3650,7 +3650,7 @@ function academiaPage(tab){
   if(T==='schools'&&!['topic','cs','name'].includes(acF.sort))acF.sort='topic';
   if(T==='professors'&&!['score','papers','h','theses'].includes(acF.sort))acF.sort='score';
   $('#view').innerHTML=`<h1>Schools and professors</h1>
-    <p class="sub">Every university and school in your countries, and the researchers working on your topics: who could supervise a thesis, teach in a master's you want, or back a scholarship application. Refreshed weekly.</p>
+    <p class="sub">Every university and school in your countries, and the researchers working on your topics: who could supervise a thesis, teach in a master's you want, or back a scholarship application. Refreshed daily, a few countries at a time.</p>
     <div id="acStats"></div>
     <div class="toolbar">
       <span class="seg" id="acTabs" role="group" aria-label="Show"><button type="button" data-ac="professors" aria-pressed="${T==='professors'}">Professors</button><button type="button" data-ac="schools" aria-pressed="${T==='schools'}">Schools</button></span>
@@ -3672,7 +3672,7 @@ function academiaPage(tab){
       <div class="stat"><b>${(d.people||[]).length}</b><span>Professors for you</span><small>${esc((d.topics||[]).slice(0,3).join(', '))}…</small></div>
       <div class="stat"><b>${(d.people||[]).filter(p=>(p.emails||[]).length).length}</b><span>With an email</span><small>${(d.people||[]).filter(p=>(p.emails||[]).some(e=>!e.guess)).length} found, the rest guessed</small></div></div>`:'';
     renderAcademia();
-  }).catch(e=>{$('#acBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Upstash Redis in Vercel.'},'Could not load schools and professors.'))}</p>`;});
+  }).catch(e=>{$('#acBox').innerHTML=`<p class="hint">${esc(errText(e,{http_501:'Needs Neon Postgres and Upstash Redis in Vercel.'},'Could not load schools and professors.'))}</p>`;});
 }
 const acSchool=id=>((acData&&acData.schools)||[]).find(s=>s.id===id);
 function acPersonRow(p,withSchool=true){
@@ -3719,7 +3719,7 @@ function acSchoolRow(s){
 }
 function renderAcademia(){
   const box=$('#acBox'),d=acData;if(!box||!d)return;
-  if(!d.at){box.innerHTML='<p class="hint">Nothing collected yet. Run the workflow "Refresh schools and professors" in GitHub Actions (it also runs every Sunday).</p>';return;}
+  if(!d.at){box.innerHTML='<p class="hint">Nothing collected yet. Run the workflow "Refresh schools and professors" in GitHub Actions (it also runs every day).</p>';return;}
   const words=acF.q.toLowerCase().split(/\s+/).filter(Boolean),has=t=>{t=t.toLowerCase();return words.every(w=>t.includes(w));};
   let rows,html;
   if(acF.tab==='professors'){
