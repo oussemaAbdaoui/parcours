@@ -240,6 +240,21 @@
     if (y !== null) return { lvl: 2, label: 'mid', years: y };
     return { lvl: null, label: 'not stated' };
   }
+  /* An experienced hire asked for in words, with no years stated: "proven track record", "strong experience in",
+     "solide expérience", "mehrjährige Berufserfahrung". Returns the phrase, or null. LinkedIn often keeps the
+     years in requirements the poster adds on the page, which its public listing leaves out, so these words are
+     the only sign left. */
+  const IMPLIED_EXP = new RegExp([
+    '\\b(?:proven|demonstrated|solid|strong|extensive|significant|substantial|considerable) (?:professional |industry |hands-on |practical |commercial )?(?:track record|experience|expertise)\\b',
+    // "you have a track record of", not "the team has a track record of" (what the company has)
+    '(?<!\\b(?:has|we have|they have|our) (?:a |an )?(?:long |proven |strong )?)\\btrack record (?:of|in)\\b',
+    '\\b(?:solide|forte|significative|confirmee|reussie|averee|premiere experience significative) experience\\b|\\bexperience (?:solide|significative|confirmee|averee|reussie|probante)\\b',
+    '\\b(?:fundierte|mehrjahrige|langjahrige|umfassende|nachweisliche) (?:berufs)?erfahrung\\b',
+  ].join('|'));
+  function impliedExperience(t) {
+    const m = t.match(IMPLIED_EXP);
+    return m ? m[0] : null;
+  }
   /* Experience asked by an offer: {min, max, label} or null. Numbers only count near an experience word,
      so "3-year contract" or "5 days a week" are ignored. When several are stated, the strictest minimum wins. */
   const EXP_WORD = '(?:experience|exp\\.?|d.experience|erfahrung|berufserfahrung|work experience|professional experience|in (?:a|the) (?:similar|same) role)';
@@ -730,6 +745,8 @@
     const gradStage = GRADUATE_STAGE.test(title);
     if (R && R.seniority === 'intern' && !gradStage) lv = { ...lv, lvl: 0, label: 'Internship' };
     else if (R && REQ_SENIORITY[R.seniority] && lv.lvl == null) lv = { ...lv, lvl: REQ_SENIORITY[R.seniority], label: R.seniority === 'entry' ? 'Entry level' : R.seniority };
+    // No years and no level stated, but the words ask for an experienced hire: mid level, not "not stated".
+    if (lv.lvl == null && !asked && !gradStage) { const ph = impliedExperience(body); if (ph) lv = { lvl: 2, label: `an experienced hire ("${ph}")` }; }
     if (offer.kind === 'phd' || offer.kind === 'master') parts.seniority = { v: mineY <= 4 ? 1 : 0.7, known: true, note: offer.kind === 'phd' ? 'PhD position' : "Master's programme" };
     else if (asked && lv.lvl !== 0) {
       // Years stated in the offer: compare them exactly with yours (the strongest signal of what the job expects).
