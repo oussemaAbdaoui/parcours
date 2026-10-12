@@ -470,6 +470,12 @@ def main():
             status["UK sponsor register"] = {"ok": not err, "count": n, **({"error": err} if err else {})}
         except Exception as e:
             status["UK sponsor register"] = {"ok": False, "count": 0, "error": str(e)[:160]}
+        try:  # French company register: staff, age, sector and closed companies, for employers with French offers
+            import fr_register
+            n, err = fr_register.refresh()
+            status["French company register"] = {"ok": not err, "count": n, **({"error": err} if err else {})}
+        except Exception as e:
+            status["French company register"] = {"ok": False, "count": 0, "error": str(e)[:160]}
     blocked = dealbreakers(found, state)
     report_blocked(blocked, "dealbreakers in new results")
     found = [x for x in found if x["id"] not in blocked]

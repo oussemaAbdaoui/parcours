@@ -1,21 +1,32 @@
 // Collected offers from Neon Postgres (table offers, written by every collector run: collector/pg.py). Each offer
 // is sent as the collector stored it, plus companyId (companies.id), sponsorId (the company's Poli sponsor
-// record) and, for UK offers, ukSponsor (the employer is on the UK register of licensed sponsors, which score.js uses).
+// record) and, for UK offers, ukSponsor (the employer is on the UK register of licensed sponsors, which score.js uses),
+// and employer: what the official register says about the company (collector/fr_register.py) and the lists it is on
+// (French Tech Next40 / 120).
 const { db } = require('./_db');
 
 // Returns { version, items } or null when no database is configured (the caller then reads Redis).
 async function offers() {
   const pool = db();
   if (!pool) return null;
-  const v = await pool.query('select coalesce(max(updated_at), 0) m, count(*) n from offers');
-  const version = v.rows[0].m + ':' + v.rows[0].n;
+  const v = await pool.query('select coalesce(max(updated_at), 0) m, count(*) n, (select coalesce(max(updated_at), 0) from companies) c from offers');
+  const version = v.rows[0].m + ':' + v.rows[0].n + ':' + v.rows[0].c;
   return {
     version,
     load: async () => (await pool.query(
-      'select o.data, o.company_id, c.poli_id, c.uk_sponsor, o.country from offers o left join companies c on c.id = o.company_id order by o.found_at desc nulls last'
+      'select o.data, o.company_id, c.poli_id, c.uk_sponsor, c.register, c.lists, o.country from offers o left join companies c on c.id = o.company_id order by o.found_at desc nulls last'
     )).rows.map((r) => ({ ...r.data, ...(r.company_id ? { companyId: r.company_id } : {}), ...(r.poli_id ? { sponsorId: r.poli_id } : {}),
-      ...(r.country === 'uk' && r.uk_sponsor != null ? { ukSponsor: r.uk_sponsor } : {}) })),
+      ...(r.country === 'uk' && r.uk_sponsor != null ? { ukSponsor: r.uk_sponsor } : {}), ...employer(r.register, r.lists) })),
   };
+}
+
+// The register facts the app shows, compact: {staff, founded, sector, category, town, closed, lists}.
+function employer(reg, lists) {
+  const e = {};
+  if (reg && !reg.none) Object.assign(e, { staff: reg.staff || '', founded: reg.founded || '', sector: reg.sector || '', category: reg.category || '',
+    town: reg.town || '', ...(reg.active === false ? { closed: true } : {}) });
+  if (lists && lists.length) e.lists = lists;
+  return Object.keys(e).length ? { employer: e } : {};
 }
 
 module.exports = { offers };

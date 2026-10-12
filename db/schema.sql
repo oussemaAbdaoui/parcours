@@ -143,3 +143,9 @@ create table if not exists offers_dropped (
   profile    text    not null,
   dropped_at bigint  not null
 );
+
+-- Official register facts (collector/fr_register.py: INSEE SIRENE for companies with offers in France): staff band,
+-- founding year, sector, size category, active or closed. {"none": true} when no exact name match. Lists the company
+-- belongs to ("Next40", "French Tech 120").
+alter table companies add column if not exists register jsonb;
+alter table companies add column if not exists lists text[];

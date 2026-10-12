@@ -614,7 +614,7 @@ textarea{height:auto}
 .pjf .ck{display:inline-flex;gap:6px;align-items:center;margin:0 14px 6px 0;font-size:13.5px;cursor:pointer}
 .pjf .pjsub{display:block;margin:0 0 6px 22px}
 .pjacts{margin-top:10px}
-.acems{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:13.5px}.acem small{color:var(--muted)}.visaok{color:var(--ok);font-weight:600}.visano{color:var(--muted)}.acem.guess .mono,.acem.old .mono{color:var(--muted);font-style:italic}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
+.acems{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:13.5px}.acem small{color:var(--muted)}.visaok{color:var(--ok);font-weight:600}.ftag{color:var(--accent);font-weight:600}.visano{color:var(--muted)}.acem.guess .mono,.acem.old .mono{color:var(--muted);font-style:italic}.pnav{width:28px;height:28px;border-radius:50%;vertical-align:-8px;margin-right:10px;object-fit:cover}
 .new{background:var(--red-t);color:var(--red-ink)}
 .score{width:48px;height:48px;border-radius:16px;font-weight:800;font-size:15px}
 .score.weak{border:0;background:var(--surface-2);font-size:20px}
@@ -2670,7 +2670,7 @@ function renderCollected(){
     +(l.length?'<div class="offers"><div class="thead"><span>Match</span><span>Offer</span><span>Actions</span></div>'+l.slice(0,colMax).map(x=>{const u=safeUrl(x.url),c=cById(x.c)||{flag:'',name:''},v=DOM[x.kind]||DOM.job;
       const dl=x.deadline?`Apply by ${esc(x.deadline)}`:(x.posted?`Posted ${esc(rel(x.posted))}`:'');
       return `<article class="offer" style="--accent:var(${v.color});--tint:var(${v.tint})">${scoreBadge(x.m)}<div class="ob"><h3>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>`:esc(x.title)}${x.foundAt>colPrev?' <span class="new">New</span>':''}${x.m&&x.m.urgent?' <span class="urgent">Apply soon</span>':''}</h3>
-      <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${coLink(x.org)}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}${x.c==='uk'&&typeof x.ukSponsor==='boolean'?(x.ukSponsor?' · <span class="visaok" title="On the Home Office register of licensed sponsors (Skilled Worker)">UK visa sponsor</span>':' · <span class="visano" title="Not found on the Home Office register of licensed sponsors: the employer may be registered under another name, check before applying">no UK sponsor licence found</span>'):''}</div>
+      <div class="meta"><span class="chip">${v.label}</span>${expTag(x.xp)} <b>${coLink(x.org)}</b>${x.location?' · '+esc(x.location):''} · ${c.flag} · ${esc(x.source)}${dl?' · '+dl:''}${typeof x.applicants==='number'?` · ${x.applicants}${x.applicantsCapped?'+':''} applicants`:''}${x.company&&x.company.rating?` · ★ ${x.company.rating.toFixed(1)}`:''}${x.c==='uk'&&typeof x.ukSponsor==='boolean'?(x.ukSponsor?' · <span class="visaok" title="On the Home Office register of licensed sponsors (Skilled Worker)">UK visa sponsor</span>':' · <span class="visano" title="Not found on the Home Office register of licensed sponsors: the employer may be registered under another name, check before applying">no UK sponsor licence found</span>'):''}${empTag(x.employer)}</div>
       ${(x.contacts||[]).length?`<div class="meta ctc">Contact: ${x.contacts.map(c=>`${c.name?esc(c.name)+(c.role?` (${esc(c.role)})`:'')+' · ':''}<span class="mono">${esc(c.email)}</span>`).join(' · ')}</div>`:''}
       ${scoreWhy(x.m,x)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
@@ -2994,6 +2994,10 @@ const coNorm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u
 let coData=null;
 async function loadCompanyData(){if(!coData&&caps.online){try{coData=await api('/api/opps?set=companies');}catch(e){coData={at:0,companies:{}};}}return coData||{at:0,companies:{}};}
 const coRating=name=>{const c=coData&&coData.companies&&coData.companies[coNorm(name)];return c&&c.rating?c.rating:null;};
+/* What the official register says about an employer (collector/fr_register.py), and French Tech lists */
+const empTag=e=>!e?'':(e.lists||[]).map(l=>` · <span class="ftag" title="${l==='Next40'?'French Tech Next40: the 40 leading French scale-ups':'French Tech 120: the leading French scale-ups'}">${esc(l)}</span>`).join('')
+  +(e.closed?' · <span class="visano" title="The French company register lists this company as closed: check the offer is real before applying">closed in the company register</span>':'');
+const empLine=e=>!e||!(e.staff||e.founded)?'':`French register: ${[e.staff?esc(e.staff)+' staff':'',e.founded?'founded '+esc(e.founded):'',esc(e.sector||''),esc(e.category||''),esc(e.town||'')].filter(Boolean).join(' · ')}${e.closed?' · <b class="visano">closed</b>':''}`;
 const coLink=name=>name?`<a class="colink" href="#/company/${encodeURIComponent(coKey(name))}">${esc(name)}</a>`:'';
 const sameCo=(name,key)=>!!name&&coKey(name)===key;
 /* hiring log (collector/history.py): when companies recruit */
@@ -3106,12 +3110,13 @@ async function companyPage(key,qs){
   const apps=state.apps.filter(a=>sameCo(a.org,key)),saved=state.saved.filter(j=>sameCo(j.company,key));
   const name=(apps[0]&&apps[0].org)||(offers[0]&&offers[0].org)||(saved[0]&&saved[0].company)||((state.companyNotes||{})[key]||{}).name||key.replace(/-/g,' ');
   const rating=(offers.find(x=>x.company&&x.company.rating)||{}).company||(saved.find(j=>j.rating)||{}).rating||coRating(name);
+  const emp=(offers.find(x=>x.employer)||{}).employer;
   const note=((state.companyNotes||{})[key]||{}).text||'';
   const cleanRole=t=>String(t||'').replace(/\s*[\(\[]?(h\/f|f\/h|m\/w\/d|m\/f)[\)\]]?/ig,'').replace(/\s+[-–|].*$/,'').trim();
   const defRole=cleanRole(askedRole||(apps[0]&&apps[0].role)||(offers[0]&&offers[0].title)||(state.searches[0]&&state.searches[0].search)||'');
   const q=encodeURIComponent(name);
   $('#view').innerHTML=crumbs([['Companies','#/companies']],name)+`<h1>${esc(name)}</h1>
-    <p class="sub">${offers.length} open offer${offers.length===1?'':'s'} for you · ${apps.length} application${apps.length===1?'':'s'}${rating?` · ★ ${rating.rating.toFixed(1)} from ${rating.count} reviews (${esc(rating.source)})`:''}</p>
+    <p class="sub">${offers.length} open offer${offers.length===1?'':'s'} for you · ${apps.length} application${apps.length===1?'':'s'}${rating?` · ★ ${rating.rating.toFixed(1)} from ${rating.count} reviews (${esc(rating.source)})`:''}${empTag(emp)}</p>${empLine(emp)?`<p class="hint" style="margin-top:-6px">${empLine(emp)}</p>`:''}
     <div class="row" style="margin-bottom:16px">
       <a class="btn sm" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener noreferrer">Website</a>
       <a class="btn sm" href="https://www.linkedin.com/search/results/companies/?keywords=${q}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
