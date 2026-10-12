@@ -141,7 +141,7 @@ def _linkedin_fill(x, page, counts_only=False):
 
 ACADEMIC = {"Inria", "CNRS", "ABG", "jobs.ac.uk", "ELLIS", "Academic Positions", "ScholarshipDB", "jobRxiv", "Max Planck"}
 STEALTH_SOURCES = {"ABG", "Academic Positions", "ScholarshipDB", "StepStone", "Tanitjobs", "Duunitori", "Emploi.ma"}
-MAIN_SELECTORS = ['[itemprop="description"]', ".job-description", "#job-description", ".jobsearch-JobComponent-description",
+MAIN_SELECTORS = ['[itemprop="description"]', ".ck-content", ".job-description", "#job-description", ".jobsearch-JobComponent-description",
                   ".description", "article", "main"]
 
 
@@ -186,6 +186,7 @@ def _salary(bs):
 
 
 DESC_MAX, OLD_DESC_MAX = 4000, 2500
+READER_V = 2  # 2: page body read when the structured data holds only a summary (Academic Positions)
 REQ_HEAD = re.compile(r"(profil (?:du |de la )?candidat\w*|profil recherch\w*|votre profil|candidate profile|your profile|requirements|"
                       r"qualifications|what we.re looking for|who you are|you (?:have|bring)|ihr profil|anforderungen|was du mitbringst|"
                       r"comp[ée]tences (?:requises|attendues)|le candidat ou la candidate|the (?:ideal )?candidate|"
@@ -259,7 +260,9 @@ def _apply_page(x, page):
         org = (jp.get("hiringOrganization") or {}).get("name") if isinstance(jp.get("hiringOrganization"), dict) else None
         if org and not x.get("org"):
             x["org"] = _t(org)
-        return True
+        if len(x.get("desc") or "") >= 400:
+            return True
+    # No structured data, or only a summary in it (Academic Positions puts 180 characters there): the page body.
     for sel in MAIN_SELECTORS:
         el = page.css(sel)
         if el:
@@ -268,29 +271,33 @@ def _apply_page(x, page):
                 if len(text) > len(x.get("desc") or ""):
                     x["desc"] = _keep(text)
                 return True
-    return False
+    return bool(jp)
 
 
 PROMISING = re.compile(r"\b(ai|ia|ml|machine learning|deep learning|llm|genai|data|python|d[ée]velopp\w*|developer|software|logiciel|"
                        r"engineer|ing[ée]nieur\w*|backend|full.?stack|devops|cloud|nlp|vision|research|recherche|phd|doctora\w*|th[èe]se)\b", re.I)
 
 
-def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, budget=360):
+def details(items, limit=60, stealth_limit=20, stealth=True, only_sources=None, budget=360, priority=None):
     """Opens offer pages whose stored description is short and fills desc, deadline, salary, type.
     Stops when the time budget (seconds) runs out; the rest is picked up on later runs."""
     t0 = time.time()
     # Short descriptions, academic offers read once more for the contact they usually name at the bottom, and
     # descriptions cut at the old 2500-character limit (read again once, to get their candidate requirements).
+    # An offer still short after its attempt is tried once more when the page reader improves (READER_V).
+    short = lambda x: len(x.get("desc") or "") < 400 and (not x.get("detailed") or x.get("readerV", 1) < READER_V)
     todo = [x for x in items if x.get("source") != "LinkedIn" and x.get("url", "").startswith("http")
             and (only_sources is None or x.get("source") in only_sources)
-            and ((not x.get("detailed") and len(x.get("desc") or "") < 400) or (x.get("source") in ACADEMIC and not x.get("contactsChecked"))
+            and (short(x) or (x.get("source") in ACADEMIC and not x.get("contactsChecked"))
                  or (len(x.get("desc") or "") == OLD_DESC_MAX and not x.get("recut")))]
     for x in todo:
         if len(x.get("desc") or "") == OLD_DESC_MAX:
             x["recut"] = True  # one more attempt only
+        x["readerV"] = READER_V
     # Most promising first: an offer stays capped until its text is read, so a "Junior AI Engineer" is opened
     # before a "Barman" that was listed earlier.
-    todo.sort(key=lambda x: not PROMISING.search(x.get("title") or ""))
+    # With priority ({id: score the listing suggests}), the highest first.
+    todo.sort(key=lambda x: (not PROMISING.search(x.get("title") or ""), -(priority or {}).get(x["id"], 0)))
     plain = [x for x in todo if x.get("source") not in STEALTH_SOURCES][:limit]
     hard = [x for x in todo if x.get("source") in STEALTH_SOURCES][:stealth_limit] if stealth else []
     done = failed = 0

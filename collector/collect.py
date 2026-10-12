@@ -367,7 +367,7 @@ def linkedin_cloud(items, store):
     return n, err
 
 
-def dealbreakers(items, state, scores=None):
+def dealbreakers(items, state, scores=None, potential=None):
     """{id: [reasons]} for offers that hit a dealbreaker for your profile, using the app's own score.js via Node.
     Also tags each offer with the experience it asks for (item["exp"] = {min, max, label}, e.g. "3+ yrs")."""
     import shutil
@@ -378,8 +378,16 @@ def dealbreakers(items, state, scores=None):
     if not node:
         print("  (node not found: dealbreaker filter skipped)")
         return {}
+    # UK offers carry whether the employer is on the UK sponsor register (scoring only, not stored on the offer).
+    try:
+        import pg
+        uk = pg.uk_sponsor_flags({x.get("org") for x in items if x.get("c") == "uk"})
+    except Exception as e:
+        print("  UK sponsor flags:", str(e)[:120])
+        uk = {}
+    scored = [{**x, "ukSponsor": uk[x.get("org")]} if x.get("c") == "uk" and x.get("org") in uk else x for x in items]
     payload = json.dumps({"profile": state.get("profile"), "targets": [s.get("search", "") for s in state.get("searches", [])],
-                          "items": items}, ensure_ascii=False)
+                          "items": scored}, ensure_ascii=False)
     out = subprocess.run([node, os.path.join(os.path.dirname(__file__), "dealbreakers.js")], input=payload.encode("utf8"),
                          capture_output=True, timeout=120)
     if out.returncode:
@@ -388,6 +396,8 @@ def dealbreakers(items, state, scores=None):
     res = json.loads(out.stdout or b"{}")
     if scores is not None:
         scores.update(res.get("scores", {}))
+    if potential is not None:  # unread offers: the score their listing suggests (they are capped until read)
+        potential.update(res.get("potential", {}))
     exp = res.get("exp", {})
     for x in items:
         if x["id"] in exp:
@@ -443,9 +453,28 @@ def main():
         print(f"  excluded by your words: {before - len(found)}")
     # Offers that are dealbreakers for you (too senior, language, work permit, internship after graduation...)
     # are not stored at all.
+    if not home and not dry:  # UK register of licensed sponsors: downloaded weekly, companies re-marked every run
+        try:
+            import uk_register
+            n, err = uk_register.refresh()
+            status["UK sponsor register"] = {"ok": not err, "count": n, **({"error": err} if err else {})}
+        except Exception as e:
+            status["UK sponsor register"] = {"ok": False, "count": 0, "error": str(e)[:160]}
     blocked = dealbreakers(found, state)
     report_blocked(blocked, "dealbreakers in new results")
     found = [x for x in found if x["id"] not in blocked]
+    # Offers already read and dropped under this same profile are not opened, read or scored again for 30 days.
+    import hashlib
+    fingerprint = hashlib.md5(json.dumps(state.get("profile") or {}, sort_keys=True).encode()).hexdigest()[:16]
+    try:
+        import pg
+        again = pg.dropped_ids([x["id"] for x in found], fingerprint, now - 30 * 86400 * 1000) if store else set()
+    except Exception as e:
+        print("  dropped offers memory:", str(e)[:120])
+        again = set()
+    if again:
+        print(f"  skipped {len(again)} offers already read and dropped under this profile")
+        found = [x for x in found if x["id"] not in again]
 
     stored = load_all(store) if store else []
     mine = [x for x in stored if x.get("origin", "cloud") == origin and not excluded(x, exclude)]
@@ -455,8 +484,13 @@ def main():
     print(f"{len(found)} found, {new} new, {len(items)} kept")
 
     from enrich import company_ratings, details
+    # Pages are opened in the order of what each listing promises (the score before the unread cap), so the offers
+    # most likely to be strong are read first instead of whichever came first.
+    early, early_pot = {}, {}
+    dealbreakers(items, state, early, early_pot)
+    priority = {i: max(v, early_pot.get(i, 0)) for i, v in early.items()}
     # The PC opens more pages in the stealth browser: Tanitjobs, Duunitori and Emploi.ma list far more than 20 a run.
-    steps = [("Offer details", lambda: details(items, stealth=os.environ.get("STEALTH") == "1" or home,
+    steps = [("Offer details", lambda: details(items, stealth=os.environ.get("STEALTH") == "1" or home, priority=priority,
                                                **({"stealth_limit": 40, "budget": 600} if home else {})))]
     if not home:
         steps += [("LinkedIn details", lambda: linkedin_cloud(items, store))]
@@ -489,20 +523,30 @@ def main():
     # Full descriptions can reveal a dealbreaker the listing hid (fluent German, EU citizens only): drop those too,
     # along with stored offers that became dealbreakers after a profile change.
     scores = {}
-    late = dealbreakers(items, state, scores)
+    potential = {}
+    late = dealbreakers(items, state, scores, potential)
     # Offers whose page says they are closed (no longer accepting applications, offre expirée...) go too.
     for x in items:
         if x["id"] not in late and CLOSED.search(unicodedata.normalize("NFD", f"{x.get('title', '')} {x.get('desc', '')}".lower()).encode("ascii", "ignore").decode()):
             late[x["id"]] = ["Closed"]
     report_blocked(late, "dealbreakers among stored offers")
+    if late and store:
+        try:
+            import pg
+            pg.dropped_save(late, fingerprint, now)
+        except Exception as e:
+            print("  dropped offers memory:", str(e)[:120])
     if late:
         removed += [x["id"] for x in items if x["id"] in late]
         items = [x for x in items if x["id"] not in late]
     # Over the cap, the lowest-scoring offers go, not the oldest: a good offer stays until it closes or ages out.
     cap = MAX_ITEMS_HOME if home else MAX_ITEMS
     if len(items) > cap:
-        items.sort(key=lambda x: (scores.get(x["id"], 0), x.get("foundAt", 0)), reverse=True)
-        print(f"  store cap {cap}: {len(items) - cap} lowest-scoring offers dropped (kept down to score {scores.get(items[cap - 1]['id'], 0)})")
+        # An unread offer competes with what its listing promises, not the 65 it is capped at until read: else it is
+        # dropped before any run opens its page, found again as "new" next run, and never read.
+        rank = lambda x: max(scores.get(x["id"], 0), potential.get(x["id"], 0))
+        items.sort(key=lambda x: (rank(x), x.get("foundAt", 0)), reverse=True)
+        print(f"  store cap {cap}: {len(items) - cap} lowest-ranked offers dropped (kept down to {rank(items[cap - 1])})")
         removed += [x["id"] for x in items[cap:]]
         items = items[:cap]
     rich = sum(1 for x in items if len(x.get("desc") or "") >= 400)

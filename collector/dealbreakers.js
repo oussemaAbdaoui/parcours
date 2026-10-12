@@ -2,6 +2,7 @@
 // blocked: offers that hit a dealbreaker for this profile (too senior, required language missing, work-permit
 // restriction, internship after graduation, degree too low, your exclusion words, deadline passed, over 150 applicants).
 // exp: the experience each offer asks for, read from its title and description.
+// scores: each offer's score; potential: for offers capped until their text is read, the score their listing suggests.
 // Same rules as the app, because it is the app's own score.js.
 const S = require('../score.js');
 let raw = '';
@@ -9,7 +10,7 @@ process.stdin.on('data', (d) => (raw += d)).on('end', () => {
   const { profile, targets, items } = JSON.parse(raw);
   const hasProfile = profile && Object.keys(profile).length;
   const p = Object.assign({ countries: ['fr', 'de', 'ca', 'ch', 'gl', 'tn'], visa: { fr: true, de: true, ca: true, ch: true } }, profile || {}, { targets: targets || [] });
-  const blocked = {}, exp = {}, scores = {};
+  const blocked = {}, exp = {}, scores = {}, potential = {};
   const ctx = { idf: hasProfile ? S.buildIdf(items, p.cv) : null }; // CV similarity, as in the app
   for (const x of items) {
     const e = S.offerYears((x.title || '') + ' . ' + (x.desc || ''));
@@ -17,8 +18,9 @@ process.stdin.on('data', (d) => (raw += d)).on('end', () => {
     if (!hasProfile) continue;
     const m = S.score(x, p, Date.now(), ctx);
     scores[x.id] = m.score;
+    if (m.potential !== m.score) potential[x.id] = m.potential; // unread offers: the score their listing suggests
     // Until its full text is read, an offer is dropped only for reasons certain from its title and listing.
     if (m.sureBlockers.length) blocked[x.id] = m.sureBlockers;
   }
-  process.stdout.write(JSON.stringify({ blocked, exp, scores }));
+  process.stdout.write(JSON.stringify({ blocked, exp, scores, potential }));
 });

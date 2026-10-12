@@ -180,6 +180,34 @@ def ratings_get(norms):
     return {k: got[n] for k, n in want.items() if n in got}
 
 
+def dropped_save(blocked, profile, now):
+    """Remembers offers dropped as dealbreakers ({id: [reasons]}) under the profile fingerprint that judged them."""
+    if not blocked:
+        return 0
+    rows = [(i, list(r), profile, now) for i, r in blocked.items()]
+    with required().cursor() as cur:
+        cur.executemany("insert into offers_dropped (id, reasons, profile, dropped_at) values (%s, %s, %s, %s) on conflict (id) "
+                        "do update set reasons = excluded.reasons, profile = excluded.profile, dropped_at = excluded.dropped_at", rows)
+        cur.execute("delete from offers_dropped where dropped_at < %s", (now - 60 * 86400 * 1000,))
+    return len(rows)
+
+
+def dropped_ids(ids, profile, since):
+    """The ids among ids dropped since `since` under this same profile."""
+    if not ids:
+        return set()
+    return {r[0] for r in _rows("select id from offers_dropped where id = any(%s) and profile = %s and dropped_at >= %s", (list(ids), profile, since))}
+
+
+def uk_sponsor_flags(orgs):
+    """{org: True/False} for the companies checked against the UK sponsor register (collector/uk_register.py)."""
+    want = {o: _norm(o) for o in orgs if o}
+    if not want or not conn():
+        return {}
+    got = dict(_rows("select norm, uk_sponsor from companies where uk_sponsor is not null and norm = any(%s)", (list(set(want.values())),)))
+    return {o: got[n] for o, n in want.items() if n in got}
+
+
 def company_rating(norm, name, rec, now):
     """A company's review rating (or "not found"), as cached in Redis parcours:companies."""
     if not norm:

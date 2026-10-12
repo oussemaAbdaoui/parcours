@@ -119,3 +119,27 @@ create table if not exists datasets (
   updated_at bigint  not null,
   primary key (set, id)
 );
+
+-- UK register of licensed sponsors (Home Office, Skilled Worker route), refreshed weekly by collector/uk_register.py.
+-- norm: the registered or trading ("t/a") name normalised; base: the same without generic endings (technologies,
+-- group, operations...), so "Wayve Technologies Ltd" matches the offers' "Wayve".
+create table if not exists uk_sponsors (
+  norm       text    primary key,
+  base       text    not null,
+  name       text    not null,
+  town       text    not null default '',
+  updated_at bigint  not null
+);
+create index if not exists uk_sponsors_base on uk_sponsors (base);
+create index if not exists uk_sponsors_squash on uk_sponsors (replace(base, ' ', ''));
+create index if not exists uk_sponsors_squash_norm on uk_sponsors (replace(norm, ' ', ''));
+alter table companies add column if not exists uk_sponsor boolean;   -- on the UK register (null: not checked yet)
+
+-- Offers dropped as dealbreakers after their text was read, with a fingerprint of the profile that judged them: a
+-- run skips them when found again (no page, proxy or Claude reading spent twice) until the profile changes.
+create table if not exists offers_dropped (
+  id         text    primary key,
+  reasons    text[]  not null,
+  profile    text    not null,
+  dropped_at bigint  not null
+);

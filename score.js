@@ -814,6 +814,14 @@
       if (/\b(visa (sponsor\w*|support|assistance)|sponsorship|relocation|we sponsor|aide a la relocalisation|visum)\b/.test(body)) { place = Math.min(1, place + 0.2); visaNote = ', visa or relocation offered'; }
       else if (/\b(eu citizens?|eu passport|right to work|work permit required|must be authori[sz]ed|nationalite (francaise|europeenne)|citoyen europeen|security clearance|habilitation)\b/.test(body)) { place -= 0.45; visaNote = ', work permit restriction'; }
     }
+    // UK: the Skilled Worker visa needs an employer on the Home Office register (offer.ukSponsor, matched by name in
+    // the database). An agency hiring for an unnamed client is left alone: the employer is unknown.
+    let offRegister = false;
+    if (needVisa && at.c === 'uk' && typeof offer.ukSponsor === 'boolean' && !visaNote
+        && !/\b(our|my|a) client\b|\bon behalf of\b/.test(body) && !/\b(recruit\w*|staffing|resourcing|headhunt\w*|talent)\b/.test(norm(offer.org || ''))) {
+      if (offer.ukSponsor) { place = Math.min(1, place + 0.2); visaNote = ', licensed UK visa sponsor'; }
+      else { offRegister = true; visaNote = ', employer not on the UK visa sponsor register'; }
+    }
     parts.place = { v: clamp(place), known: true, note: (abroad ? `${at.where}: not in your countries` : rank >= 0 ? `Country #${rank + 1} for you` : 'Country not in your list') + (remote ? ', remote possible' : '') + visaNote };
 
     // 7. Competition
@@ -875,9 +883,13 @@
     const stretch = (parts.seniority.known && parts.seniority.v <= 0.4) || (parts.education.known && parts.education.v <= 0.45);
     let capped = '';
     if (!blockers.length && stretch && total > STRETCH_CAP) { total = STRETCH_CAP; capped = 'one requirement is a stretch'; }
+    // A UK employer without a sponsor licence cannot hire you on a work visa: never a strong match (not dropped, since
+    // a name can be registered under another one: Meta as Facebook UK).
+    if (!blockers.length && offRegister && total > STRETCH_CAP) { total = STRETCH_CAP; capped = 'employer not on the UK visa sponsor register'; }
     // Requirements unread (no full description yet): degree, experience and languages are unknown, so the offer
     // cannot rank as a strong match on its title alone. Read once its description arrives.
     const checked = (offer.desc || '').length >= UNCHECKED_DESC;
+    const potential = Math.round(total); // what the listing alone suggests, before the unread cap: the collector keeps and reads these first
     if (!checked && !blockers.length && total > UNCHECKED_CAP) { total = UNCHECKED_CAP; capped = 'requirements not read yet'; }
     // Before the full text is read, only reasons that are certain from the title and listing rule an offer out (a
     // short teaser misleads: "mission principale" is not a lead role). The collector drops on these alone until then.
@@ -891,7 +903,7 @@
     const conf = knownW / 100;
     // Lists sort by rank: the score shown first (a 79 never above an 81), then how much of it rests on real data.
     // Unread offers are already held down by the cap, so confidence only orders equal scores.
-    return { score: Math.round(total), confidence: conf, rank: Math.round(total) + conf * 0.9, parts, urgent, blockers, checked, capped, sureBlockers: checked ? blockers : sure };
+    return { score: Math.round(total), potential, confidence: conf, rank: Math.round(total) + conf * 0.9, parts, urgent, blockers, checked, capped, sureBlockers: checked ? blockers : sure };
   }
 
   const profileFromCv = (text) => parseCv(text); // kept for older callers
