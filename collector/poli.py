@@ -46,7 +46,15 @@ def session():
 
 def call(s, path, body=None):
     """GET (no body) or POST to the Poli API; returns its data field."""
-    r = s.post(BASE + path, json=body, timeout=30) if body is not None else s.get(BASE + path, timeout=30)
+    # Poli's network endpoint sometimes takes over 30 s: one retry with a longer wait before the step counts as failed.
+    for wait in (30, 90):
+        try:
+            r = s.post(BASE + path, json=body, timeout=wait) if body is not None else s.get(BASE + path, timeout=wait)
+            break
+        except requests.exceptions.Timeout:
+            if wait == 90:
+                raise
+            time.sleep(5)
     time.sleep(PAUSE)
     j = r.json()
     if r.status_code != 200 or j.get("error"):
