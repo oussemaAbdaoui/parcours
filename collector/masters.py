@@ -10,7 +10,7 @@ All sources are official and public, read over plain HTTP:
 - Erasmus Mundus catalogue (EU): joint master's run across several countries, most with full scholarships.
 
 Stored apart from job offers (programmes stay open for months and need no job dealbreakers) in the hash
-parcours:masters:items, refreshed at most once a day.
+Postgres (datasets set "masters"), refreshed at most once a day; the run report is in parcours:masters:meta.
 """
 import json
 import re
@@ -20,7 +20,7 @@ from html import unescape
 
 import requests
 
-ITEMS_KEY, META_KEY = "parcours:masters:items", "parcours:masters:meta"
+SET, META_KEY = "masters", "parcours:masters:meta"  # Postgres datasets set; the run report stays in Redis
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36",
       "Accept-Language": "en,fr;q=0.8"}
 TUNISIA = {"daad": 189, "campusfrance": "60"}
@@ -393,26 +393,18 @@ def run(store, state, dry=False, force=False, only=None):
         for x in items[:12]:
             print(f"  [{x['type'][:4]}] {x['country']} {x['source']:16} {x['title'][:60]:60} | {x.get('org', '')[:30]}")
         return {"ok": True, "count": len(items)}
-    flat = store.cmd("HGETALL", ITEMS_KEY) or []
-    old = {flat[i]: json.loads(flat[i + 1]) for i in range(0, len(flat), 2)}
+    import pg
+    old = pg.dataset(SET)
     fresh = {x["id"] for x in items}
-    batch = []
     for x in items:
         x["foundAt"] = old.get(x["id"], {}).get("foundAt", now)
         x["seenAt"] = now
-        batch += [x["id"], json.dumps(x, ensure_ascii=False)]
-        if len(batch) >= 80:
-            store.cmd("HSET", ITEMS_KEY, *batch)
-            batch = []
-    if batch:
-        store.cmd("HSET", ITEMS_KEY, *batch)
     ok_sources = {x["source"] for x in items}
     # Drop entries a source no longer lists, but only for sources that answered this time; and entries in countries
     # no longer in the profile (they come back when the country is ticked again).
     keep = wanted(state.get("profile"))
     gone = [i for i, x in old.items() if i not in fresh and (x.get("source") in ok_sources or (keep and x.get("country") not in keep))]
-    for i in range(0, len(gone), 100):
-        store.cmd("HDEL", ITEMS_KEY, *gone[i:i + 100])
+    pg.dataset_save(SET, items, gone, now)
     meta["sources"] = {**meta.get("sources", {}), **status}
     if not only:
         meta.update({"at": now, "count": len(items), "fields": fams})
@@ -425,12 +417,12 @@ if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding="utf-8")
     if "--home" in sys.argv:  # PC task "Parcours masters": the sources that block the cloud, into the shared store
-        from collect import STATE_KEY, Store, load_env
+        from collect import Store, load_env, load_state
         env = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--env=")), "")
         if env:
             load_env(env)
         st = Store()
-        print(time.strftime("%Y-%m-%d %H:%M"), run(st, st.get_json(STATE_KEY) or {}, only=HOME_SOURCES))
+        print(time.strftime("%Y-%m-%d %H:%M"), run(st, load_state(), only=HOME_SOURCES))
         sys.exit(0)
     prof = {"skills": ["machine learning", "python", "deep learning", "llm"], "languages": ["en", "fr"]}
     its, st, f = collect(prof)

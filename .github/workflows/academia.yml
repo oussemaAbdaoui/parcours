@@ -34,5 +34,6 @@ jobs:
         env:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
           PYTHONUNBUFFERED: "1"
         run: python collector/academia.py ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.only && format('--only={0}', inputs.only) || '' }}

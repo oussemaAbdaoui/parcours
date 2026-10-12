@@ -11,7 +11,7 @@
    a guessed address in that format, labelled as guessed. LinkedIn and Google Scholar are search links in the app:
    neither allows automated reading.
 
-Stored in the hashes parcours:academia:schools and parcours:academia:people, with parcours:academia:meta; refreshed
+Stored in Postgres (datasets sets academia-schools and academia-people), the run report in parcours:academia:meta; refreshed
 weekly by .github/workflows/academia.yml (python collector/academia.py [--dry-run] [--only=fr,ca] [--out=preview.json]).
 """
 import io
@@ -28,10 +28,10 @@ from datetime import date
 import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
-from collect import STATE_KEY, Store, load_env  # noqa: E402
+from collect import Store, load_env, load_state  # noqa: E402
 from masters import profile_fields  # noqa: E402
 
-SCHOOLS_KEY, PEOPLE_KEY, META_KEY = "parcours:academia:schools", "parcours:academia:people", "parcours:academia:meta"
+SCHOOLS, PEOPLE, META_KEY = "academia-schools", "academia-people", "parcours:academia:meta"  # Postgres datasets sets; report in Redis
 COUNTRIES = {"fr": "FR", "de": "DE", "ca": "CA", "ch": "CH", "tn": "TN", "be": "BE", "nl": "NL", "lu": "LU", "se": "SE", "dk": "DK",
              "fi": "FI", "no": "NO", "ma": "MA", "ie": "IE", "uk": "GB"}  # app country -> ISO code (OpenAlex)
 UA = {"User-Agent": "parcours-personal-app (academic search for one applicant)"}
@@ -356,19 +356,11 @@ def topics_for(state):
     return list(dict.fromkeys(t for f in fams for t in TOPICS.get(f, [])))[:6]
 
 
-def save_hash(store, key, records, idf="id"):
-    old = set(store.cmd("HKEYS", key) or [])
-    batch = []
-    for r in records:
-        batch += [r[idf], json.dumps(r, ensure_ascii=False)]
-        if len(batch) >= 300:
-            store.cmd("HSET", key, *batch)
-            batch = []
-    if batch:
-        store.cmd("HSET", key, *batch)
-    gone = list(old - {r[idf] for r in records})
-    for i in range(0, len(gone), 200):
-        store.cmd("HDEL", key, *gone[i:i + 200])
+def save_set(name, records, now):
+    """Replaces a Postgres datasets set with records (ids no longer present are deleted)."""
+    import pg
+    old = set(pg.dataset(name))
+    pg.dataset_save(name, records, list(old - {str(r["id"]) for r in records}), now)
 
 
 def main():
@@ -379,7 +371,7 @@ def main():
     if env:
         load_env(env)
     store = None if dry and not os.environ.get("UPSTASH_REDIS_REST_URL") else Store()
-    state = (store.get_json(STATE_KEY) if store else None) or {}
+    state = load_state()
     # The countries in your profile (it held five fixed ones while you target fifteen).
     only = only or [c for c in (state.get("profile") or {}).get("countries", []) if c in COUNTRIES] or list(COUNTRIES)
     topics = topics_for(state)
@@ -408,10 +400,12 @@ def main():
     ok = [c for c, s in status.items() if s["ok"]]
     # Countries that failed keep what was stored for them last time.
     if ok:
-        keep_s = [json.loads(v) for v in (store.cmd("HVALS", SCHOOLS_KEY) or []) if json.loads(v).get("c") not in ok]
-        keep_p = [json.loads(v) for v in (store.cmd("HVALS", PEOPLE_KEY) or []) if json.loads(v).get("c") not in ok]
-        save_hash(store, SCHOOLS_KEY, keep_s + schools)
-        save_hash(store, PEOPLE_KEY, keep_p + people)
+        import pg
+        now = int(time.time() * 1000)
+        keep_s = [r for r in pg.dataset(SCHOOLS).values() if r.get("c") not in ok]
+        keep_p = [r for r in pg.dataset(PEOPLE).values() if r.get("c") not in ok]
+        save_set(SCHOOLS, keep_s + schools, now)
+        save_set(PEOPLE, keep_p + people, now)
     store.cmd("SET", META_KEY, json.dumps({"at": int(time.time() * 1000), "topics": topics, "since": since, "countries": status}))
     print("saved")
 

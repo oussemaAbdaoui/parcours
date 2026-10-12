@@ -1,8 +1,8 @@
 """Daily refresh of the Companies section (GitHub Actions, .github/workflows/companies.yml).
 
 For the companies the app shows (applications, saved jobs, notes, and the ones with 2+ stored offers):
-- Indeed ratings missing or older than 30 days are looked up again (stealth browser) into parcours:companies,
-  the cache the 6-hourly collector already uses, so companies without open offers get a rating too.
+- Indeed ratings missing or older than 30 days are looked up again (stealth browser) into Postgres
+  (companies.rating), the cache the 6-hourly collector already uses, so companies without open offers get a rating too.
 - Interview stories missing or older than 14 days are queued in parcours:insights:queue; the PC collector
   fetches them (Glassdoor and Reddit block datacenter IPs).
 - A summary per company (open offers, newest offer, roles, last refresh) goes to parcours:companies:meta,
@@ -16,8 +16,9 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(__file__))
-from collect import ITEMS_KEY, STATE_KEY, Store, load_env  # noqa: E402
-from enrich import CACHE_DAYS, COMPANIES_KEY, _indeed_lookup, _norm  # noqa: E402
+from collect import Store, load_all, load_env, load_state  # noqa: E402
+from enrich import CACHE_DAYS, _indeed_lookup, _norm  # noqa: E402
+import pg  # noqa: E402
 import insights  # noqa: E402
 
 META_KEY = "parcours:companies:meta"
@@ -81,10 +82,10 @@ def company_list(state, offers):
 def refresh_ratings(store, cos, dry):
     now = time.time()
     keys = list(cos)
-    cached = store.cmd("HMGET", COMPANIES_KEY, *keys) if keys else []
+    cached = pg.ratings_get(keys)
     recs, todo = {}, []
-    for k, v in zip(keys, cached or []):
-        rec = json.loads(v) if v else None
+    for k in keys:
+        rec = cached.get(k)
         if rec:
             recs[k] = rec
         if not rec or now - rec.get("at", 0) >= CACHE_DAYS * 86400:
@@ -104,7 +105,7 @@ def refresh_ratings(store, cos, dry):
                         continue
                     rec["at"] = now
                     recs[k] = rec
-                    store.cmd("HSET", COMPANIES_KEY, k, json.dumps(rec))
+                    pg.company_rating(k, cos[k]["name"], rec, int(now * 1000))
                     looked += 1
                     time.sleep(1.5)
         except Exception as e:  # browser blocked or broken: keep the cache
@@ -113,10 +114,7 @@ def refresh_ratings(store, cos, dry):
 
 
 def queue_stories(store, cos, dry):
-    have = {}
-    for k in store.cmd("HKEYS", insights.STORE) or []:
-        rec = json.loads(store.cmd("HGET", insights.STORE, k) or "{}")
-        have[k] = rec.get("fetchedAt", 0)
+    have = {k: rec.get("fetchedAt", 0) for k, rec in pg.insights_get().items()}
     now_ms = time.time() * 1000
     queued, status = 0, {}
     for n, c in sorted(cos.items(), key=lambda kv: (-kv[1]["apps"], -kv[1]["saved"])):
@@ -144,9 +142,8 @@ def main():
     if env:
         load_env(env)
     store = Store()
-    state = store.get_json(STATE_KEY) or {}
-    flat = store.cmd("HGETALL", ITEMS_KEY) or []
-    offers = [json.loads(flat[i + 1]) for i in range(0, len(flat), 2)]
+    state = load_state()
+    offers = load_all()
     cos = company_list(state, offers)
     mine = sum(1 for c in cos.values() if c["mine"])
     print(f"{len(cos)} companies ({mine} yours, {len(cos) - mine} hiring most) from {len(offers)} stored offers")

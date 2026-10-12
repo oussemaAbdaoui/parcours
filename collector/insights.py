@@ -15,7 +15,7 @@ import time
 import unicodedata
 from urllib.parse import quote_plus, unquote
 
-QUEUE, STORE = "parcours:insights:queue", "parcours:insights"
+QUEUE = "parcours:insights:queue"  # requests from the app (Redis); the stories themselves are in Postgres (insights)
 MAX_STORIES = 15
 
 
@@ -191,12 +191,8 @@ def process_queue(store, limit=6):
         k = key(req["company"], req.get("role", ""))
         print(f"  stories: {req['company']} / {req.get('role', '')}")
         res = lookup(req["company"], req.get("role", ""))
-        store.cmd("HSET", STORE, k, json.dumps(res, ensure_ascii=False))
-        try:
-            import pg
-            pg.insight(k, req["company"], req.get("role", ""), res, int(time.time() * 1000))
-        except Exception as e:
-            print(f"  Postgres stories: {str(e)[:120]}")
+        import pg
+        pg.insight(k, req["company"], req.get("role", ""), res, int(time.time() * 1000))
         store.cmd("SREM", QUEUE + ":pending", k)
         done += 1
     return done
@@ -204,12 +200,8 @@ def process_queue(store, limit=6):
 
 def auto_requests(store, state, limit=4):
     """Queue stories for companies where you have an application in progress, when missing or older than 14 days."""
-    have = store.cmd("HKEYS", STORE) or []
-    fresh = set()
-    for k in have:
-        rec = json.loads(store.cmd("HGET", STORE, k) or "{}")
-        if time.time() * 1000 - rec.get("fetchedAt", 0) < 14 * 86400 * 1000:
-            fresh.add(k)
+    import pg
+    fresh = {k for k, rec in pg.insights_get().items() if time.time() * 1000 - rec.get("fetchedAt", 0) < 14 * 86400 * 1000}
     n = 0
     for a in state.get("apps", []):
         if a.get("result") != "open" or not a.get("org") or a.get("d") == "phd":
@@ -230,12 +222,12 @@ if __name__ == "__main__":
         print(json.dumps(lookup(args[0], args[1] if len(args) > 1 else ""), ensure_ascii=False))
         sys.exit()
     sys.path.insert(0, os.path.dirname(__file__))
-    from collect import STATE_KEY, Store, load_env
+    from collect import Store, load_env, load_state
     env = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--env=")), "")
     if env:
         load_env(env)
     store = Store()
-    state = store.get_json(STATE_KEY) or {}
+    state = load_state()
     queued = auto_requests(store, state) if "--auto" in sys.argv else 0
     n = process_queue(store)
     print(f"stories: {queued} auto-queued, {n} fetched")

@@ -2,8 +2,9 @@ const { auth, upstash, redis } = require('./_lib');
 
 // Interview stories for a company and role (Glassdoor interview reviews, Reddit threads).
 // Those sites block datacenter IPs, so the PC collector fetches them (collector/insights.py, every 30 minutes);
-// this endpoint returns what is stored and queues new requests.
-const QUEUE = 'parcours:insights:queue', STORE = 'parcours:insights';
+// this endpoint returns what is stored (Postgres table insights) and queues new requests (Redis).
+const QUEUE = 'parcours:insights:queue';
+const { insight } = require('./_offerspg');
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const key = (c, r) => norm(c).replace(/ /g, '-') + '|' + norm(r).replace(/ /g, '-');
 
@@ -18,8 +19,8 @@ module.exports = async (req, res) => {
   const k = key(company, role);
   try {
     if (req.method === 'GET') {
-      const [hit, pending] = await Promise.all([redis(u, ['HGET', STORE, k]), redis(u, ['SISMEMBER', QUEUE + ':pending', k])]);
-      return res.status(200).json({ data: hit && hit.result ? JSON.parse(hit.result) : null, pending: !!(pending && pending.result) });
+      const [data, pending] = await Promise.all([insight(k), redis(u, ['SISMEMBER', QUEUE + ':pending', k])]);
+      return res.status(200).json({ data, pending: !!(pending && pending.result) });
     }
     if (req.method === 'POST') {
       const added = await redis(u, ['SADD', QUEUE + ':pending', k]);

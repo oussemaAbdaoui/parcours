@@ -19,9 +19,8 @@ import requests
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 from sources import HOME_SCRAPERS, SCRAPERS, STEALTH_SCRAPERS, is_phd  # noqa: E402
 
-STATE_KEY, OPPS_KEY, HOME_KEY = "parcours:state", "parcours:opps", "parcours:opps:home"  # the last two: old format
 # Offers live in one hash (id -> offer JSON), so every write stays small; each offer records which collector found it.
-ITEMS_KEY, META_KEY = "parcours:opps:items", "parcours:opps:meta"
+META_KEY = "parcours:opps:meta"  # run reports (Redis); the offers themselves are in Postgres
 HOME_KEYWORDS = ["développeur", "machine learning", "data scientist", "intelligence artificielle"]
 # Stored offers per collector: the app downloads them all (Vercel answers up to 4.5 MB), so cloud + home stay near 1200.
 MAX_ITEMS, MAX_ITEMS_HOME, MAX_AGE_DAYS = 900, 300, 45
@@ -270,23 +269,16 @@ def load_env(path):
             os.environ.setdefault(k.strip(), v.strip().strip('"'))
 
 
-def load_all(store):
-    """All stored offers from the hash; migrates the old one-blob keys on first use."""
-    flat = store.cmd("HGETALL", ITEMS_KEY) or []
-    items = [json.loads(flat[i + 1]) for i in range(0, len(flat), 2)]
-    if items:
-        return items
-    migrated = []
-    for key, origin in ((OPPS_KEY, "cloud"), (HOME_KEY, "home")):
-        blob = store.get_json(key) or {}
-        for x in blob.get("items", []):
-            x.setdefault("origin", origin)
-            migrated.append(x)
-    if migrated:
-        save_items(store, migrated, [])
-        store.cmd("DEL", OPPS_KEY, HOME_KEY)
-        print(f"migrated {len(migrated)} offers to {ITEMS_KEY}")
-    return migrated
+def load_state(store=None):
+    """Your profile, searches and lists, read from Postgres (the app saves them there through api/state.js)."""
+    import pg
+    return pg.state() if pg.conn() else {}
+
+
+def load_all(store=None):
+    """All stored offers (Postgres table offers)."""
+    import pg
+    return pg.offers_all()
 
 
 ENRICHED = ("desc", "req", "applicants", "applicantsCapped", "applicantsAt", "contacts")
@@ -298,13 +290,14 @@ def keep_enriched(store, items):
     collector may have filled their descriptions (the PC fills the cloud's LinkedIn offers). Before saving, each
     offer takes the stored copy's description, reading and applicant count when those are richer than its own,
     so a run never writes an older, emptier copy over a newer one."""
-    for i in range(0, len(items), 100):
-        chunk = items[i:i + 100]
-        cur = store.cmd("HMGET", ITEMS_KEY, *[x["id"] for x in chunk]) or []
-        for x, raw in zip(chunk, cur):
-            if not raw:
+    import pg
+    for i in range(0, len(items), 300):
+        chunk = items[i:i + 300]
+        stored = pg.offers_get([x["id"] for x in chunk])
+        for x in chunk:
+            s = stored.get(x["id"])
+            if not s:
                 continue
-            s = json.loads(raw)
             mine = {k: x[k] for k in COUNT if k in x} if x.get("applicantsAt", 0) > s.get("applicantsAt", 0) else None
             if len(s.get("desc") or "") > len(x.get("desc") or ""):
                 for k in ENRICHED:
@@ -319,22 +312,10 @@ def keep_enriched(store, items):
 
 
 def save_items(store, items, removed):
+    """Writes the run's offers to Postgres (table offers) and deletes the removed ones."""
+    import pg
     keep_enriched(store, items)
-    batch = []
-    for x in items:
-        batch += [x["id"], json.dumps(x, ensure_ascii=False)]
-        if len(batch) >= 80:  # about 40 offers, well under request size limits
-            store.cmd("HSET", ITEMS_KEY, *batch)
-            batch = []
-    if batch:
-        store.cmd("HSET", ITEMS_KEY, *batch)
-    for i in range(0, len(removed), 100):
-        store.cmd("HDEL", ITEMS_KEY, *removed[i:i + 100])
-    try:  # Postgres, where offers are moving (Redis stays the source until the app reads Postgres)
-        import pg
-        pg.offers_save(items, removed, int(time.time() * 1000))
-    except Exception as e:
-        print(f"  Postgres offers: {str(e)[:160]}")
+    pg.offers_save(items, removed, int(time.time() * 1000))
 
 
 def linkedin_home(everything, store, origin, limit=150):
@@ -430,7 +411,7 @@ def main():
     if env:
         load_env(env)
     store = None if dry else Store()
-    state = (store.get_json(STATE_KEY) if store else None) or {}
+    state = load_state()
     if home and state:
         backup_state(state)
     searches = [s for s in state.get("searches", []) if s.get("search")]
@@ -548,14 +529,11 @@ def main():
             print(f"  [{x['kind']:5}] {x['source']:12} {x['title'][:60]:60} | {x['org'][:25]:25} | {len(x.get('desc') or ''):4} chars")
         return
     save_items(store, items, removed + removed_excl)
-    try:  # hiring log: when each company recruits (seeded from all stored offers on first use)
+    try:  # hiring log: when each company recruits
         import history
         for x in seen_now:
             x.setdefault("foundAt", now)
         n = history.record(store, seen_now)
-        if store.cmd("HGET", "parcours:companies:history:meta", "seeded") is None:  # once: offers stored before the log
-            n += history.record(store, load_all(store), backfill=True)
-            store.cmd("HSET", "parcours:companies:history:meta", "seeded", str(now))
         status["Hiring log"] = {"ok": True, "count": n}
     except Exception as e:
         status["Hiring log"] = {"ok": False, "count": 0, "error": str(e)[:160]}

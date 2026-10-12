@@ -100,7 +100,7 @@ create table if not exists company_seen (
   primary key (company_id, offer_id)
 );
 
--- Interview stories per company and role (Glassdoor, Reddit), mirrored from the Redis cache parcours:insights.
+-- Interview stories per company and role (Glassdoor, Reddit), fetched by the PC collector (collector/insights.py).
 create table if not exists insights (
   key        text    primary key,                 -- insights.key(company, role)
   company_id integer references companies (id),
@@ -109,3 +109,13 @@ create table if not exists insights (
   updated_at bigint  not null
 );
 create index if not exists insights_company on insights (company_id);
+
+-- Phase 3: the other collected sets, each a keyed list the collector refreshes (upserts, and drops entries a source
+-- no longer lists): masters (collector/masters.py), academia-schools and academia-people (collector/academia.py).
+create table if not exists datasets (
+  set        text    not null,
+  id         text    not null,
+  data       jsonb   not null,
+  updated_at bigint  not null,
+  primary key (set, id)
+);

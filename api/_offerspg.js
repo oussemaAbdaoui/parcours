@@ -30,3 +30,27 @@ async function history() {
 }
 
 module.exports.history = history;
+
+// Master's programmes and academia (collector/masters.py, collector/academia.py): table datasets, one set each.
+async function dataset(name) {
+  const pool = db();
+  if (!pool) return null;
+  return (await pool.query('select data from datasets where set = $1', [name])).rows.map((r) => r.data);
+}
+
+async function datasetVersion(names) {
+  const pool = db();
+  if (!pool) return '';
+  const v = (await pool.query('select coalesce(max(updated_at), 0) m, count(*) n from datasets where set = any($1)', [names])).rows[0];
+  return v.m + ':' + v.n;
+}
+
+// Interview stories for one company and role (collector/insights.py), or null.
+async function insight(key) {
+  const pool = db();
+  if (!pool) return null;
+  const r = await pool.query('select data from insights where key = $1', [key]);
+  return r.rows[0] ? r.rows[0].data : null;
+}
+
+Object.assign(module.exports, { dataset, datasetVersion, insight });

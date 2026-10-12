@@ -5,10 +5,10 @@ Poli web app itself uses:
 - Jobs: the personalised "For you" feed, which follows the preferences saved in the Poli account. Returned as offers
   by sources.poli, so they go through the usual dealbreaker and scoring pipeline. Without an account, sources.poli
   reads the signed-out visitor feed instead (10 offers per category and level).
-- Companies: the whole sponsor directory (licence, size, Certificates of Sponsorship used, open jobs), in the hash
-  parcours:poli:companies.
+- Companies: the whole sponsor directory (licence, size, Certificates of Sponsorship used, open jobs), in the
+  Postgres table poli_companies.
 - People: employees likely sponsored by their employer, from each company that lists some and from the account's
-  personalised network, in the hash parcours:poli:people. Useful for referrals and advice.
+  personalised network, in poli_people. Useful for referrals and advice.
 Companies and people are refreshed on every collector run (every 6 hours); parcours:poli:meta holds the run report and Poli's totals.
 """
 import json
@@ -18,8 +18,7 @@ import time
 import requests
 
 BASE = "https://app.withpoli.com/api/"
-COMPANIES_KEY, PEOPLE_KEY, META_KEY = "parcours:poli:companies", "parcours:poli:people", "parcours:poli:meta"
-JOBS_KEY = "parcours:poli:jobs"
+META_KEY = "parcours:poli:meta"  # run report and Poli's totals (Redis); the data is in Postgres (collector/pg.py)
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36"}
 PAUSE = 0.6  # seconds between requests
 JOB_PAGES, NETWORK_PAGES = 30, 30  # 10 per page
@@ -185,21 +184,6 @@ def collect():
     return companies, list(people.values()), stats, status
 
 
-def _merge_hash(store, key, records, now):
-    """Adds and updates, never deletes or blanks: the Pro account ends, and a free account sees less (fewer people,
-    hidden fields), so a record Poli no longer shows, and any field it now returns empty, keeps what was stored.
-    seenAt says when Poli last listed the record. A copy of the Pro-era data is in parcours:poli:archive:*."""
-    for i in range(0, len(records), 200):
-        chunk = records[i:i + 200]
-        old = store.cmd("HMGET", key, *[str(r["id"]) for r in chunk]) or [None] * len(chunk)
-        batch = []
-        for r, raw in zip(chunk, old):
-            prev = json.loads(raw) if raw else {}
-            merged = {**prev, **{k: v for k, v in r.items() if v not in ("", None, [], {})}, "seenAt": now}
-            batch += [str(r["id"]), json.dumps(merged, ensure_ascii=False)]
-        store.cmd("HSET", key, *batch)
-
-
 def run(store, dry=False, force=False):
     """Refreshes companies and people, at most every 5 hours (so on each 6-hourly run). Returns a status line for the run report."""
     if not os.environ.get("POLI_EMAIL"):
@@ -217,20 +201,15 @@ def run(store, dry=False, force=False):
         for p in people[:5]:
             print(f"  {p['name'][:25]:25} {p['title'][:35]:35} @ {p['company'][:20]}")
         return {"ok": all(s["ok"] for s in status.values()), "count": len(companies)}
-    # Merged, never replaced: whatever a step returns is added, nothing stored is lost.
-    _merge_hash(store, COMPANIES_KEY, companies, now)
-    _merge_hash(store, PEOPLE_KEY, people, now)
-    feed = []
-    try:  # the jobs feed too, kept in its own hash (the offer store ages offers out after 45 days)
-        feed = jobs(session())
-        _merge_hash(store, JOBS_KEY, feed, now)
+    # Merged into Postgres, never replaced (pg.merge): the Pro account ends, and a free account sees less (fewer
+    # people, hidden fields), so a record Poli no longer shows, and any field it now returns empty, keeps what was stored.
+    import pg
+    pg.poli_companies(companies, now)
+    pg.poli_people(people, now)
+    try:  # the jobs feed too, kept in its own table (the offer store ages offers out after 45 days)
+        pg.poli_jobs(jobs(session()), now)
     except Exception as e:
         status["Jobs archive"] = {"ok": False, "count": 0, "error": str(e)[:160]}
-    try:  # Postgres, where Poli now lives (Redis kept until the app reads Postgres everywhere)
-        import pg
-        pg.poli_companies(companies, now), pg.poli_people(people, now), pg.poli_jobs(feed, now)
-    except Exception as e:
-        status["Postgres"] = {"ok": False, "count": 0, "error": str(e)[:160]}
     store.cmd("SET", META_KEY, json.dumps({"at": now, "companies": len(companies), "people": len(people),
                                            "stats": stats, "sources": status}))
     bad = [n for n, s in status.items() if not s["ok"]]

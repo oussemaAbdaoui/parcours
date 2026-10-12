@@ -1,8 +1,8 @@
 """Daily goal reminders: a push notification every two hours through the day (.github/workflows/remind.yml)
 until today's applications and contacts reach the goal, then one "done" message.
 
-Reads the app's state from Redis (parcours:state, mirrored by api/state.js after every save) and the device
-subscriptions from parcours:push:subs; each message replaces the previous one (same notification tag).
+Reads the app's state from Postgres (collector/pg.py, the rows api/state.js saves) and the device
+subscriptions from Redis parcours:push:subs; each message replaces the previous one (same notification tag).
 Times are local to REMIND_TZ (default Africa/Tunis). python collector/remind.py [--dry-run] [--force]
 """
 import json
@@ -16,7 +16,7 @@ import requests
 sys.path.insert(0, os.path.dirname(__file__))
 from notify import SUBS, _sender  # noqa: E402
 
-STATE_KEY, DONE_KEY = "parcours:state", "parcours:push:goal-done"
+DONE_KEY = "parcours:push:goal-done"
 DAY_START, DAY_END = 9, 21  # the hours the goal is paced over
 
 
@@ -74,7 +74,8 @@ def message(state, now, goal):
 def main():
     dry, force = "--dry-run" in sys.argv, "--force" in sys.argv
     store = Store()
-    state = json.loads(store.cmd("GET", STATE_KEY) or "{}")
+    import pg
+    state = pg.state()
     goal = max(1, min(500, int(((state.get("goal") or {}).get("daily")) or 60)))
     now = datetime.now(ZoneInfo(os.environ.get("REMIND_TZ") or "Africa/Tunis"))
     if not force and not (DAY_START <= now.hour <= DAY_END):

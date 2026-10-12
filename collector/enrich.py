@@ -2,7 +2,7 @@
 
 - LinkedIn applicant count and full description, from LinkedIn's public job page (plain HTTP).
 - Company rating and review count, from Indeed's company search (stealth browser). Cached in the
-  Redis hash parcours:companies for 30 days, "not found" included, so each company is looked up rarely.
+  Postgres (companies.rating) for 30 days, "not found" included, so each company is looked up rarely.
 
 Both are capped per run and stop at the first sign of blocking; a failed enrichment never fails the run.
 """
@@ -13,7 +13,6 @@ import unicodedata
 
 from scrapling.fetchers import Fetcher
 
-COMPANIES_KEY = "parcours:companies"
 CACHE_DAYS = 30
 
 
@@ -360,12 +359,13 @@ def company_ratings(items, store, limit=30):
     if not names:
         return 0, ""
     keys = list(names)
-    cached = store.cmd("HMGET", COMPANIES_KEY, *keys) if store else [None] * len(keys)
+    import pg
+    cached = pg.ratings_get(keys) if pg.conn() else {}
     now = time.time()
     info = {}
     todo = []
-    for k, v in zip(keys, cached or []):
-        rec = json.loads(v) if v else None
+    for k in keys:
+        rec = cached.get(k)
         if rec and now - rec.get("at", 0) < CACHE_DAYS * 86400:
             info[k] = rec
         else:
@@ -381,12 +381,7 @@ def company_ratings(items, store, limit=30):
                     info[k] = rec
                     looked += 1
                     if store:
-                        store.cmd("HSET", COMPANIES_KEY, k, json.dumps(rec))
-                        try:
-                            import pg
-                            pg.company_rating(k, names[k], rec, int(now * 1000))
-                        except Exception as e:
-                            print(f"  Postgres rating: {str(e)[:120]}")
+                        pg.company_rating(k, names[k], rec, int(now * 1000))
                     time.sleep(1.5)
         except Exception as e:  # blocked or broken: keep what we have
             err = str(e)[:120]

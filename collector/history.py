@@ -4,21 +4,17 @@ Stored offers are pruned after 45 days, so this log is what makes recruitment pe
 (busiest months and weekdays, how often a company posts, when its next wave is likely). Both collectors
 add to it on every run, including offers dropped as dealbreakers: they still show when a company recruits.
 
-Redis hash parcours:companies:history, one field per company (normalised name):
-  {"name": "Inria", "seen": {"<offer id>": "2026-10-02|phd|p", ...}}   (newest 400 offers per company)
-The last letter says where the date comes from: p = posted date given by the source, s = first seen by a
+Postgres table company_seen, one row per company and offer: (company, offer id, day, kind, src).
+src says says where the date comes from: p = posted date given by the source, s = first seen by a
 collector run (within hours of posting), b = seeded from offers stored before the log existed (their first-seen
 day is when collection started, so weekday and rhythm figures leave them out).
 """
-import json
 import re
 import time
 from datetime import date, datetime, timezone
 
 from enrich import _norm
 
-HISTORY_KEY = "parcours:companies:history"
-MAX_PER_COMPANY = 400
 
 
 def _day(x, backfill=False):
@@ -38,43 +34,11 @@ def _day(x, backfill=False):
 
 def record(store, offers, backfill=False):
     """Adds offers to the log (idempotent: an offer id counts once). Returns how many were new."""
-    by_co = {}
+    import pg
+    rows = []
     for x in offers:
         n = _norm(x.get("org"))
         if n and len(n) >= 2 and x.get("id"):
-            by_co.setdefault(n, []).append(x)
-    if not by_co:
-        return 0
-    keys = list(by_co)
-    added, batch = 0, []
-    for i in range(0, len(keys), 100):
-        chunk = keys[i:i + 100]
-        current = store.cmd("HMGET", HISTORY_KEY, *chunk) or [None] * len(chunk)
-        for k, raw in zip(chunk, current):
-            rec = json.loads(raw) if raw else {"name": by_co[k][0]["org"], "seen": {}}
-            before = len(rec["seen"])
-            for x in by_co[k]:
-                day, src = _day(x, backfill)
-                rec["seen"].setdefault(x["id"], f"{day}|{x.get('kind') or 'job'}|{src}")
-            if len(rec["seen"]) == before:
-                continue
-            added += len(rec["seen"]) - before
-            if len(rec["seen"]) > MAX_PER_COMPANY:  # keep the newest
-                rec["seen"] = dict(sorted(rec["seen"].items(), key=lambda kv: kv[1], reverse=True)[:MAX_PER_COMPANY])
-            batch += [k, json.dumps(rec, ensure_ascii=False)]
-            if len(batch) >= 80:
-                store.cmd("HSET", HISTORY_KEY, *batch)
-                batch = []
-    if batch:
-        store.cmd("HSET", HISTORY_KEY, *batch)
-    try:  # Postgres: one row per offer seen, linked to the company
-        import pg
-        rows = []
-        for k, xs in by_co.items():
-            for x in xs:
-                day, src = _day(x, backfill)
-                rows.append((k, x.get("org") or k, x["id"], day, x.get("kind") or "job", src))
-        pg.company_seen(rows, int(time.time() * 1000))
-    except Exception as e:
-        print(f"  Postgres history: {str(e)[:160]}")
-    return added
+            day, src = _day(x, backfill)
+            rows.append((n, x.get("org") or n, x["id"], day, x.get("kind") or "job", src))
+    return pg.company_seen(rows, int(time.time() * 1000))

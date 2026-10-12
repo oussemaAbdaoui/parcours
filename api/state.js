@@ -1,4 +1,4 @@
-const { auth, upstash, redis } = require('./_lib');
+const { auth } = require('./_lib');
 const { db } = require('./_db');
 
 // Your data: Neon Postgres, one row per item (see db/schema.sql). The newest edit of each item wins, so edits
@@ -6,9 +6,7 @@ const { db } = require('./_db');
 // GET  -> {state, version}: the whole state, assembled from the rows.
 // PUT  -> {changes: {items: [{c, id, data|null, ts}], settings: [{k, data, ts}]}}: only what changed on the device
 //         (data null = deleted). Older clients that send {state} are still accepted.
-// After each write the assembled state is mirrored to Redis (parcours:state), which the collectors read for
-// the profile and searches. On first use the old Redis copy is imported into Neon.
-const KEY = 'parcours:state';
+// The collectors read the same rows (collector/pg.py state()) for the profile and searches.
 const LISTS = ['apps', 'saved', 'journal', 'searches', 'feeds', 'queue', 'contacts'];
 const NEWEST_FIRST = new Set(['saved', 'journal']); // the app adds these at the top, the others at the end
 const SETTINGS = ['profile', 'status', 'notes', 'companyNotes', 'seen', 'seenAt', 'mailSeen', 'oppsHidden', 'oppsSeenAt', 'goal'];
@@ -60,7 +58,7 @@ async function apply(pool, changes) {
   }
 }
 
-// A whole state (old Redis copy or an older client) as changes stamped with one time.
+// A whole state (from an older client) as changes stamped with one time.
 function asChanges(state, ts) {
   const items = [];
   // Millisecond offsets keep each list's order (created_at sorts the lists when they are assembled).
@@ -72,24 +70,14 @@ function asChanges(state, ts) {
   return { items, settings };
 }
 
-async function mirror(u, state) {
-  if (u) await redis(u, ['SET', KEY, JSON.stringify(state)]);
-}
-
 module.exports = async (req, res) => {
   if (!(await auth(req, res))) return;
-  const pool = db(), u = upstash();
-  if (!pool && !u) return res.status(501).json({ error: 'Sync is not configured.' });
+  const pool = db();
+  if (!pool) return res.status(501).json({ error: 'Sync is not configured.' });
   res.setHeader('Cache-Control', 'no-store');
   try {
-    if (!pool) return legacy(req, res, u);
     if (req.method === 'GET') {
-      let state = await load(pool);
-      if (!state.updatedAt && u) { // first use: import the Redis copy
-        const old = await redis(u, ['GET', KEY]);
-        const prev = old && old.result ? JSON.parse(old.result) : null;
-        if (prev) { await apply(pool, asChanges(prev, prev.updatedAt || Date.now())); state = await load(pool); }
-      }
+      const state = await load(pool);
       return res.status(200).json({ state: state.updatedAt ? state : null, version: state.updatedAt, store: 'neon' });
     }
     if (req.method === 'PUT') {
@@ -111,7 +99,6 @@ module.exports = async (req, res) => {
       }
       await apply(pool, changes);
       const state = await load(pool);
-      await mirror(u, state).catch(() => {}); // the collectors' copy; never fail a save over it
       return res.status(200).json({ ok: true, version: state.updatedAt, store: 'neon' });
     }
     res.status(405).json({ error: 'Method not allowed.' });
@@ -119,20 +106,3 @@ module.exports = async (req, res) => {
     res.status(502).json({ error: 'Sync storage is unavailable right now.' });
   }
 };
-
-// Without Neon: the previous single-document copy in Redis.
-async function legacy(req, res, u) {
-  if (req.method === 'GET') {
-    const out = await redis(u, ['GET', KEY]);
-    return res.status(200).json({ state: out && out.result ? JSON.parse(out.result) : null });
-  }
-  if (req.method === 'PUT') {
-    const state = req.body && req.body.state;
-    if (!state || !Array.isArray(state.apps)) return res.status(400).json({ error: 'Invalid data.' });
-    const s = JSON.stringify(state);
-    if (s.length > 900000) return res.status(413).json({ error: 'Data is too large to sync.' });
-    await redis(u, ['SET', KEY, s]);
-    return res.status(200).json({ ok: true });
-  }
-  res.status(405).json({ error: 'Method not allowed.' });
-}

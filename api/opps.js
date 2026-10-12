@@ -11,30 +11,27 @@ function notModified(req, res, parts) {
 }
 const version = async (u, cmds) => (await Promise.all(cmds.map((c) => redis(u, c).catch(() => null)))).map((r) => (r && r.result) || '');
 
-// Offers saved by the collectors (GitHub Actions and the optional PC collector) in the hash
-// parcours:opps:items (id -> offer JSON), plus run reports in parcours:opps:meta.
-// Falls back to the older one-blob keys until the collector has migrated them.
+// Collected data from Neon Postgres (api/_offerspg.js, api/_polipg.js), written by the collectors (collector/pg.py);
+// the run reports (parcours:*:meta) are in Redis.
+const pgsets = require('./_offerspg');
 module.exports = async (req, res) => {
   if (!(await auth(req, res))) return;
   const u = upstash();
   if (!u) return res.status(501).json({ error: 'Storage is not configured. Add Upstash Redis in Vercel.' });
   res.setHeader('Cache-Control', 'no-store');
   if ((req.query || {}).set === 'masters') {
-    if (notModified(req, res, ['m', ...await version(u, [['GET', 'parcours:masters:meta'], ['HLEN', 'parcours:masters:items']])])) return;
-    return masters(u, res);
+    try {
+      if (notModified(req, res, ['m', ...await version(u, [['GET', 'parcours:masters:meta']]), await pgsets.datasetVersion(['masters'])])) return;
+      return await masters(u, res);
+    } catch (e) {
+      return res.status(502).json({ error: 'Storage is unavailable right now.' });
+    }
   }
   if ((req.query || {}).set === 'history') {
     // Hiring log (collector/history.py): per company, the date and kind of every offer seen. Sent compact:
     // [[key, name, [[day, kind], ...]], ...]
     try {
-      const pgHist = await require('./_offerspg').history().catch(() => null);
-      if (pgHist) return res.status(200).json({ companies: pgHist });
-      const flat = (await redis(u, ['HGETALL', 'parcours:companies:history'])).result || [];
-      const out = [];
-      for (let i = 0; i < flat.length; i += 2) {
-        try { const r = JSON.parse(flat[i + 1]); out.push([flat[i], r.name, Object.values(r.seen || {}).map((v) => v.split('|'))]); } catch (e) { /* skip */ }
-      }
-      return res.status(200).json({ companies: out });
+      return res.status(200).json({ companies: (await pgsets.history()) || [] });
     } catch (e) {
       return res.status(502).json({ error: 'Storage is unavailable right now.' });
     }
@@ -43,11 +40,10 @@ module.exports = async (req, res) => {
   if ((req.query || {}).set === 'academia') {
     // Schools and professors (collector/academia.py), refreshed weekly.
     try {
-      if (notModified(req, res, ['a', ...await version(u, [['GET', 'parcours:academia:meta']])])) return;
-      const [sc, pe, meta] = await Promise.all([redis(u, ['HVALS', 'parcours:academia:schools']), redis(u, ['HVALS', 'parcours:academia:people']),
+      if (notModified(req, res, ['a', ...await version(u, [['GET', 'parcours:academia:meta']]), await pgsets.datasetVersion(['academia-schools', 'academia-people'])])) return;
+      const [schools, people, meta] = await Promise.all([pgsets.dataset('academia-schools'), pgsets.dataset('academia-people'),
         redis(u, ['GET', 'parcours:academia:meta'])]);
-      const parse = (r) => ((r && r.result) || []).map((v) => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
-      return res.status(200).json({ ...(meta && meta.result ? JSON.parse(meta.result) : { at: 0 }), schools: parse(sc), people: parse(pe) });
+      return res.status(200).json({ ...(meta && meta.result ? JSON.parse(meta.result) : { at: 0 }), schools: schools || [], people: people || [] });
     } catch (e) {
       return res.status(502).json({ error: 'Storage is unavailable right now.' });
     }
@@ -56,18 +52,12 @@ module.exports = async (req, res) => {
     try { return await require('./_polipg').people(req, res); } catch (e) { return res.status(502).json({ error: 'The database is unavailable right now.' }); }
   }
   if ((req.query || {}).set === 'poli') {
-    // Poli (collector/poli.py): from Postgres (api/_polipg.js); the Redis copy below only when no database is set.
+    // Poli (collector/poli.py): from Postgres (api/_polipg.js), with the run report from Redis.
     try {
       const meta = await redis(u, ['GET', 'parcours:poli:meta']).catch(() => null);
       const report = meta && meta.result ? JSON.parse(meta.result) : {};
       if (await require('./_polipg').directory(req, res, notModified, { stats: report.stats, sources: report.sources, refreshedAt: report.at })) return;
-    } catch (e) { /* fall back to Redis */ }
-    try {
-      if (notModified(req, res, ['p', ...await version(u, [['GET', 'parcours:poli:meta']])])) return;
-      const [co, pe, meta] = await Promise.all([redis(u, ['HVALS', 'parcours:poli:companies']), redis(u, ['HVALS', 'parcours:poli:people']),
-        redis(u, ['GET', 'parcours:poli:meta'])]);
-      const parse = (r) => ((r && r.result) || []).map((v) => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
-      return res.status(200).json({ ...(meta && meta.result ? JSON.parse(meta.result) : { at: 0 }), companies: parse(co), people: parse(pe) });
+      return res.status(501).json({ error: 'The database is not configured.' });
     } catch (e) {
       return res.status(502).json({ error: 'Storage is unavailable right now.' });
     }
@@ -82,30 +72,12 @@ module.exports = async (req, res) => {
     }
   }
   try {
-    // Offers from Postgres (api/_offerspg.js); the Redis hash only when no database is configured or it fails.
-    let pg = null;
-    try { pg = await require('./_offerspg').offers(); } catch (e) { pg = null; }
-    if (notModified(req, res, ['o', ...await version(u, [['GET', 'parcours:opps:meta'], ...(pg ? [] : [['HLEN', 'parcours:opps:items']])]), pg ? pg.version : ''])) return;
-    let items = [], metaRaw;
-    if (pg) {
-      try { [items, metaRaw] = await Promise.all([pg.load(), redis(u, ['GET', 'parcours:opps:meta'])]); } catch (e) { pg = null; }
-    }
-    if (!pg) {
-      const [flat, m] = await Promise.all([redis(u, ['HGETALL', 'parcours:opps:items']), redis(u, ['GET', 'parcours:opps:meta'])]);
-      metaRaw = m;
-      const arr = (flat && flat.result) || [];
-      for (let i = 1; i < arr.length; i += 2) { try { items.push(JSON.parse(arr[i])); } catch (e) { /* skip a bad record */ } }
-    }
-    let runsByOrigin = {};
-    if (items.length) {
-      const meta = metaRaw && metaRaw.result ? JSON.parse(metaRaw.result) : {};
-      runsByOrigin = meta.runs || {};
-    } else {
-      const old = await redis(u, ['MGET', 'parcours:opps', 'parcours:opps:home']);
-      const [cloud, home] = ((old && old.result) || []).map((v) => (v ? JSON.parse(v) : { items: [], runs: [] }));
-      items = [...cloud.items, ...home.items];
-      runsByOrigin = { cloud: cloud.runs, home: home.runs };
-    }
+    // Offers from Postgres (api/_offerspg.js), with the run reports from Redis.
+    const pg = await pgsets.offers();
+    if (!pg) return res.status(501).json({ error: 'The database is not configured.' });
+    if (notModified(req, res, ['o', ...await version(u, [['GET', 'parcours:opps:meta']]), pg.version])) return;
+    const [items, metaRaw] = await Promise.all([pg.load(), redis(u, ['GET', 'parcours:opps:meta'])]);
+    const runsByOrigin = (metaRaw && metaRaw.result ? JSON.parse(metaRaw.result) : {}).runs || {};
     items.sort((a, b) => (b.foundAt || 0) - (a.foundAt || 0));
     // One combined "last run": the latest report of each collector.
     const last = Object.values(runsByOrigin).map((r) => (r || [])[0]).filter(Boolean);
@@ -119,17 +91,10 @@ module.exports = async (req, res) => {
   }
 };
 
-// Master's programmes and scholarships (Germany, France, Italy, Erasmus Mundus) saved by the collector in
-// parcours:masters:items. Served from this function (?set=masters) to stay within the Hobby plan's 12 functions.
+// Master's programmes and scholarships saved by the collector (Postgres datasets set "masters"), with its run report.
+// Served from this function (?set=masters) to stay within the Hobby plan's 12 functions.
 async function masters(u, res) {
-  try {
-    const [flat, metaRaw] = await Promise.all([redis(u, ['HGETALL', 'parcours:masters:items']), redis(u, ['GET', 'parcours:masters:meta'])]);
-    const arr = (flat && flat.result) || [];
-    const items = [];
-    for (let i = 1; i < arr.length; i += 2) { try { items.push(JSON.parse(arr[i])); } catch (e) { /* skip a bad record */ } }
-    const meta = metaRaw && metaRaw.result ? JSON.parse(metaRaw.result) : {};
-    res.status(200).json({ updatedAt: meta.at || 0, sources: meta.sources || {}, fields: meta.fields || [], items });
-  } catch (e) {
-    res.status(502).json({ error: 'Storage is unavailable right now.' });
-  }
+  const [items, metaRaw] = await Promise.all([pgsets.dataset('masters'), redis(u, ['GET', 'parcours:masters:meta'])]);
+  const meta = metaRaw && metaRaw.result ? JSON.parse(metaRaw.result) : {};
+  res.status(200).json({ updatedAt: meta.at || 0, sources: meta.sources || {}, fields: meta.fields || [], items: items || [] });
 }
