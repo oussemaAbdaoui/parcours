@@ -911,7 +911,61 @@ def employment_hero(keywords):
     return out
 
 
-SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Employment Hero": employment_hero, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
+# Large employers whose careers site runs on SAP SuccessFactors (Career Site Builder) on their own domain. The shared
+# SuccessFactors servers (career55.sapsf.eu...) forbid bots in robots.txt; these sites allow them, and each offers a
+# search feed (/services/rss/job/) with the newest 20 matches, full text included and "(City, CC)" in the title.
+# Found on 13 Oct 2026 by testing 54 employers in your countries: SuccessFactors, bots allowed, jobs listed.
+SF_SITES = {"careers.capgemini.com": "Capgemini", "jobs.atos.net": "Atos", "jobs.scania.com": "Scania",
+            "careers.vestas.com": "Vestas", "jobs.volvogroup.com": "Volvo Group", "jobs.schaeffler.com": "Schaeffler",
+            "careers.novonordisk.com": "Novo Nordisk"}
+SF_COUNTRY = {"FR": "fr", "DE": "de", "CH": "ch", "BE": "be", "NL": "nl", "LU": "lu", "SE": "se", "DK": "dk", "NO": "no",
+              "FI": "fi", "IE": "ie", "GB": "uk", "UK": "uk", "CA": "ca", "TN": "tn", "MA": "ma"}
+
+
+def successfactors(keywords):
+    from html import unescape
+    from urllib.parse import quote
+    out, seen, failed = [], set(), 0
+    from concurrent.futures import ThreadPoolExecutor
+    tasks = [(h, k) for h in SF_SITES for k in (keywords or ["machine learning", "data", "AI"])[:6]]
+
+    def feed(t):
+        host, kw = t
+        try:
+            return host, requests.get(f"https://{host}/services/rss/job/?locale=en_US&keywords={quote(kw)}&q={quote(kw)}", headers=EH_UA, timeout=30).text
+        except requests.RequestException:
+            return host, None
+    with ThreadPoolExecutor(7) as pool:  # 7 searches at a time across the sites
+        feeds = list(pool.map(feed, tasks))
+    for host, x in feeds:
+        if x is None:
+            failed += 1
+            continue
+        tag = lambda it, t: unescape(re.sub(r"<!\[CDATA\[|\]\]>", "", (re.search(rf"<{t}>(.*?)</{t}>", it, re.S) or [None, ""])[1])).strip()
+        for it in re.findall(r"<item>(.*?)</item>", x, re.S):
+            link = tag(it, "link").split("?")[0]
+            m = re.match(r"(.*)\(([^()]*),\s*([A-Z]{2})\)\s*$", tag(it, "title"))
+            if not m or link in seen:
+                continue
+            seen.add(link)
+            title, city, cc = m.group(1).strip(), m.group(2).strip(), m.group(3)
+            c = SF_COUNTRY.get(cc)
+            if not c or not TECH_TITLE.search(title):
+                continue
+            try:
+                posted = datetime.strptime(tag(it, "pubDate")[:16], "%a, %d %b %Y").date().isoformat()
+            except ValueError:
+                posted = ""
+            out.append({"id": "sf:" + link.rstrip("/").rsplit("/", 1)[-1], "title": title, "org": SF_SITES[host],
+                        "location": f"{city}, {cc}", "c": c, "kind": "phd" if is_phd(title) else "job",
+                        "source": "SuccessFactors careers", "url": link, "posted": posted, "deadline": "",
+                        "desc": _t(re.sub(r"<[^>]+>", " ", tag(it, "description")))})
+    if failed == len(tasks):
+        raise RuntimeError("no SuccessFactors careers site answered")
+    return out
+
+
+SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Employment Hero": employment_hero, "SuccessFactors careers": successfactors, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
             "jobs.ch": jobs_ch, "Job Bank": jobbank, "CNRS": cnrs,
             "Farojob": farojob, "Poli": poli, "LinkedIn posts": linkedin_posts,
             "Company boards": company_boards, "HN Who is hiring": hn_hiring, "Free-Work": free_work,
