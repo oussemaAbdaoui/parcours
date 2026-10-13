@@ -1512,8 +1512,8 @@ function errText(e,map,def){
   return def;
 }
 downloads={save:async({filename,data})=>{
-  const type=/\.json$/i.test(filename)?'application/json':'text/csv';
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=filename;
+  const type=/\.json$/i.test(filename)?'application/json':/\.pdf$/i.test(filename)?'application/pdf':'text/csv';
+  const a=document.createElement('a');a.href=URL.createObjectURL(data instanceof Blob?data:new Blob([data],{type}));a.download=filename;
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }};
 
@@ -2124,6 +2124,32 @@ function letterFor(q){
   out=out.replace(/\bmon licence\b/g,'ma licence').replace(/\bBonjour Madame, Monsieur\b/,'Madame, Monsieur');
   return out.replace(/\b([Dd])e ([AEIOUYÉÈaeiouyéè])/g,"$1'$2"); // "poste de AI…" -> "poste d'AI…"
 }
+/* Cover letter as a PDF, made in the browser with jsPDF (free, loaded from cdnjs on first use only): A4, 22 mm
+   margins, Helvetica 11 pt, wrapped and paged. The standard PDF fonts cover French and English (accents, œ, €, curly
+   quotes); other characters (emoji, arrows) are replaced so the page never shows blanks. */
+let jspdfLoad=null;
+function loadJsPdf(){
+  if(window.jspdf)return Promise.resolve(window.jspdf);
+  return jspdfLoad=jspdfLoad||new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    sc.crossOrigin='anonymous';sc.onload=()=>window.jspdf?ok(window.jspdf):no(new Error('jsPDF did not load'));sc.onerror=()=>{jspdfLoad=null;no(new Error('Could not load the PDF maker. Check your connection.'));};document.head.appendChild(sc);});
+}
+const PDF_SAFE=t=>String(t||'').replace(/[→➔➡➜]/g,'->').replace(/[•●▪‣⁃]/g,'-').replace(/ | /g,' ')
+  .replace(/[‘’‚‛]/g,"'").replace(/[“”„]/g,'"').replace(/…/g,'...').replace(/[–—]/g,'-')
+  .replace(/[^\x09\x0a\x0d\x20-\x7e -ÿŒœ€]/gu,'').replace(/(\S) {2,}(?=\S)/g,'$1 ');
+async function letterPdf(q,text){
+  const {jsPDF}=await loadJsPdf();
+  const doc=new jsPDF({unit:'mm',format:'a4'}),M=22,W=210-2*M,H=297,LH=5.6;
+  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setProperties({title:`Cover letter - ${q.org||''} - ${q.title||''}`,author:prof().name||''});
+  let y=M+4;
+  PDF_SAFE(text).replace(/\r/g,'').split('\n').forEach(par=>{
+    const lines=par.trim()?doc.splitTextToSize(par,W):[''];
+    lines.forEach(l=>{if(y>H-M){doc.addPage();y=M+4;}doc.text(l,M,y);y+=LH;});
+  });
+  const name=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+  const file=['Cover-letter',name(q.org),name(cleanTitle?cleanTitle(q.title,q.kind,'en'):q.title)].filter(Boolean).join('_')+'.pdf';
+  await downloads.save({filename:file,data:doc.output('blob')});
+  return file;
+}
 function queuePage(){
   const L=qList(),p=prof();
   const todo=L.filter(q=>q.status==='todo').sort((a,b)=>a.addedAt-b.addedAt),done=L.filter(q=>q.status!=='todo').sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
@@ -2141,6 +2167,10 @@ function queuePage(){
   document.querySelectorAll('[data-qletter]').forEach(t=>t.addEventListener('input',()=>{const q=find(t.dataset.qletter);if(!q)return;q.letter=t.value;markTodo(q.id,t.value);clearTimeout(tq);tq=setTimeout(save,600);}));
   document.querySelectorAll('[data-qcopy]').forEach(b=>b.addEventListener('click',()=>{const t=$(`[data-qletter="${CSS.escape(b.dataset.qcopy)}"]`);
     navigator.clipboard.writeText(t.value).then(()=>{b.textContent='Copied';setTimeout(()=>{b.textContent='Copy letter';},1500);},()=>{t.select();msgOf(b.dataset.qcopy).textContent='Press Ctrl+C to copy.';});}));
+  document.querySelectorAll('[data-qpdf]').forEach(b=>b.addEventListener('click',async()=>{const q=find(b.dataset.qpdf),t=$(`[data-qletter="${CSS.escape(b.dataset.qpdf)}"]`);if(!q||!t)return;
+    const msg=msgOf(b.dataset.qpdf);b.disabled=true;b.textContent='Making PDF…';
+    try{const f=await letterPdf(q,t.value);msg.textContent=`Saved ${f}.`;}catch(e){msg.textContent=(e&&e.message)||'Could not make the PDF.';}
+    finally{b.disabled=false;b.textContent='Download PDF';}}));
   document.querySelectorAll('[data-qai]').forEach(b=>b.addEventListener('click',()=>qImprove(find(b.dataset.qai),b,msgOf(b.dataset.qai))));
   let tf=null;
   document.querySelectorAll('[data-qfix]').forEach(inp=>inp.addEventListener('input',()=>{const q=find(inp.dataset.q);if(!q)return;const v=inp.value;
@@ -2170,7 +2200,7 @@ function qCard(q){
     <textarea id="ql-${id}" data-qletter="${id}" rows="12">${esc(q.letter||letterFor(q))}</textarea>
     <p class="qtodo" data-qtodo="${id}">${(()=>{const u=unfilled(q.letter||letterFor(q));return u.length?`Still to fill before sending: ${u.map(esc).join(', ')}`:'';})()}</p>
     <div class="row" style="margin-top:10px">${u?`<a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Open offer</a>`:''}
-      <button class="btn" data-qcopy="${id}">Copy letter</button><button class="btn" data-qai="${id}" title="${caps.ai?'Claude rewrites the letter for this offer':'Needs ANTHROPIC_API_KEY in Vercel'}">Improve with AI</button>${q.letter?`<button class="btn ghost" data-qreset="${id}">Regenerate</button>`:''}
+      <button class="btn" data-qcopy="${id}">Copy letter</button><button class="btn" data-qpdf="${id}" title="Download this letter as a PDF, as it is in the box">Download PDF</button><button class="btn" data-qai="${id}" title="${caps.ai?'Claude rewrites the letter for this offer':'Needs ANTHROPIC_API_KEY in Vercel'}">Improve with AI</button>${q.letter?`<button class="btn ghost" data-qreset="${id}">Regenerate</button>`:''}
       <button class="btn" data-qsent="${id}">Sent</button><button class="btn ghost" data-qskip="${id}">Skip</button><span class="hint" data-qmsg="${id}"></span></div></article>`;
 }
 // Words from the greeting ("Dear…", "Madame,…") to the closing line ("Sincerely", "Cordialement"…); the whole text when neither is found.
