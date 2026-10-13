@@ -7,19 +7,33 @@ DATABASE_URL_UNPOOLED (or DATABASE_URL) comes from the environment: a GitHub sec
 """
 import json
 import os
+import time
 
 _conn = None
+_used = 0.0
+IDLE = 240  # seconds: Neon suspends an idle database after about 5 minutes and drops its connections
 
 
 def conn():
-    """One connection per run, autocommit. None when no database is configured."""
-    global _conn
+    """One connection per run, autocommit. None when no database is configured. A connection left idle longer than
+    IDLE (academia spends half an hour on OpenAlex between reads and writes) is checked first and reopened when
+    Neon has dropped it ("terminating connection due to administrator command" lost two academia runs)."""
+    global _conn, _used
     url = os.environ.get("DATABASE_URL_UNPOOLED") or os.environ.get("DATABASE_URL")
     if not url:
         return None
+    import psycopg
+    if _conn is not None and not _conn.closed and time.time() - _used > IDLE:
+        try:
+            _conn.execute("select 1")
+        except psycopg.Error:
+            try:
+                _conn.close()
+            except psycopg.Error:
+                pass
     if _conn is None or _conn.closed:
-        import psycopg
         _conn = psycopg.connect(url, autocommit=True, connect_timeout=20)
+    _used = time.time()
     return _conn
 
 
