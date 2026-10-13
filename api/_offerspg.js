@@ -66,3 +66,15 @@ async function insight(key) {
 }
 
 Object.assign(module.exports, { dataset, datasetVersion, insight });
+
+// An offer you delete in the app: removed from the offers, and marked in offers_dropped as deleted (profile
+// 'deleted', which the collectors never re-add and never prune: collector/pg.py). Returns true when it existed.
+async function deleteOffer(id) {
+  const pool = db();
+  if (!pool) return null;
+  await pool.query(`insert into offers_dropped (id, reasons, profile, dropped_at) values ($1, '{deleted by you}', 'deleted', $2)
+    on conflict (id) do update set reasons = excluded.reasons, profile = excluded.profile, dropped_at = excluded.dropped_at`, [id, Date.now()]);
+  return (await pool.query('delete from offers where id = $1', [id])).rowCount > 0;
+}
+
+Object.assign(module.exports, { deleteOffer });

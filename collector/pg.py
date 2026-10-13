@@ -161,6 +161,9 @@ def offers_save(items, removed, now):
     """A run's save: each offer written whole (the run already merged richer stored copies), removed ones
     deleted. Returns the count written."""
     c = required()
+    # Offers you deleted in the app never come back, even from a run that started before you deleted them.
+    gone = deleted_ids([x["id"] for x in items])
+    items = [x for x in items if x["id"] not in gone]
     from enrich import _norm as n
     ids = company_ids({n(x.get("org")): x.get("org") or "" for x in items if x.get("org")}, now)
     rows = [(x["id"], ids.get(n(x.get("org"))), x.get("origin") or "cloud", x.get("source") or "", x.get("c") or "",
@@ -194,23 +197,36 @@ def ratings_get(norms):
     return {k: got[n] for k, n in want.items() if n in got}
 
 
+DELETED = "deleted"  # offers_dropped.profile of offers you deleted in the app (api/opps.js): kept for good, any profile
+
+
 def dropped_save(blocked, profile, now):
-    """Remembers offers dropped as dealbreakers ({id: [reasons]}) under the profile fingerprint that judged them."""
+    """Remembers offers dropped as dealbreakers ({id: [reasons]}) under the profile fingerprint that judged them.
+    An offer you deleted keeps its mark; marks older than 60 days are pruned, yours are not."""
     if not blocked:
         return 0
     rows = [(i, list(r), profile, now) for i, r in blocked.items()]
     with required().cursor() as cur:
         cur.executemany("insert into offers_dropped (id, reasons, profile, dropped_at) values (%s, %s, %s, %s) on conflict (id) "
-                        "do update set reasons = excluded.reasons, profile = excluded.profile, dropped_at = excluded.dropped_at", rows)
-        cur.execute("delete from offers_dropped where dropped_at < %s", (now - 60 * 86400 * 1000,))
+                        "do update set reasons = excluded.reasons, profile = excluded.profile, dropped_at = excluded.dropped_at "
+                        "where offers_dropped.profile <> %s", [r + (DELETED,) for r in rows])
+        cur.execute("delete from offers_dropped where dropped_at < %s and profile <> %s", (now - 60 * 86400 * 1000, DELETED))
     return len(rows)
 
 
 def dropped_ids(ids, profile, since):
-    """The ids among ids dropped since `since` under this same profile."""
+    """The ids among ids dropped since `since` under this same profile, and those you deleted."""
     if not ids:
         return set()
-    return {r[0] for r in _rows("select id from offers_dropped where id = any(%s) and profile = %s and dropped_at >= %s", (list(ids), profile, since))}
+    return {r[0] for r in _rows("select id from offers_dropped where id = any(%s) and ((profile = %s and dropped_at >= %s) or profile = %s)",
+                                (list(ids), profile, since, DELETED))}
+
+
+def deleted_ids(ids):
+    """The ids among ids that you deleted in the app."""
+    if not ids or not conn():
+        return set()
+    return {r[0] for r in _rows("select id from offers_dropped where id = any(%s) and profile = %s", (list(ids), DELETED))}
 
 
 def uk_sponsor_flags(orgs):

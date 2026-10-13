@@ -19,6 +19,18 @@ module.exports = async (req, res) => {
   const u = upstash();
   if (!u) return res.status(501).json({ error: 'Storage is not configured. Add Upstash Redis in Vercel.' });
   res.setHeader('Cache-Control', 'no-store');
+  if (req.method === 'POST' && (req.query || {}).act === 'delete') {
+    // Delete an offer for good (api/_offerspg.js deleteOffer): gone from the list, and never collected again.
+    const id = String((req.body || {}).id || '');
+    if (!id || id.length > 300) return res.status(400).json({ error: 'Which offer? The id is missing.' });
+    try {
+      const existed = await pgsets.deleteOffer(id);
+      if (existed === null) return res.status(501).json({ error: 'The database is not configured.' });
+      return res.status(200).json({ ok: true, existed });
+    } catch (e) {
+      return res.status(502).json({ error: 'The database is unavailable right now.' });
+    }
+  }
   if ((req.query || {}).set === 'masters') {
     try {
       if (notModified(req, res, ['m', ...await version(u, [['GET', 'parcours:masters:meta']]), await pgsets.datasetVersion(['masters'])])) return;

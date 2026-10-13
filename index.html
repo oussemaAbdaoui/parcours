@@ -2704,7 +2704,7 @@ function renderCollected(){
       ${(x.contacts||[]).length?`<div class="meta ctc">Contact: ${x.contacts.map(c=>`${c.name?esc(c.name)+(c.role?` (${esc(c.role)})`:'')+' · ':''}<span class="mono">${esc(c.email)}</span>`).join(' · ')}</div>`:''}
       ${scoreWhy(x.m,x)}
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
-      <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm" data-coqueue="${esc(x.id)}" ${inQueue(x.id)?'disabled':''}>${inQueue(x.id)?'Queued':'Queue'}</button><details class="more"><summary class="btn sm ghost" aria-label="More actions">⋯</summary><div class="menu"><button class="btn sm ghost" data-colog="${esc(x.id)}">Log as applied</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Interview stories</a>`:''}<button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></details></div></article>`;}).join('')+'</div>'
+      <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm" data-coqueue="${esc(x.id)}" ${inQueue(x.id)?'disabled':''}>${inQueue(x.id)?'Queued':'Queue'}</button><details class="more"><summary class="btn sm ghost" aria-label="More actions">⋯</summary><div class="menu"><button class="btn sm ghost" data-colog="${esc(x.id)}">Log as applied</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Interview stories</a>`:''}<button class="btn sm ghost" data-codel="${esc(x.id)}" title="Delete this offer for good: it leaves your list and is never collected again">Delete</button></div></details></div></article>`;}).join('')+'</div>'
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
     :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 3 hours.'}</p>`);
   const k=$('#coS');if(k){if($('#coK'))$('#coK').value=colF.k;if($('#coC'))$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
@@ -4269,8 +4269,12 @@ document.addEventListener('click',e=>{
   if(cq){const x=colData&&colData.items.find(i=>i.id===cq.dataset.coqueue);if(x){queueAdd(x);cq.textContent='Queued';cq.disabled=true;}return;}
   const cl=e.target.closest('[data-colog]');
   if(cl){const x=colData&&colData.items.find(i=>i.id===cl.dataset.colog);if(x)openDlg({org:x.org||x.source,role:x.title,c:cById(x.c)?x.c:'fr',d:DOM[x.kind]?x.kind:'job',p:x.source,link:safeUrl(x.url),offer:offerCopy(x)});return;}
-  const ch=e.target.closest('[data-cohide]');
-  if(ch){state.oppsHidden=[...(state.oppsHidden||[]),ch.dataset.cohide].slice(-2000);save();renderCollected();return;}
+  // Delete an offer for good (api/opps.js ?act=delete): removed at once here, then on the server, which also stops the
+  // collectors from ever adding it back. If the server cannot be reached, it comes back with the reason.
+  const cd=e.target.closest('[data-codel]');
+  if(cd&&colData){const id=cd.dataset.codel,i=colData.items.findIndex(x=>x.id===id);if(i<0)return;const [x]=colData.items.splice(i,1);renderCollected();
+    api('/api/opps?act=delete',{method:'POST',body:JSON.stringify({id})}).then(()=>toast('Offer deleted. It will not be collected again.'))
+      .catch(err=>{colData.items.splice(i,0,x);renderCollected();toast(errText(err,{},'Could not delete the offer.')+' It is back in the list.','err');});return;}
   const jd=e.target.closest('[data-jdel]');if(jd){state.saved=state.saved.filter(x=>x.id!==jd.dataset.jdel);save();renderSaved();return;}
   const sd=e.target.closest('[data-ssdel]');if(sd){state.searches=state.searches.filter(x=>x.id!==sd.dataset.ssdel);save();runSaved();return;}
   const fd=e.target.closest('[data-fdel]');if(fd){state.feeds=state.feeds.filter(x=>x.id!==fd.dataset.fdel);save();renderFeeds();return;}

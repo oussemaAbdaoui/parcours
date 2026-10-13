@@ -489,7 +489,7 @@ def main():
         print("  dropped offers memory:", str(e)[:120])
         again = set()
     if again:
-        print(f"  skipped {len(again)} offers already read and dropped under this profile")
+        print(f"  skipped {len(again)} offers already read and dropped under this profile, or deleted by you")
         found = [x for x in found if x["id"] not in again]
 
     stored = load_all(store) if store else []
