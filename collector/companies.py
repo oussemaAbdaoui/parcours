@@ -2,7 +2,7 @@
 
 For the companies the app shows (applications, saved jobs, notes, and the ones with 2+ stored offers):
 - Indeed ratings missing or older than 30 days are looked up again (stealth browser) into Postgres
-  (companies.rating), the cache the 6-hourly collector already uses, so companies without open offers get a rating too.
+  (companies.rating), the cache the 3-hourly collector already uses, so companies without open offers get a rating too.
 - Interview stories missing or older than 14 days are queued in parcours:insights:queue; the PC collector
   fetches them (Glassdoor and Reddit block datacenter IPs).
 - A summary per company (open offers, newest offer, roles, last refresh) goes to parcours:companies:meta,

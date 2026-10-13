@@ -1661,6 +1661,7 @@ function apps(qs){
     <textarea id="impText" aria-label="Emails or notes to import" placeholder="Paste emails or notes here…"></textarea>
     <div class="row"><button class="btn primary" id="impGo">Extract applications</button><span class="hint" id="impMsg" style="margin:0"></span></div>
     <div id="impRes"></div></div>
+  ${dupGroups().length?`<p class="nudge" id="dupNote">${dupGroups().reduce((n,l)=>n+l.length-1,0)} application${dupGroups().reduce((n,l)=>n+l.length-1,0)===1?' was':'s were'} logged twice (${dupGroups().map(l=>esc(l[0].org||l[0].role||'')).join(', ')}). <button class="btn sm" type="button" id="dupMerge">Merge them</button></p>`:''}
   <div class="filters">
     <select id="flC" aria-label="Country"><option value="">All countries</option>${COUNTRIES.map(c=>`<option value="${c.id}">${c.flag} ${esc(c.name)}</option>`).join('')}</select>
     <select id="flD" aria-label="Route"><option value="">All routes</option>${Object.entries(DOM).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select>
@@ -1674,6 +1675,7 @@ function apps(qs){
   if(!sample)$('[data-act="import"]').hidden=true;
   renderList();
   $('#impGo')&&$('#impGo').addEventListener('click',runImport);
+  $('#dupMerge')&&$('#dupMerge').addEventListener('click',()=>{const n=mergeDuplicates();toast(`${n} duplicate${n===1?'':'s'} merged.`);apps(qs);});
   if(q.get('import')&&sample){$('#imp').hidden=false;}
   if(q.get('gmail')){history.replaceState(null,'','#/apps');gmNote=q.get('gmail')==='ok'?'Gmail connected.':(q.get('m')||'Could not connect Gmail.');}
   if(gmNote!==null&&caps.online){$('#gm').hidden=false;gmStatus(gmNote);gmNote=null;}
@@ -1763,8 +1765,36 @@ function saveDlg(){
   if(dlgOffer)a.offer=dlgOffer;
   addOrUpdate(a);$('#dlg').close();route();
 }
+/* The same application logged twice (Sent pressed again, or on a second device before it synced): same offer link,
+   or with no link the same organisation and role. 5 pairs were found on 13 Oct, each made seconds to minutes apart. */
+const appLink=u=>String(u||'').trim().toLowerCase().replace(/[?#].*$/,'').replace(/\/+$/,'').replace(/^https?:\/\/(www\.)?/,'');
+
+const near=(a,b)=>!a.date||!b.date||Math.abs(Date.parse(a.date)-Date.parse(b.date))<=30*864e5;
+const sameApp=(a,b)=>a.id!==b.id&&near(a,b)&&(appLink(a.link)&&appLink(b.link)?appLink(a.link)===appLink(b.link)
+  :String(a.org||'').trim().toLowerCase()===String(b.org||'').trim().toLowerCase()&&String(a.role||'').trim().toLowerCase()===String(b.role||'').trim().toLowerCase()&&!!(a.org||a.role));
+// Folds b into a: the further stage, a closed result over an open one, both sets of notes, the offer copy.
+function mergeApp(a,b){
+  if(STAGES.indexOf(b.stage)>STAGES.indexOf(a.stage))a.stage=b.stage;
+  if(a.result==='open'&&b.result&&b.result!=='open')a.result=b.result;
+  if(b.notes&&!String(a.notes||'').includes(b.notes))a.notes=(a.notes?a.notes+'\n':'')+b.notes;
+  ['link','offer','role','org'].forEach(k=>{if(!a[k]&&b[k])a[k]=b[k];});
+  if(b.date&&(!a.date||b.date<a.date))a.date=b.date;
+  return a;
+}
+function dupGroups(){
+  const groups=[];
+  (state.apps||[]).forEach(a=>{const g=groups.find(l=>sameApp(l[0],a));if(g)g.push(a);else groups.push([a]);});
+  return groups.filter(l=>l.length>1);
+}
+function mergeDuplicates(){
+  const drop=new Set();
+  dupGroups().forEach(l=>{const [keep,...rest]=l;rest.forEach(b=>{mergeApp(keep,b);drop.add(b.id);});});
+  state.apps=state.apps.filter(a=>!drop.has(a.id));save();return drop.size;
+}
 function addOrUpdate(a){
-  const i=state.apps.findIndex(x=>x.id===a.id);if(i>=0)state.apps[i]=a;else state.apps.push(a);
+  const i=state.apps.findIndex(x=>x.id===a.id);
+  if(i<0){const twin=state.apps.find(x=>sameApp(x,a));if(twin){mergeApp(twin,a);save();return;}}
+  if(i>=0)state.apps[i]=a;else state.apps.push(a);
   const c=cById(a.c),idx=c?(c.p[a.d]||[]).findIndex(x=>x[0]===a.p):-1;
   if(idx>=0){const k=pk(a.c,a.d,idx);if(['todo','exploring'].includes(stat(k)))state.status[k]='applied';}
   save();
@@ -2359,7 +2389,7 @@ function marketCharts(all){
 })();
 
 function oppsHub(){
-  $('#view').innerHTML=`<h1>Jobs</h1><p class="sub">Offers collected for you every 6 hours, sorted into categories, plus your own search tools.</p>
+  $('#view').innerHTML=`<h1>Jobs</h1><p class="sub">Offers collected for you every 3 hours, sorted into categories, plus your own search tools.</p>
   <h2 class="sec">Collected for you</h2><div class="grid" id="hubKinds"><p class="hint">Loading…</p></div>
   <div id="hubCharts"></div>
   <h2 class="sec">Search and track</h2><div class="grid tools">
@@ -2676,7 +2706,7 @@ function renderCollected(){
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
       <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm" data-coqueue="${esc(x.id)}" ${inQueue(x.id)?'disabled':''}>${inQueue(x.id)?'Queued':'Queue'}</button><details class="more"><summary class="btn sm ghost" aria-label="More actions">⋯</summary><div class="menu"><button class="btn sm ghost" data-colog="${esc(x.id)}">Log as applied</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Interview stories</a>`:''}<button class="btn sm ghost" data-cohide="${esc(x.id)}">Hide</button></div></details></div></article>`;}).join('')+'</div>'
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
-    :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 6 hours.'}</p>`);
+    :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 3 hours.'}</p>`);
   const k=$('#coS');if(k){if($('#coK'))$('#coK').value=colF.k;if($('#coC'))$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
     $('#coSrc').value=colF.src;$('#coT').value=colF.topic||'';$('#coE').value=colF.exp;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
     const read=()=>({k:$('#coK')?$('#coK').value:colF.k,c:$('#coC')?$('#coC').value:colF.c,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,exp:$('#coE').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked,topic:$('#coT').value});
@@ -3159,7 +3189,7 @@ async function renderPush(){
     <div class="g2"><div><label class="lab" for="puT">Alert me about new offers scoring at least</label><select id="puT">${[70,75,80,85,90].map(v=>`<option value="${v}" ${(pr.pushThreshold||80)===v?'selected':''}>${v}</option>`).join('')}</select></div>
     <div><label class="lab" for="puD">Weekly digest</label><select id="puD"><option value="1" ${pr.pushDigest!==false?'selected':''}>Monday morning summary</option><option value="0" ${pr.pushDigest===false?'selected':''}>Off</option></select></div></div>
     <div class="row" style="margin-top:12px">${on?`<button class="btn" id="puTest">Send a test</button><button class="btn ghost" id="puOff">Turn off</button>`:`<button class="btn primary" id="puOn" ${st.perm==='denied'?'disabled':''}>Turn on notifications</button>`}<span class="hint" id="puMsg" style="margin:0"></span></div>
-    <p class="hint" style="margin:10px 0 0">The collectors check after each run (every 6 hours). ${isIos&&!isStandalone?'On iPhone, add the app to your Home Screen first.':''}</p>`;
+    <p class="hint" style="margin:10px 0 0">The collectors check after each run (every 3 hours). ${isIos&&!isStandalone?'On iPhone, add the app to your Home Screen first.':''}</p>`;
   const msg=$('#puMsg');
   const saveSub=async sub=>api('/api/push',{method:'POST',body:JSON.stringify({action:'subscribe',subscription:sub.toJSON(),threshold:+$('#puT').value,digest:$('#puD').value==='1',device:navigator.userAgent.slice(0,80)})});
   const change=async()=>{setProfile({pushThreshold:+$('#puT').value,pushDigest:$('#puD').value==='1'});const s=(await pushState()).sub;if(s)try{await saveSub(s);}catch(e){}};
@@ -3583,7 +3613,7 @@ async function poliPrefsForm(){
 }
 function renderSponsors(){
   const box=$('#spBox'),d=poliData;if(!box||!d||poliF.tab==='jobs')return;
-  if(!d.at){box.innerHTML='<p class="hint">No Poli directory yet. It fills on the next collector run (every 6 hours).</p>';return;}
+  if(!d.at){box.innerHTML='<p class="hint">No Poli directory yet. It fills on the next collector run (every 3 hours).</p>';return;}
   const words=poliF.q.toLowerCase().split(/\s+/).filter(Boolean),has=t=>words.every(w=>t.toLowerCase().includes(w));
   let rows,html;
   if(poliF.tab==='people')return renderPoliPeople();
