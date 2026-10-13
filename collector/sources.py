@@ -13,7 +13,7 @@ import re
 import time
 
 import requests
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from scrapling.fetchers import Fetcher
 
@@ -871,7 +871,47 @@ def euraxess(keywords, limit=20):
     return out
 
 
-SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
+# Employment Hero Jobs (employmenthero.com/jobs, formerly jobs.employmenthero.com): SME employers, mostly Australia,
+# with UK and Canada sections. Its job sitemap lists role pages (/uk/jobs/software-developer/), each with the job
+# cards (title, company, place, salary, contract, level, age); the job page itself (JSON-LD JobPosting) is opened
+# later by enrich.details. robots.txt allows these pages and asks 10 s between requests, hence few role pages a run.
+EH_REGIONS = {"uk": "uk", "ca": "en-ca"}
+EH_ROLE = re.compile(r"^(software|developer|data|machine-learning|ai-|artificial|python|full-stack|front-end|back-end|devops|"
+                     r"cloud|systems-engineer|programmer|research|it-|analyst/)")
+EH_PAUSE, EH_ROLES_PER_REGION = 10, 6
+EH_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36"}
+
+
+def employment_hero(keywords):
+    from html import unescape
+    out, seen = [], set()
+    for c, path in EH_REGIONS.items():
+        x = requests.get(f"https://employmenthero.com/{path}/wp-sitemap-jobs-1.xml", headers=EH_UA, timeout=30).text
+        roles = [u for u in re.findall(r"<loc>([^<]+)</loc>", x)
+                 if re.fullmatch(rf"https://employmenthero\.com/{path}/jobs/[a-z0-9-]+/", u) and EH_ROLE.search(u.rsplit("/jobs/", 1)[1])]
+        for u in roles[:EH_ROLES_PER_REGION]:
+            time.sleep(EH_PAUSE)
+            h = requests.get(u, headers=EH_UA, timeout=30).text
+            for link, card in re.findall(rf'<a[^>]*href="(https://employmenthero\.com/{path}/jobs/position/[^"]+)"[^>]*>(.*?)</a>', h, re.S):
+                parts = [p for p in (unescape(_t(t)) for t in re.split(r"<[^>]+>", card)) if p and p != "•"]
+                if len(parts) < 3 or link in seen or not TECH_TITLE.search(parts[0]) or re.search(r"do not apply|demo role", parts[0], re.I):
+                    continue
+                seen.add(link)
+                title, org, place = parts[0], parts[1], parts[2]
+                salary = next((p.lstrip("• ") for p in parts if "£" in p or "$" in p), "")
+                age = next((parts[i + 1] for i, p in enumerate(parts[:-1]) if p == "Posted"), "")
+                n = re.match(r"(\d+|a|an)\s+(day|week|month)", age)
+                days = ((1 if n.group(1) in ("a", "an") else int(n.group(1))) * {"day": 1, "week": 7, "month": 30}[n.group(2)]) if n else 0
+                tags = [p for p in parts[3:] if p not in ("Posted", age) and "£" not in p and "$" not in p and len(p) < 30]
+                out.append({"id": "eh:" + link.rstrip("/").rsplit("-", 1)[-1], "title": title, "org": org,
+                            "location": f"{place}, {'United Kingdom' if c == 'uk' else 'Canada'}", "c": c, "kind": "job",
+                            "source": "Employment Hero", "url": link, "deadline": "",
+                            "posted": (date.today() - timedelta(days=days)).isoformat() if age else "",
+                            "desc": " · ".join([salary] + tags if salary else tags)})
+    return out
+
+
+SCRAPERS = {"jobs.ac.uk": jobs_ac_uk, "Employment Hero": employment_hero, "Inria": inria, "ELLIS": ellis, "Keejob": keejob, "HelloWork": hellowork,
             "jobs.ch": jobs_ch, "Job Bank": jobbank, "CNRS": cnrs,
             "Farojob": farojob, "Poli": poli, "LinkedIn posts": linkedin_posts,
             "Company boards": company_boards, "HN Who is hiring": hn_hiring, "Free-Work": free_work,
