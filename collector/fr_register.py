@@ -138,7 +138,10 @@ def refresh(dry=False, budget=240):
                   f"{rec.get('sector', '')[:28]:28} {'' if rec.get('none') or rec.get('active') else 'CLOSED'}")
             continue
         c.execute("update companies set register = %s, updated_at = %s where norm = %s", (json.dumps(rec, ensure_ascii=False), now, key))
-    return done, (f"{failed} lookups failed" if failed else "")
+    # A few failed lookups are normal (they are asked again next run); only a run where none worked is an error.
+    if failed:
+        print(f"  French company register: {failed} lookups failed, retried next run")
+    return done, ("the register API did not answer" if failed and not done else "")
 
 
 if __name__ == "__main__":

@@ -135,6 +135,8 @@ def visitor_jobs():
         except (requests.RequestException, ValueError):
             failed += 1
         time.sleep(0.3)
+    if failed:
+        print(f"  Poli visitor feed: {failed} of 144 requests failed, {len(out)} jobs")
     if failed > 20:
         raise RuntimeError(f"Poli visitor feed: {failed} of 144 requests failed")
     return [offer(j) for j in out.values()]
