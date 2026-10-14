@@ -1,8 +1,9 @@
-const { auth, upstash, aiOn } = require('./_lib');
+const { upstash, aiOn } = require('./_lib');
 
-// Login check + tells the app which optional sources and features are configured.
-module.exports = async (req, res) => {
-  if (!(await auth(req, res))) return;
+// Login check + tells the app which optional sources and features are configured. Served by api/state.js at
+// /api/state?ping=1 (one function fewer: the Hobby plan allows 12 per deployment); vercel.json rewrites the old
+// /api/ping there for app copies cached before the move.
+module.exports = (req, res) => {
   const e = process.env;
   res.status(200).json({
     ok: true,

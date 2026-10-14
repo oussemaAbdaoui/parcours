@@ -149,3 +149,46 @@ create table if not exists offers_dropped (
 -- belongs to ("Next40", "French Tech 120").
 alter table companies add column if not exists register jsonb;
 alter table companies add column if not exists lists text[];
+
+-- ---------- Public users (the public app, app.html) ----------
+-- The admin (you) keeps APP_PASSWORD and every table above; public users never read or write them. Each user's
+-- tracker, saved offers and profile live in user_items / user_settings, the same newest-edit-wins rows as items /
+-- settings with the owner's id in the key. Deleting a user deletes their sessions and data (on delete cascade).
+create table if not exists users (
+  id         text    primary key,              -- random UUID
+  email      text    not null unique,          -- lower-case
+  name       text    not null default '',
+  pass       text    not null,                 -- scrypt$salt$hash (base64)
+  plan       text    not null default 'free',  -- free or paid
+  plan_until bigint,                           -- paid plan end (ms); null on free
+  created_at bigint  not null,
+  seen_at    bigint
+);
+
+-- Signed-in devices: the sha256 of the cookie's random token, never the token itself.
+create table if not exists sessions (
+  token      text    primary key,
+  user_id    text    not null references users (id) on delete cascade,
+  created_at bigint  not null,
+  expires_at bigint  not null
+);
+create index if not exists sessions_user on sessions (user_id);
+
+create table if not exists user_items (
+  user_id    text    not null references users (id) on delete cascade,
+  collection text    not null,
+  id         text    not null,
+  data       jsonb   not null,
+  created_at bigint  not null,
+  updated_at bigint  not null,
+  deleted    boolean not null default false,
+  primary key (user_id, collection, id)
+);
+
+create table if not exists user_settings (
+  user_id    text    not null references users (id) on delete cascade,
+  key        text    not null,
+  data       jsonb   not null,
+  updated_at bigint  not null,
+  primary key (user_id, key)
+);

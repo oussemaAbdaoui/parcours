@@ -1,5 +1,6 @@
 const { auth } = require('./_lib');
 const { db } = require('./_db');
+const ping = require('./_ping');
 
 // Your data: Neon Postgres, one row per item (see db/schema.sql). The newest edit of each item wins, so edits
 // made on two devices to different items never overwrite each other.
@@ -72,6 +73,7 @@ function asChanges(state, ts) {
 
 module.exports = async (req, res) => {
   if (!(await auth(req, res))) return;
+  if (req.query && req.query.ping) return ping(req, res);
   const pool = db();
   if (!pool) return res.status(501).json({ error: 'Sync is not configured.' });
   res.setHeader('Cache-Control', 'no-store');

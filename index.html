@@ -4420,7 +4420,7 @@ function notice(msg){const n=$('#notice');n.textContent=msg;n.hidden=false;}
 function showLogin(){const d=$('#loginDlg');if(!d.open){$('#loginMsg').textContent=getPw()?'That password did not work. Try again.':'Enter the password you set as APP_PASSWORD in Vercel.';d.showModal();$('#loginPw').focus();}}
 async function boot(){
   let p=null;
-  try{p=await api('/api/ping');}
+  try{p=await api('/api/state?ping=1');}
   catch(e){
     if(e.code==='unauthorized')return;
     caps.online=false;

@@ -1,5 +1,6 @@
 """Every check that must pass before a deploy (run by .github/workflows/ci.yml on each push, or by hand):
-- the scoring regression cases (node tests/score.test.js) and the sync server's wipe guards (tests/state_guard.test.js);
+- the scoring regression cases (node tests/score.test.js), the sync server's wipe guards (tests/state_guard.test.js) and the
+  public accounts, sandboxed in an in-memory Postgres (tests/users.test.js; needs npm ci);
 - the app's inline scripts, sw.js, score.js and every api/*.js parse;
 - every Python file in collector/, api/ and tests/ compiles;
 - data/sources.csv lists every source the collectors use (tests/sources_csv.py).
@@ -36,7 +37,7 @@ for f in sorted(glob.glob(os.path.join(ROOT, "collector", "*.py")) + glob.glob(o
         py_compile.compile(f, doraise=True, cfile=os.path.join(tempfile.gettempdir(), "parcours_check.pyc"))
     except py_compile.PyCompileError as e:
         failed.append(f"{os.path.relpath(f, ROOT)}: {str(e)[:300]}")
-for test, label in (("score.test.js", "scoring cases"), ("state_guard.test.js", "sync guards")):
+for test, label in (("score.test.js", "scoring cases"), ("state_guard.test.js", "sync guards"), ("users.test.js", "public accounts")):
     r = subprocess.run(["node", os.path.join(ROOT, "tests", test)], capture_output=True, text=True)
     print(f"{label}: " + (r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "no output"))
     if r.returncode:

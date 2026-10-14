@@ -39,7 +39,7 @@ def run(server_state, local_state=None):
         if m != "GET":
             writes.append({"path": path, "body": json.loads(r.request.post_data or "{}")})
             return r.fulfill(status=200, content_type="application/json", body='{"ok":true}')
-        if path == "/api/ping":
+        if path == "/api/ping" or u.endswith("/api/state?ping=1"):
             return r.fulfill(status=200, content_type="application/json", body='{"ok":true,"sync":true,"ai":false,"sources":{}}')
         if path == "/api/state":
             return r.fulfill(status=200, content_type="application/json", body=json.dumps({"state": server_state, "version": now, "store": "neon"}))
