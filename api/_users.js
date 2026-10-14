@@ -142,7 +142,86 @@ async function saveChanges(pool, uid, changes) {
   return null;
 }
 
-// ---------- The endpoint: /api/u?a=signup|login|logout|me|state|delete ----------
+// ---------- Discover: what the collectors gathered, for signed-in users ----------
+// Jobs, internships and alternance from offers (told apart by title and contract type), PhD offers, master's and
+// scholarships (datasets "masters"), schools ("academia-schools", universities only) and professors
+// ("academia-people": name, institution, research topics and public profiles; emails are not shown to public users).
+const INTERN = '(\\m(stage|stagiaire|intern|internship|interns|praktikum|praktikant|pfe|trainee)\\M)';
+// "Apprentissage automatique / profond" is machine learning, not an apprenticeship.
+const ALTERN = '(alternan|apprenti(?!ssage (automatique|profond|statistique|par renforcement))|ausbildung|work[- ]study|duales studium|dual study|contrat pro)';
+const CATS = ['jobs', 'internships', 'alternance', 'phd', 'masters', 'scholarships', 'schools', 'professors'];
+const PAGE = 30;
+const short = (t, n = 240) => { const x = String(t || '').replace(/\s+/g, ' ').trim(); return x.length > n ? x.slice(0, n - 1) + '…' : x; };
+const offerRow = (d) => ({ id: d.id, title: d.title || '', org: d.org || '', country: d.c || '', place: d.location || '', url: d.url || '',
+  date: d.posted || (d.foundAt ? new Date(d.foundAt).toISOString().slice(0, 10) : ''), deadline: d.deadline || '', type: d.type || '',
+  source: d.source || '', skills: ((d.req && d.req.required_skills) || []).slice(0, 6), text: short(d.desc) });
+const masterRow = (d) => ({ id: d.id, title: d.title || '', org: d.org || '', country: d.country || '', place: d.city || '', url: d.url || '',
+  date: d.start || '', deadline: d.deadline || d.deadlineText || '', type: d.type || '', source: d.source || '', lang: d.lang || '',
+  tuition: d.tuition || '', duration: d.duration || '', text: short(d.desc) });
+const schoolRow = (d) => ({ id: d.id, title: d.name || '', org: d.acronym || '', country: d.c || '', place: d.city || '', url: d.website || d.ror || '',
+  date: d.established ? String(d.established) : '', type: (d.types || []).join(', '), text: '' });
+const personRow = (d, inst) => ({ id: d.id, title: d.name || '', org: inst || '', country: d.c || '', place: '', type: 'professor',
+  url: d.orcid ? 'https://orcid.org/' + d.orcid : 'https://openalex.org/' + d.id, skills: (d.fields || []).slice(0, 4),
+  text: d.recent && d.recent[0] ? 'Latest paper: ' + short(d.recent[0].title, 140) : '', works: d.works || 0, cited: d.cited || 0 });
+
+async function discover(pool, q) {
+  const cat = CATS.includes(q.cat) ? q.cat : 'jobs';
+  const country = /^[a-z]{2}$/.test(q.c || '') ? q.c : '';
+  const words = String(q.q || '').trim().slice(0, 80);
+  const offset = Math.max(0, Math.min(3000, parseInt(q.offset, 10) || 0));
+  const like = '%' + words.replace(/[\\%_]/g, (m) => '\\' + m) + '%';
+  // Only the fields the list shows leave the database (the full offer text, scores and emails stay there).
+  let base, where = [], params = [], countryExpr, order, map, pick = 'data';
+  const p = (v) => { params.push(v); return '$' + params.length; };
+  if (['jobs', 'internships', 'alternance', 'phd'].includes(cat)) {
+    base = 'from offers'; countryExpr = 'country'; order = 'order by found_at desc nulls last, id'; map = offerRow;
+    pick = "(data - 'desc' - 'req') || jsonb_build_object('desc', left(data->>'desc', 400), 'req', jsonb_build_object('required_skills', data->'req'->'required_skills'))";
+    const kindText = "(title || ' ' || coalesce(data->>'type', ''))";
+    if (cat === 'phd') where.push("kind = 'phd'");
+    else {
+      where.push("kind = 'job'");
+      if (cat === 'internships') where.push(`${kindText} ~* ${p(INTERN)}`);
+      else if (cat === 'alternance') where.push(`${kindText} ~* ${p(ALTERN)}`);
+      else where.push(`${kindText} !~* ${p(INTERN)}`, `${kindText} !~* ${p(ALTERN)}`);
+    }
+    if (words) where.push(`(title ilike ${p(like)} or data->>'org' ilike $${params.length})`);
+  } else if (cat === 'masters' || cat === 'scholarships') {
+    base = "from datasets"; countryExpr = "data->>'country'"; order = "order by data->>'deadline' nulls last, id"; map = masterRow;
+    pick = "(data - 'desc' - 'terms') || jsonb_build_object('desc', left(data->>'desc', 400))";
+    where.push("set = 'masters'", `data->>'type' ${cat === 'masters' ? "<> 'scholarship'" : "= 'scholarship'"}`);
+    if (words) where.push(`(data->>'title' ilike ${p(like)} or data->>'org' ilike $${params.length})`);
+  } else if (cat === 'schools') {
+    base = "from datasets"; countryExpr = "data->>'c'"; order = "order by data->>'name', id"; map = schoolRow;
+    where.push("set = 'academia-schools'", "data->'types' ? 'education'");
+    if (words) where.push(`(data->>'name' ilike ${p(like)} or data->>'city' ilike $${params.length})`);
+  } else {
+    base = "from datasets"; countryExpr = "data->>'c'"; order = "order by (data->>'score')::numeric desc nulls last, id"; map = null;
+    pick = "jsonb_build_object('id', data->'id', 'name', data->'name', 'c', data->'c', 'ror', data->'ror', 'orcid', data->'orcid', 'fields', data->'fields', 'works', data->'works', 'cited', data->'cited', 'recent', jsonb_path_query_array(data->'recent', '$[0]'))";
+    where.push("set = 'academia-people'");
+    if (words) where.push(`(data->>'name' ilike ${p(like)} or data->>'fields' ilike $${params.length})`);
+  }
+  const facetWhere = where.length ? 'where ' + where.join(' and ') : '';
+  const facetParams = params.slice();
+  if (country) where.push(`${countryExpr} = ${p(country)}`);
+  const w = where.length ? 'where ' + where.join(' and ') : '';
+  const [rows, total, countries] = await Promise.all([
+    pool.query(`select ${pick} as data ${base} ${w} ${order} limit ${PAGE + 1} offset ${offset}`, params),
+    pool.query(`select count(*) as n ${base} ${w}`, params),
+    pool.query(`select ${countryExpr} as c, count(*) as n ${base} ${facetWhere} group by 1 order by 2 desc`, facetParams),
+  ]);
+  let items;
+  if (map) items = rows.rows.map((r) => map(r.data));
+  else {
+    const ids = [...new Set(rows.rows.map((r) => r.data.ror).filter(Boolean))];
+    const names = {};
+    if (ids.length) for (const r of (await pool.query("select id, data->>'name' as name from datasets where set = 'academia-schools' and id = any($1)", [ids])).rows) names[r.id] = r.name;
+    items = rows.rows.map((r) => personRow(r.data, names[r.data.ror]));
+  }
+  return { cat, items: items.slice(0, PAGE), more: items.length > PAGE, total: Number(total.rows[0].n),
+    countries: countries.rows.filter((r) => r.c).map((r) => ({ c: r.c, n: Number(r.n) })) };
+}
+
+// ---------- The endpoint: /api/u?a=signup|login|logout|me|state|discover|delete ----------
 async function handle(pool, req, res, now = Date.now()) {
   res.setHeader('Cache-Control', 'no-store');
   const a = String((req.query && req.query.a) || '');
@@ -203,6 +282,8 @@ async function handle(pool, req, res, now = Date.now()) {
     adminPass(res, user, now);
     return res.status(200).json({ user: publicUser(user) });
   }
+
+  if (a === 'discover' && req.method === 'GET') return res.status(200).json(await discover(pool, req.query || {}));
 
   if (a === 'state') {
     if (req.method === 'GET') {

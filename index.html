@@ -93,7 +93,7 @@ form{display:grid;gap:16px}
 /* App shell: black header and tab bar, yellow for the current tab */
 .shell{min-height:100dvh;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#000;color:#fff}
-main{max-width:920px;margin:0 auto;padding:24px 16px 32px;display:grid;gap:20px}
+main{max-width:920px;margin:0 auto;padding:24px 16px 32px;display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(4,1fr);background:#000;padding-bottom:env(safe-area-inset-bottom,0px)}
 nav.tabs a{display:grid;justify-items:center;gap:3px;padding:10px 0 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#8a96a8;text-decoration:none;position:relative}
 nav.tabs a svg{width:22px;height:22px}
@@ -119,7 +119,7 @@ nav.tabs a[aria-current="page"]::before{content:"";position:absolute;top:0;left:
 
 /* Page pieces */
 .banner{background:#000;color:#fff;border-radius:var(--rc);padding:26px 22px;display:grid;gap:14px;position:relative;overflow:hidden}
-.banner::after{content:"";position:absolute;right:-60px;top:-60px;width:170px;height:170px;border-radius:50%;background:var(--grad)}
+.banner::after{content:"";position:absolute;right:-80px;top:-80px;width:160px;height:160px;border-radius:50%;background:var(--grad)}
 .banner>*{position:relative;z-index:1}
 .banner h2{color:#fff;max-width:75%}
 .banner p{color:#c4cbd4;max-width:520px}
@@ -137,6 +137,40 @@ nav.tabs a[aria-current="page"]::before{content:"";position:absolute;top:0;left:
 .rows{display:grid;gap:0}
 .rows>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-weight:600}
 .rows>div:last-child{border:0}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:8px;box-shadow:var(--shadow)}
+.item h3{text-transform:none;font-size:16px;font-weight:800;line-height:1.3;letter-spacing:0}
+.item-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.item-text{font-size:14px;color:var(--ink);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.item-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.list{display:grid;gap:12px}
+@media (min-width:1100px){.list{grid-template-columns:1fr 1fr}}
+.small{font-size:12.5px}
+.skills{display:flex;flex-wrap:wrap;gap:6px}
+.skills span{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:var(--pill);background:var(--surface-2);color:var(--ink)}
+.tag{font-size:11px;font-weight:800;padding:4px 10px;border-radius:var(--pill);text-transform:uppercase;letter-spacing:.04em}
+.t-job{background:#000;color:var(--yellow)}.t-master{background:var(--yellow);color:#000}.t-phd{background:var(--surface-2);color:var(--ink-strong);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.btn.sm{min-height:38px;padding:0 18px;font-size:12px}
+.btn.ghost{border-color:transparent}
+.saved-mark{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ok)}
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0;min-height:48px;padding:0 18px;border:2px solid var(--line-strong);border-radius:var(--pill);background:var(--surface);font-weight:600}
+.search input:focus{border-color:var(--yellow);outline:none;box-shadow:0 0 0 4px rgba(255,214,0,.25)}
+.small-chips button{min-height:34px;padding:0 14px;font-size:11.5px}
+.small-chips button span{opacity:.6;margin-left:4px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{display:grid;gap:2px;padding:14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);text-decoration:none;color:inherit}
+.stat b{font-size:28px;font-weight:900;font-style:italic;color:var(--ink-strong);line-height:1}
+.stat span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+@media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px}
+.sec-head h3{font-size:16px;font-style:italic;font-weight:900}
+.link{font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-strong)}
+.banner-t{font-weight:900;font-style:italic;font-size:clamp(22px,4.6vw,30px);line-height:1.05;color:#fff;max-width:75%}
+.stage{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.stage select{min-height:38px;border-radius:var(--pill);border:2px solid var(--line-strong);background:var(--surface);padding:0 12px;font-weight:700;text-transform:none}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:20;background:#000;color:#fff;padding:12px 20px;border-radius:var(--pill);font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:opacity .2s,transform .2s;border:2px solid var(--yellow)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (min-width:860px){.toast{bottom:28px}}
 dialog{border:0;border-radius:var(--rc);padding:26px;max-width:420px;width:calc(100% - 32px);background:var(--surface);color:var(--ink);box-shadow:0 20px 50px rgba(0,0,0,.35)}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 .row-btns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
@@ -253,25 +287,74 @@ const PATHS = [
   ['study', 'Study abroad', 'Master\'s, scholarships, PhDs and the professors behind them.'],
   ['both', 'Both', 'See everything. You can change this at any time.'],
 ];
-const DISCOVER = [['jobs', 'Jobs'], ['internships', 'Internships'], ['alternance', 'Alternance'], ['masters', 'Master\'s'], ['scholarships', 'Scholarships'], ['phd', 'PhD & professors'], ['schools', 'Schools']];
-let discoverTab = 'jobs';
+const DISCOVER = [['jobs', 'Jobs'], ['internships', 'Internships'], ['alternance', 'Alternance'], ['masters', 'Master\'s'], ['scholarships', 'Scholarships'], ['phd', 'PhD offers'], ['professors', 'Professors'], ['schools', 'Schools']];
+const WORK = ['jobs', 'internships', 'alternance'], STUDY = ['masters', 'scholarships', 'phd', 'professors', 'schools'];
+const COUNTRIES = { fr: 'France', de: 'Germany', ca: 'Canada', uk: 'United Kingdom', tn: 'Tunisia', be: 'Belgium', nl: 'Netherlands', ch: 'Switzerland',
+  se: 'Sweden', dk: 'Denmark', fi: 'Finland', no: 'Norway', ie: 'Ireland', lu: 'Luxembourg', ma: 'Morocco', it: 'Italy', eu: 'Europe-wide', gl: 'Remote', us: 'USA' };
+const STAGES = [['saved', 'Saved'], ['applied', 'Applied'], ['interview', 'Interview'], ['offer', 'Offer'], ['rejected', 'Not this time']];
+const EMPTY_HINT = { internships: 'Few internships yet: the sources that list them are being added.', alternance: 'No alternance offers yet: La bonne alternance, Walt and HelloWork alternance are being added.' };
+// The tabs a path shows first (all stay reachable).
+const tabsFor = () => (state.path === 'work' ? WORK.concat(STUDY) : state.path === 'study' ? STUDY.concat(WORK) : WORK.concat(STUDY));
+let disc = { tab: null, c: '', q: '', items: [], more: false, total: 0, countries: [], loading: false, error: '' };
 const first = () => esc((user.name || user.email.split('@')[0]).split(' ')[0]);
+const country = (c) => COUNTRIES[c] || (c ? c.toUpperCase() : '');
+// Tracker ids: the category and a short hash of the source id (source ids can be long URLs).
+const trackId = (cat, id) => { let h = 5381; for (const ch of String(id)) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0; return cat + ':' + h.toString(36); };
+const tracked = (cat, id) => (state.apps || []).find((a) => a.id === trackId(cat, id));
+
+function itemCard(it, cat) {
+  const t = tracked(cat, it.id);
+  const meta = [it.org, [it.place, country(it.country)].filter(Boolean).join(', ')].filter(Boolean).map(esc).join(' · ');
+  const when = it.deadline ? `Deadline ${esc(it.deadline)}` : it.date ? (cat === 'schools' ? `Founded ${esc(it.date)}` : esc(it.date)) : '';
+  const extra = cat === 'professors' ? `${it.works || 0} papers · ${it.cited || 0} citations` : [it.lang, it.duration, it.tuition].filter(Boolean).map(esc).join(' · ');
+  return `<article class="item">
+    <div class="item-top"><span class="tag t-${WORK.includes(cat) ? 'job' : cat === 'phd' || cat === 'professors' ? 'phd' : 'master'}">${esc(DISCOVER.find((d) => d[0] === cat)[1])}</span>${when ? `<span class="muted small">${when}</span>` : ''}</div>
+    <h3>${esc(it.title)}</h3>
+    ${meta ? `<p class="muted">${meta}</p>` : ''}
+    ${extra ? `<p class="muted small">${extra}</p>` : ''}
+    ${it.skills && it.skills.length ? `<div class="skills">${it.skills.map((s) => `<span>${esc(s)}</span>`).join('')}</div>` : ''}
+    ${it.text ? `<p class="item-text">${esc(it.text)}</p>` : ''}
+    <div class="item-acts">
+      ${it.url ? `<a class="btn sm" href="${esc(it.url)}" target="_blank" rel="noopener">Open</a>` : ''}
+      ${t ? `<span class="saved-mark">In your tracker</span>` : `<button class="btn sm primary" type="button" data-save="${esc(it.id)}">Save</button>`}
+    </div>
+  </article>`;
+}
 
 const PAGES = {
   home() {
+    const apps = state.apps || [];
+    const by = (s) => apps.filter((a) => a.stage === s).length;
+    const main = state.path ? tabsFor()[0] : null;
     return `<h2>Hello ${first()}</h2>
-      ${state.path ? '' : `<div class="banner"><h2>Where are you <span class="hl">heading?</span></h2><p>Pick your path so we show you the right opportunities.</p><a class="btn primary" href="#profile">Choose my path</a></div>`}
-      <div class="empty"><b>Your daily matches will appear here.</b><span>Coming next: upload your CV and we match you with offers every day.</span></div>`;
+      ${state.path ? `<div class="banner"><h3 class="banner-t">Your path: <span class="hl">${esc(PATHS.find((p) => p[0] === state.path)[1])}</span></h3><p>New offers are collected every day. Save the ones you like, then follow each application in Track.</p><a class="btn primary" href="#discover">Explore offers</a></div>`
+        : `<div class="banner"><h3 class="banner-t">Where are you <span class="hl">heading?</span></h3><p>Pick your path so we show you the right opportunities.</p><a class="btn primary" href="#profile">Choose my path</a></div>`}
+      <div class="stats">${[['saved', 'Saved'], ['applied', 'Applied'], ['interview', 'Interviews'], ['offer', 'Offers']].map(([k, l]) => `<a class="stat" href="#track"><b>${by(k)}</b><span>${l}</span></a>`).join('')}</div>
+      ${main ? `<div class="sec-head"><h3>Latest ${esc(DISCOVER.find((d) => d[0] === main)[1].toLowerCase())}</h3><a href="#discover" class="link">See all</a></div><div class="list" id="homeList"><p class="muted">Loading…</p></div>` : ''}
+      <div class="empty"><b>Matched to your CV, soon.</b><span>Coming next: upload your CV and each offer gets a match score and a letter written for it.</span></div>`;
   },
   discover() {
+    const tabs = tabsFor();
+    if (!disc.tab || !tabs.includes(disc.tab)) disc.tab = tabs[0];
+    const label = DISCOVER.find((d) => d[0] === disc.tab)[1];
     return `<h2>Discover</h2>
-      <div class="chips" role="group" aria-label="Categories">${DISCOVER.map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${k === discoverTab}">${l}</button>`).join('')}</div>
-      <div class="empty"><b>${esc(DISCOVER.find((d) => d[0] === discoverTab)[1])}</b><span>Offers matched to your profile will be listed here.</span></div>`;
+      <div class="chips" role="group" aria-label="Categories">${tabs.map((k) => `<button type="button" data-tab="${k}" aria-pressed="${k === disc.tab}">${DISCOVER.find((d) => d[0] === k)[1]}</button>`).join('')}</div>
+      <form class="search" id="discSearch" role="search"><input id="discQ" type="search" placeholder="Search ${esc(label.toLowerCase())}" value="${esc(disc.q)}" aria-label="Search"><button class="btn primary" type="submit">Search</button></form>
+      <div class="chips small-chips" role="group" aria-label="Countries" id="discCountries"></div>
+      <p class="muted small" id="discCount"></p>
+      <div class="list" id="discList"><p class="muted">Loading…</p></div>
+      <div id="discMore"></div>`;
   },
   track() {
     const apps = state.apps || [];
-    return `<h2>Track</h2>${apps.length ? `<div class="card rows">${apps.map((a) => `<div><span>${esc(a.role)} · ${esc(a.org)}</span><span class="muted">${esc(a.stage || '')}</span></div>`).join('')}</div>`
-      : `<div class="empty"><b>No applications yet.</b><span>When you apply to an offer, it shows up here so you can follow it to the end.</span></div>`}`;
+    if (!apps.length) return `<h2>Track</h2><div class="empty"><b>Nothing tracked yet.</b><span>Press Save on an offer in Discover: it lands here, and you move it along as you apply.</span><a class="btn primary" href="#discover">Find offers</a></div>`;
+    return `<h2>Track</h2>
+      ${STAGES.map(([k, l]) => { const list = apps.filter((a) => (a.stage || 'saved') === k); return list.length ? `<div class="sec-head"><h3>${l} <span class="muted">${list.length}</span></h3></div><div class="list">${list.map((a) => `<article class="item">
+        <div class="item-top"><span class="tag t-${WORK.includes(a.cat) ? 'job' : 'master'}">${esc((DISCOVER.find((d) => d[0] === a.cat) || ['', 'Saved'])[1])}</span><span class="muted small">Saved ${esc((a.savedAt || '').slice(0, 10))}</span></div>
+        <h3>${esc(a.title)}</h3><p class="muted">${[a.org, country(a.country)].filter(Boolean).map(esc).join(' · ')}</p>
+        <div class="item-acts">${a.url ? `<a class="btn sm" href="${esc(a.url)}" target="_blank" rel="noopener">Open</a>` : ''}
+          <label class="stage">Stage <select data-stage="${esc(a.id)}">${STAGES.map(([s, sl]) => `<option value="${s}" ${s === (a.stage || 'saved') ? 'selected' : ''}>${sl}</option>`).join('')}</select></label>
+          <button class="btn sm ghost" type="button" data-untrack="${esc(a.id)}">Remove</button></div></article>`).join('')}</div>` : ''; }).join('')}`;
   },
   profile() {
     return `<h2>Profile</h2>
@@ -286,6 +369,64 @@ const PAGES = {
   },
 };
 
+// Lists come from /api/u?a=discover after the page is drawn.
+async function loadDiscover(append) {
+  const q = new URLSearchParams({ cat: disc.tab, c: disc.c, q: disc.q, offset: append ? disc.items.length : 0 });
+  disc.loading = true; disc.error = '';
+  if (!append) { const l = $('#discList'); if (l) l.innerHTML = '<p class="muted">Loading…</p>'; }
+  try {
+    const j = await api('discover&' + q.toString());
+    if (!state || j.cat !== disc.tab) return;  // signed out, or another tab chosen meanwhile
+    disc.items = append ? disc.items.concat(j.items) : j.items;
+    disc.more = j.more; disc.total = j.total; disc.countries = j.countries;
+  } catch (e) { disc.error = e.message; }
+  disc.loading = false;
+  drawDiscover();
+}
+function drawDiscover() {
+  const list = $('#discList');
+  if (!list) return;
+  const total = disc.countries.reduce((n, x) => n + x.n, 0);
+  $('#discCountries').innerHTML = disc.countries.length > 1 ? [`<button type="button" data-country="" aria-pressed="${!disc.c}">All <span>${total}</span></button>`]
+    .concat(disc.countries.map((x) => `<button type="button" data-country="${esc(x.c)}" aria-pressed="${disc.c === x.c}">${esc(country(x.c))} <span>${x.n}</span></button>`)).join('') : '';
+  $('#discCount').textContent = disc.error ? '' : `${disc.total} ${disc.total === 1 ? 'result' : 'results'}${disc.c ? ' in ' + country(disc.c) : ''}${disc.q ? ` for "${disc.q}"` : ''}`;
+  list.innerHTML = disc.error ? `<p class="msg">${esc(disc.error)}</p>`
+    : disc.items.length ? disc.items.map((it) => itemCard(it, disc.tab)).join('')
+      : `<div class="empty"><b>Nothing here yet.</b><span>${esc(disc.q || disc.c ? 'Try another search or country.' : EMPTY_HINT[disc.tab] || 'New offers are collected every day.')}</span></div>`;
+  $('#discMore').innerHTML = disc.more ? '<button class="btn block" type="button" id="moreBtn">Show more</button>' : '';
+}
+async function loadHome() {
+  const main = state && state.path ? tabsFor()[0] : null, box = $('#homeList');
+  if (!main || !box) return;
+  try {
+    const j = await api('discover&cat=' + main);
+    if (!state) return;  // signed out meanwhile
+    box.innerHTML = j.items.length ? j.items.slice(0, 5).map((it) => itemCard(it, main)).join('') : '<p class="muted">Nothing new yet.</p>';
+    homeItems = j.items; homeCat = main;
+  } catch (e) { box.innerHTML = `<p class="msg">${esc(e.message)}</p>`; }
+}
+let homeItems = [], homeCat = '';
+
+async function track(cat, it) {
+  const id = trackId(cat, it.id), ts = Date.now();
+  const data = { id, cat, src: it.id, title: it.title, org: it.org, country: it.country, url: it.url, stage: 'saved', savedAt: new Date(ts).toISOString() };
+  state.apps = (state.apps || []).concat(data);
+  await api('state', { method: 'PUT', body: { changes: { items: [{ c: 'apps', id, data, ts }] } } });
+}
+async function updateTracked(id, patch) {
+  const a = (state.apps || []).find((x) => x.id === id);
+  if (!a) return;
+  const ts = Date.now();
+  if (patch === null) state.apps = state.apps.filter((x) => x.id !== id); else Object.assign(a, patch);
+  await api('state', { method: 'PUT', body: { changes: { items: [{ c: 'apps', id, data: patch === null ? null : a, ts }] } } });
+}
+function toast(msg) {
+  let t = $('#toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.append(t); }
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2600);
+}
+
 function render() {
   const page = (location.hash.slice(1) || 'home');
   const name = PAGES[page] ? page : 'home';
@@ -293,6 +434,8 @@ function render() {
   $('#page').innerHTML = PAGES[name]();
   $('#avatar').textContent = first().slice(0, 1).toUpperCase();
   document.title = (name === 'home' ? '' : name[0].toUpperCase() + name.slice(1) + ' · ') + 'Parcours';
+  if (name === 'discover') loadDiscover(false);
+  if (name === 'home') loadHome();
 }
 window.addEventListener('hashchange', render);
 $('#avatar').onclick = () => { location.hash = '#profile'; };
@@ -305,17 +448,45 @@ $('#themeBtn').onclick = () => {
 };
 $('#page').addEventListener('click', async (ev) => {
   const tab = ev.target.closest('[data-tab]');
-  if (tab) { discoverTab = tab.dataset.tab; render(); return; }
+  if (tab) { disc.tab = tab.dataset.tab; disc.c = ''; disc.q = ''; render(); return; }
+  const c = ev.target.closest('[data-country]');
+  if (c) { disc.c = c.dataset.country; loadDiscover(false); return; }
+  if (ev.target.id === 'moreBtn') { ev.target.disabled = true; loadDiscover(true); return; }
+  const save = ev.target.closest('[data-save]');
+  if (save) {
+    const inHome = !!save.closest('#homeList');
+    const cat = inHome ? homeCat : disc.tab, it = (inHome ? homeItems : disc.items).find((x) => String(x.id) === save.dataset.save);
+    if (!it) return;
+    save.disabled = true;
+    try { await track(cat, it); save.outerHTML = '<span class="saved-mark">In your tracker</span>'; toast('Saved to your tracker'); }
+    catch (e) { save.disabled = false; toast(e.message); }
+    return;
+  }
+  const un = ev.target.closest('[data-untrack]');
+  if (un) { try { await updateTracked(un.dataset.untrack, null); render(); } catch (e) { toast(e.message); } return; }
   if (ev.target.id === 'logout') {
     await api('logout', { method: 'POST' }).catch(() => {});
     user = state = null; showAuth('in');
   }
   if (ev.target.id === 'delete') { $('#delPw').value = ''; $('#delMsg').textContent = ''; $('#delDlg').showModal(); }
 });
+$('#page').addEventListener('submit', (ev) => {
+  if (ev.target.id !== 'discSearch') return;
+  ev.preventDefault();
+  disc.q = $('#discQ').value.trim(); disc.c = '';
+  loadDiscover(false);
+});
 $('#page').addEventListener('change', async (ev) => {
+  if (ev.target.dataset.stage) {
+    try { await updateTracked(ev.target.dataset.stage, { stage: ev.target.value }); toast('Stage updated'); render(); } catch (e) { toast(e.message); }
+    return;
+  }
   if (ev.target.name !== 'path') return;
-  try { await saveSetting('path', ev.target.value); $('#pathMsg').textContent = ''; }
-  catch (e) { $('#pathMsg').textContent = e.message; }
+  try {
+    await saveSetting('path', ev.target.value); $('#pathMsg').textContent = '';
+    disc.tab = null; toast('Path saved: here are your offers');
+    location.hash = '#discover';
+  } catch (e) { $('#pathMsg').textContent = e.message; }
 });
 $('#delCancel').onclick = () => $('#delDlg').close();
 $('#delForm').onsubmit = async (ev) => {

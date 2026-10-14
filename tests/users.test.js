@@ -8,6 +8,7 @@ process.env.APP_PASSWORD = 'sandbox-app-password';
 const { execFileSync } = require('child_process');
 const { handle, MAX_ITEMS } = require('../api/_users');
 const { auth } = require('../api/_lib');
+const fixtures = require('./fixtures');
 
 const schema = fs.readFileSync(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf8');
 const userTables = schema.slice(schema.indexOf('-- ---------- Public users'));
@@ -61,6 +62,7 @@ function pythonAccepts(cookie) {
 (async () => {
   const pg = new PGlite();
   await pg.exec(userTables);
+  await fixtures.load(pg);
   const pool = poolOf(pg);
   const amel = browser(pool), sami = browser(pool), stranger = browser(pool);
   const day = 86400000;
@@ -162,6 +164,46 @@ function pythonAccepts(cookie) {
   check('the admin account cannot be deleted from the app', r.status === 403);
   r = await boss('POST', 'logout');
   check('sign-out removes the admin pass too', !r.jar.padm && !r.jar.psid && /padm=; Path=\/api.*Max-Age=0/.test(r.setCookie), r.setCookie);
+
+  // Discover: what the collectors gathered, by category (asked as a signed-in user)
+  const reader = browser(pool);
+  await reader('POST', 'login', { email: 'sami@example.tn', password: 'long-enough-2' });
+  const readerCookie = 'psid=' + (await reader('GET', 'me')).jar.psid;
+  const ask = async (params) => {
+    const out = {};
+    const res = { setHeader() {}, status(x) { out.status = x; return this; }, json(j) { out.json = j; return this; } };
+    await handle(pool, { method: 'GET', query: { a: 'discover', ...params }, body: {}, headers: { cookie: readerCookie } }, res);
+    return out;
+  };
+  const names = (o) => o.json.items.map((i) => i.title).sort().join(' | ');
+  let d = await ask({ cat: 'jobs' });
+  check('jobs: graduate jobs only', d.status === 200 && names(d) === 'Data Engineer | Développeur Full stack | Ingénieur en Apprentissage Automatique', names(d));
+  d = await ask({ cat: 'internships' });
+  check('internships: by title (stage, PFE) and by contract type', names(d) === 'Software Engineer | Stage PFE Data Science', names(d));
+  d = await ask({ cat: 'alternance' });
+  check('alternance: "apprentissage automatique" (machine learning) is not an apprenticeship', names(d) === 'Développeur web en alternance', names(d));
+  d = await ask({ cat: 'phd' });
+  check('PhD offers', names(d) === 'PhD in NLP');
+  d = await ask({ cat: 'masters' });
+  check("master's programmes, not scholarships", names(d) === 'MSc Data Science | Master IA', names(d));
+  d = await ask({ cat: 'scholarships' });
+  check('scholarships', names(d) === 'Eiffel Scholarship');
+  d = await ask({ cat: 'schools' });
+  check('schools: universities only, not labs', names(d) === 'University of Carthage', names(d));
+  d = await ask({ cat: 'professors' });
+  check('professors with their university', d.json.items[0].title === 'Prof Amira Test' && d.json.items[0].org === 'University of Carthage', d.json.items[0]);
+  check('professor emails never leave the database', !JSON.stringify(d.json).includes('amira@example.tn'));
+  d = await ask({ cat: 'jobs' });
+  check('offers: no full text or scoring details sent', !JSON.stringify(d.json).includes('secret scoring detail') && d.json.items.every((i) => i.text.length <= 240));
+  check('country counts for the filter', d.json.countries.length === 3 && d.json.countries.every((x) => x.n === 1), d.json.countries);
+  d = await ask({ cat: 'jobs', c: 'tn' });
+  check('country filter', names(d) === 'Développeur Full stack' && d.json.total === 1, names(d));
+  d = await ask({ cat: 'jobs', q: 'engineer' });
+  check('search', names(d) === 'Data Engineer', names(d));
+  d = await ask({ cat: 'jobs', q: "x'; drop table offers; --" });
+  check('search text is not SQL', d.status === 200 && Number((await pg.query('select count(*) n from offers')).rows[0].n) === fixtures.OFFERS.length);
+  r = await stranger('GET', 'discover');
+  check('discover needs an account', r.status === 401);
 
   // Account deletion
   await amel('POST', 'login', { email: 'amel@example.tn', password: 'long-enough-1' });

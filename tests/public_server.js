@@ -9,6 +9,7 @@ delete process.env.UPSTASH_REDIS_REST_URL; delete process.env.KV_REST_API_URL;
 process.env.APP_PASSWORD = 'sandbox-app-password';
 const { handle } = require('../api/_users');
 const { auth } = require('../api/_lib');
+const fixtures = require('./fixtures');
 
 const ROOT = path.join(__dirname, '..');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon', '.js': 'text/javascript', '.json': 'application/json' };
@@ -17,6 +18,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.ico'
   const pg = new PGlite();
   const schema = fs.readFileSync(path.join(ROOT, 'db', 'schema.sql'), 'utf8');
   await pg.exec(schema.slice(schema.indexOf('-- ---------- Public users')));
+  await fixtures.load(pg);
   const query = (t, p) => pg.query(t, p);
   const pool = { query, connect: async () => ({ query, release() {} }) };
 
