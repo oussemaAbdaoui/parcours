@@ -7,7 +7,22 @@ function safeEq(a, b) {
   return crypto.timingSafeEqual(A, B);
 }
 
-// Every endpoint requires the shared password. Without APP_PASSWORD the API stays closed,
+// The admin pass: signing in on the login page (/) with the admin account (users.role = 'admin', api/_users.js)
+// sets the cookie padm = "<user id>.<expires ms>.<signature>", signed with APP_PASSWORD. It is checked here and in
+// api/boards.py with no database; changing APP_PASSWORD signs every admin device out.
+const ADMIN_COOKIE = 'padm', ADMIN_DAYS = 30;
+const adminSig = (pw, uid, exp) => crypto.createHmac('sha256', pw).update(`admin:${uid}:${exp}`).digest('base64url');
+function adminToken(uid, exp) {
+  const pw = process.env.APP_PASSWORD;
+  return pw ? `${uid}.${exp}.${adminSig(pw, uid, exp)}` : null;
+}
+function adminCookieOk(req, now = Date.now()) {
+  const pw = process.env.APP_PASSWORD;
+  const m = String(req.headers.cookie || '').match(/(?:^|;\s*)padm=([A-Za-z0-9-]{1,64})\.(\d{10,16})\.([A-Za-z0-9_-]{43})(?:;|$)/);
+  return !!(pw && m && Number(m[2]) > now && safeEq(m[3], adminSig(pw, m[1], m[2])));
+}
+
+// Every admin endpoint requires the admin pass (above) or the shared password. Without APP_PASSWORD the API stays closed,
 // so nobody can use your keys or read your data. Wrong passwords are counted per address in Redis: after
 // LOCK_AFTER of them within LOCK_SECONDS, that address is refused (even with the right password) until the window ends.
 const LOCK_AFTER = 10, LOCK_SECONDS = 900;
@@ -18,6 +33,7 @@ async function auth(req, res) {
     res.status(503).json({ error: 'APP_PASSWORD is not set on the server. Add it in Vercel, then redeploy.' });
     return false;
   }
+  if (adminCookieOk(req)) return true;
   const u = upstash(), key = 'parcours:authfail:' + clientIp(req);
   if (u) {
     const n = await redis(u, ['GET', key]).catch(() => null);
@@ -112,4 +128,4 @@ async function claude(prompt, { tier, maxTokens = 16000, ms = 55000 } = {}) {
   } finally { clearTimeout(t); }
 }
 
-module.exports = { auth, fetchJson, isoDate, clean, safeEq, upstash, redis, claude, aiOn };
+module.exports = { auth, adminToken, adminCookieOk, ADMIN_COOKIE, ADMIN_DAYS, fetchJson, isoDate, clean, safeEq, upstash, redis, claude, aiOn };

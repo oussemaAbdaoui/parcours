@@ -32,7 +32,7 @@ def run(server_state, local_state=None):
             return r.abort()
         path = u.split("parcours.test", 1)[1].split("?")[0]
         if not path.startswith("/api/"):
-            f = os.path.join(ROOT, "index.html" if path in ("/", "/index.html") else path.lstrip("/"))
+            f = os.path.join(ROOT, "admin.html" if path in ("/", "/admin", "/admin.html") else path.lstrip("/"))
             if os.path.isfile(f):
                 return r.fulfill(status=200, body=open(f, "rb").read(), content_type="text/html" if f.endswith(".html") else "application/javascript")
             return r.fulfill(status=404, body="")

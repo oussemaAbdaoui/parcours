@@ -8,14 +8,26 @@
       "includeFiles": "collector/{sources,poli}.py"
     }
   },
+  "redirects": [
+    {
+      "source": "/app",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/admin.html",
+      "destination": "/admin",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/ping",
       "destination": "/api/state?ping=1"
     },
     {
-      "source": "/app",
-      "destination": "/app.html"
+      "source": "/admin",
+      "destination": "/admin.html"
     }
   ],
   "headers": [

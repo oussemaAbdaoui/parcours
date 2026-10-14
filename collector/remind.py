@@ -59,7 +59,7 @@ def message(state, now, goal):
     run = streak(state, now.date(), goal)
     if left <= 0:
         return {"title": f"Goal done: {c['total']}/{goal} today", "body": f"{c['job']} jobs, {c['phd']} PhDs, {c['master']} master's, {c['contacts']} contacts. "
-                + (f"That makes {run + 1} days in a row." if run else "Same again tomorrow."), "url": "/#/", "tag": "goal"}, "done"
+                + (f"That makes {run + 1} days in a row." if run else "Same again tomorrow."), "url": "/admin#/", "tag": "goal"}, "done"
     span = max(1, DAY_END - DAY_START)
     should = round(goal * min(1, max(0, (now.hour + now.minute / 60 - DAY_START) / span)))
     nxt = f"{queued} offer{'s' if queued != 1 else ''} waiting in your apply queue." if queued else "Open Discover for offers, or email a professor."
@@ -71,7 +71,7 @@ def message(state, now, goal):
         title, body = f"{c['total']}/{goal} · on track", f"{left} to go, you are ahead of pace. {nxt}"
     else:
         title, body = f"{c['total']}/{goal} · {left} to go", f"You should be near {should} by now: {should - c['total']} behind. " + (f"Don't break your {run}-day streak. " if run else "") + nxt
-    return {"title": title, "body": body, "url": "/#/queue" if queued else "/#/", "tag": "goal"}, "remind"
+    return {"title": title, "body": body, "url": "/admin#/queue" if queued else "/admin#/", "tag": "goal"}, "remind"
 
 
 def main():

@@ -1,7 +1,7 @@
 const { db } = require('./_db');
 const { handle } = require('./_users');
 
-// Public user accounts and data for app.html (see api/_users.js). The admin app does not use this endpoint.
+// Accounts (sign-up, sign-in, the admin pass) and each public user's data, for the login page and public app (index.html).
 module.exports = async (req, res) => {
   const pool = db();
   if (!pool) return res.status(501).json({ error: 'Accounts are not configured.' });

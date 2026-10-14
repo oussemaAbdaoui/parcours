@@ -1,4 +1,4 @@
-"""Public app (app.html), sandboxed end to end: tests/public_server.js serves the page and the real accounts handler
+"""Login page and public app (index.html), sandboxed end to end: tests/public_server.js serves the page and the real accounts handler
 over an in-memory Postgres; a real browser signs up, chooses a path, reloads, signs out and in, and deletes the account.
 Run: python tests/public_app_test.py
 """
@@ -8,7 +8,7 @@ from playwright.sync_api import sync_playwright, expect
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 PORT = 4179
-URL = f"http://localhost:{PORT}/app"
+URL = f"http://localhost:{PORT}/"
 server = subprocess.Popen(["node", os.path.join(ROOT, "tests", "public_server.js"), str(PORT)], stdout=subprocess.PIPE, text=True)
 assert server.stdout.readline().strip() == "ready"
 results = []
@@ -78,6 +78,43 @@ try:
         page.click("#authBtn")
         check("deleted account cannot sign in", lambda: expect(page.locator("#authMsg")).to_have_text("Wrong email or password."))
         check("no script errors", lambda: (_ for _ in ()).throw(AssertionError(errors)) if errors else None)
+
+        # A public user who opens /admin is sent back to the public app.
+        page.goto(URL)
+        page.fill("#name", "Sami")
+        page.fill("#email", "sami@example.tn")
+        page.fill("#password", "long-enough-2")
+        page.click("#authBtn")
+        page.wait_for_url("**/#profile")
+        page.goto(URL + "admin")
+        page.wait_for_url("**/?admin=signin*")
+        check("a public user is sent back from /admin", lambda: expect(page.locator("#app")).to_be_visible())
+        check("and gets no admin button", lambda: expect(page.locator("a[href='/admin']")).to_have_count(0) if page.goto(URL + "#profile") or True else None)
+
+        # The admin: same login page, lands in the admin app, signs out from there.
+        admin = b.new_context(viewport={"width": 1280, "height": 800}).new_page()
+        admin.on("pageerror", lambda e: errors.append("admin: " + str(e)))
+        admin.goto(URL)
+        admin.fill("#name", "Boss")
+        admin.fill("#email", "boss@example.tn")
+        admin.fill("#password", "admin-pass-123")
+        admin.click("#authBtn")
+        admin.wait_for_url("**/#profile")
+        admin.request.get(URL + f"__test/promote?email=boss@example.tn")
+        admin.goto(URL)
+        check("the admin is taken to the admin app", lambda: admin.wait_for_url("**/admin*", timeout=8000))
+        check("the admin app opens (its API accepts the admin pass)", lambda: expect(admin.locator(".side-foot [data-act=signout]")).to_be_visible())
+        admin.wait_for_timeout(1500)
+        check("the admin app stays open", lambda: (_ for _ in ()).throw(AssertionError(admin.url)) if "/admin" not in admin.url else None)
+        admin.goto(URL + "?as=user")
+        check("the admin can still see the public app (?as=user)", lambda: expect(admin.locator("#app")).to_be_visible())
+        admin.goto(URL + "admin")
+        admin.click(".side-foot [data-act=signout]")
+        admin.wait_for_url(URL)
+        check("sign-out from the admin app returns to the login page", lambda: expect(admin.locator("#auth")).to_be_visible())
+        admin.goto(URL + "admin")
+        check("signed out: /admin sends back to the login page", lambda: admin.wait_for_url("**/?admin=signin*", timeout=8000))
+        check("no script errors in the admin app", lambda: (_ for _ in ()).throw(AssertionError(errors)) if errors else None)
         wide = b.new_page(viewport={"width": 1280, "height": 800})
         wide.goto(URL)
         wide.screenshot(path=os.path.join(os.environ.get("SHOTS", ROOT), "public-signup.png"))

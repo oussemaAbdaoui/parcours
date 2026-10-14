@@ -1,8 +1,8 @@
-// Public user accounts for app.html: email + password, a session cookie, and each user's own data.
-// The admin app (index.html) keeps APP_PASSWORD (_lib.auth) and never goes through here; public users never reach
-// the admin tables. Tables: users, sessions, user_items, user_settings (db/schema.sql).
+// Accounts for the login page (index.html): email + password, a session cookie, and each public user's own data.
+// The admin account (users.role = 'admin') also gets the admin pass cookie (api/_lib.js), which opens the admin app's
+// API; public users never reach the admin tables. Tables: users, sessions, user_items, user_settings (db/schema.sql).
 const crypto = require('crypto');
-const { upstash, redis } = require('./_lib');
+const { upstash, redis, adminToken, ADMIN_COOKIE, ADMIN_DAYS } = require('./_lib');
 
 const COOKIE = 'psid';
 const SESSION_DAYS = 30, RENEW_DAYS = 15;   // a session used in its last 15 days is extended to 30 again
@@ -35,8 +35,16 @@ function readCookie(req) {
   const m = String(req.headers.cookie || '').match(new RegExp(`(?:^|;\\s*)${COOKIE}=([A-Za-z0-9_-]{20,100})`));
   return m ? m[1] : null;
 }
-function setCookie(res, token, maxAgeS) {
-  res.setHeader('Set-Cookie', `${COOKIE}=${token}; Path=/api; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeS}`);
+// Every cookie set on this response, so the session and the admin pass can go out together.
+function addCookie(res, name, value, maxAgeS) {
+  res._cookies = (res._cookies || []).filter((c) => !c.startsWith(name + '=')).concat(`${name}=${value}; Path=/api; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeS}`);
+  res.setHeader('Set-Cookie', res._cookies);
+}
+const setCookie = (res, token, maxAgeS) => addCookie(res, COOKIE, token, maxAgeS);
+// The admin account also gets the admin pass (api/_lib.js), which opens the admin app's API.
+function adminPass(res, user, now) {
+  const token = user.role === 'admin' && adminToken(user.id, now + ADMIN_DAYS * DAY);
+  if (token) addCookie(res, ADMIN_COOKIE, token, ADMIN_DAYS * 86400);
 }
 async function startSession(pool, res, userId, now) {
   const token = crypto.randomBytes(32).toString('base64url');
@@ -49,7 +57,7 @@ async function currentUser(pool, req, res, now) {
   const token = readCookie(req);
   if (!token) return null;
   const { rows } = await pool.query(
-    `select u.id, u.email, u.name, u.plan, u.plan_until, u.created_at, s.expires_at
+    `select u.id, u.email, u.name, u.role, u.plan, u.plan_until, u.created_at, s.expires_at
        from sessions s join users u on u.id = s.user_id where s.token = $1`, [sha(token)]);
   const r = rows[0];
   if (!r) return null;
@@ -63,7 +71,7 @@ async function currentUser(pool, req, res, now) {
   }
   return r;
 }
-const publicUser = (u) => ({ id: u.id, email: u.email, name: u.name, plan: u.plan === 'paid' && Number(u.plan_until) > Date.now() ? 'paid' : 'free',
+const publicUser = (u) => ({ id: u.id, email: u.email, name: u.name, role: u.role === 'admin' ? 'admin' : 'user', plan: u.plan === 'paid' && Number(u.plan_until) > Date.now() ? 'paid' : 'free',
   planUntil: u.plan_until == null ? null : Number(u.plan_until), createdAt: Number(u.created_at) });
 
 // ---------- Brute-force guard: 10 failures per address (or email) in 15 minutes, counted in Redis ----------
@@ -175,6 +183,7 @@ async function handle(pool, req, res, now = Date.now()) {
     await pool.query('update users set seen_at = $2 where id = $1', [u.id, now]);
     await pool.query('delete from sessions where user_id = $1 and expires_at <= $2', [u.id, now]);
     await startSession(pool, res, u.id, now);
+    adminPass(res, u, now);
     return res.status(200).json({ user: publicUser(u) });
   }
 
@@ -182,13 +191,18 @@ async function handle(pool, req, res, now = Date.now()) {
     const token = readCookie(req);
     if (token) await pool.query('delete from sessions where token = $1', [sha(token)]);
     setCookie(res, '', 0);
+    addCookie(res, ADMIN_COOKIE, '', 0);
     return res.status(200).json({ ok: true });
   }
 
   const user = await currentUser(pool, req, res, now);
   if (!user) return res.status(401).json({ error: 'Not signed in.' });
 
-  if (a === 'me' && req.method === 'GET') return res.status(200).json({ user: publicUser(user) });
+  // Opening the app renews the admin pass (it expires 30 days after it was last renewed).
+  if (a === 'me' && req.method === 'GET') {
+    adminPass(res, user, now);
+    return res.status(200).json({ user: publicUser(user) });
+  }
 
   if (a === 'state') {
     if (req.method === 'GET') {
@@ -207,6 +221,7 @@ async function handle(pool, req, res, now = Date.now()) {
   if (a === 'delete' && req.method === 'POST') {
     const row = (await pool.query('select pass from users where id = $1', [user.id])).rows[0];
     if (!row || !(await checkPassword(String(body.password || '').slice(0, 200), row.pass))) return res.status(401).json({ error: 'Wrong password.' });
+    if (user.role === 'admin') return res.status(403).json({ error: 'The admin account cannot be deleted here.' });
     await pool.query('delete from users where id = $1', [user.id]);
     setCookie(res, '', 0);
     return res.status(200).json({ ok: true });

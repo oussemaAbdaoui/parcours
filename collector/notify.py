@@ -67,7 +67,7 @@ def notify(store, items, scores, now, state, origin):
         if len(strong) > 1:
             body += f" and {len(strong) - 1} more"
         r = send(rec["subscription"], {"title": f"{len(strong)} new strong match{'es' if len(strong) > 1 else ''}", "body": body,
-                                       "url": "/#/opps/all", "tag": "matches"})
+                                       "url": "/admin#/opps/all", "tag": "matches"})
         sent += r == "ok"
         if r == "gone":
             store.cmd("HDEL", SUBS, endpoint)
@@ -94,7 +94,7 @@ def digest(store, items, scores, state, send, subs):
         parts.append(f"{len(deadlines)} deadline{'s' if len(deadlines) != 1 else ''} this week")
     if follow:
         parts.append(f"{len(follow)} application{'s' if len(follow) != 1 else ''} to follow up")
-    payload = {"title": "Your week in Parcours", "body": ", ".join(parts) + ".", "url": "/#/", "tag": "digest"}
+    payload = {"title": "Your week in Parcours", "body": ", ".join(parts) + ".", "url": "/admin#/", "tag": "digest"}
     sent = sum(send(rec["subscription"], payload) == "ok" for _, rec in subs)
     store.cmd("SET", DIGEST_KEY, week)
     return f"digest sent to {sent}"

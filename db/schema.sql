@@ -164,6 +164,7 @@ create table if not exists users (
   created_at bigint  not null,
   seen_at    bigint
 );
+alter table users add column if not exists role text not null default 'user';  -- user or admin (the admin app)
 
 -- Signed-in devices: the sha256 of the cookie's random token, never the token itself.
 create table if not exists sessions (

@@ -4,11 +4,14 @@ With ?scraper=<name>, runs one of the collector's own scrapers (collector/source
 Same query parameters and response shape as api/jobs.js, so the app merges both. These sites have no
 official public API; JobSpy reads their public search pages, which can be rate-limited or blocked.
 """
+import base64
+import hashlib
 import hmac
 import json
 import math
 import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
@@ -178,10 +181,20 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             return None
 
+    def _admin_cookie_ok(self, pw):
+        """The admin pass cookie set at sign-in (see api/_lib.js adminCookieOk): user id, expiry, HMAC with APP_PASSWORD."""
+        m = re.search(r"(?:^|;\s*)padm=([A-Za-z0-9-]{1,64})\.(\d{10,16})\.([A-Za-z0-9_-]{43})(?:;|$)", self.headers.get("cookie") or "")
+        if not m or int(m.group(2)) <= time.time() * 1000:
+            return False
+        sig = base64.urlsafe_b64encode(hmac.new(pw.encode(), f"admin:{m.group(1)}:{m.group(2)}".encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
+        return hmac.compare_digest(sig, m.group(3))
+
     def do_GET(self):
         pw = os.environ.get("APP_PASSWORD", "")
         if not pw:
             return self._send(503, {"error": "APP_PASSWORD is not set on the server. Add it in Vercel, then redeploy."})
+        if self._admin_cookie_ok(pw):
+            return self._serve()
         # Same lockout as api/_lib.js: 10 wrong passwords in 15 minutes from one address.
         ip = (self.headers.get("x-forwarded-for") or self.headers.get("x-real-ip") or "unknown").split(",")[0].strip()
         key = "parcours:authfail:" + ip
@@ -192,7 +205,9 @@ class handler(BaseHTTPRequestHandler):
             self._redis("INCR", key)
             self._redis("EXPIRE", key, "900", "NX")
             return self._send(401, {"error": "Wrong or missing password."})
+        return self._serve()
 
+    def _serve(self):
         p = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
         q = {"q": p.get("q", "").strip()[:100], "c": p.get("c", "fr"), "loc": p.get("loc", "").strip()[:80], "type": p.get("type", "")}
         if not q["q"]:

@@ -4,7 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const { PGlite } = require('@electric-sql/pglite');
 delete process.env.UPSTASH_REDIS_REST_URL; delete process.env.KV_REST_API_URL;   // no rate-limit store in the sandbox
+process.env.APP_PASSWORD = 'sandbox-app-password';
+const { execFileSync } = require('child_process');
 const { handle, MAX_ITEMS } = require('../api/_users');
+const { auth } = require('../api/_lib');
 
 const schema = fs.readFileSync(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf8');
 const userTables = schema.slice(schema.indexOf('-- ---------- Public users'));
@@ -20,11 +23,12 @@ function check(name, cond, detail) {
   if (cond) { passed++; console.log('PASS ' + name); } else { failed++; console.log('FAIL ' + name + (detail ? ' -> ' + JSON.stringify(detail) : '')); }
 }
 
-// A browser: keeps the cookie between calls, like the real one (Path=/api, HttpOnly).
+// A browser: keeps its cookies between calls, like the real one (Path=/api, HttpOnly).
 function browser(pool) {
-  let cookie = '';
+  const jar = {};
+  const cookieHeader = () => Object.entries(jar).map(([k, v]) => k + '=' + v).join('; ');
   return async function call(method, a, body, { header = true, now } = {}) {
-    const req = { method, query: { a }, body: body || {}, headers: Object.assign({ 'x-forwarded-for': '10.0.0.1' }, header ? { 'x-parcours': '1' } : {}, cookie ? { cookie } : {}) };
+    const req = { method, query: { a }, body: body || {}, headers: Object.assign({ 'x-forwarded-for': '10.0.0.1' }, header ? { 'x-parcours': '1' } : {}, cookieHeader() ? { cookie: cookieHeader() } : {}) };
     const out = { status: 0, json: null, headers: {} };
     const res = {
       setHeader(k, v) { out.headers[k.toLowerCase()] = v; },
@@ -32,11 +36,26 @@ function browser(pool) {
       json(j) { out.json = j; return this; },
     };
     await handle(pool, req, res, now || Date.now());
-    const set = out.headers['set-cookie'];
-    if (set) { const m = set.match(/^psid=([^;]*)/); cookie = m && m[1] ? 'psid=' + m[1] : ''; }
-    out.setCookie = set;
+    const set = [].concat(out.headers['set-cookie'] || []);
+    for (const c of set) { const m = c.match(/^([a-z]+)=([^;]*)/); if (m) { if (m[2]) jar[m[1]] = m[2]; else delete jar[m[1]]; } }
+    out.setCookie = set.join(' | ');
+    out.jar = jar;
     return out;
   };
+}
+// What the admin endpoints (api/_lib.js auth) answer for these cookies.
+async function adminAuth(cookie) {
+  const out = { status: 200 };
+  const res = { status(s) { out.status = s; return this; }, json() { return this; } };
+  return (await auth({ headers: cookie ? { cookie } : {} }, res)) ? 200 : out.status;
+}
+// The Python check in api/boards.py, run as written there (its function, without the rest of the file).
+function pythonAccepts(cookie) {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'api', 'boards.py'), 'utf8');
+  const fn = src.match(/ {4}def _admin_cookie_ok\(self, pw\):[\s\S]*?return hmac\.compare_digest\(sig, m\.group\(3\)\)\r?\n/)[0];
+  const code = 'import base64, hashlib, hmac, re, sys, time\nclass H:\n    def __init__(self, c): self.headers = {"cookie": c}\n' + fn +
+    'print(H(sys.argv[1])._admin_cookie_ok(sys.argv[2]))';
+  return execFileSync(process.platform === 'win32' ? 'python' : 'python3', ['-c', code, cookie, process.env.APP_PASSWORD], { encoding: 'utf8' }).trim() === 'True';
 }
 
 (async () => {
@@ -44,6 +63,7 @@ function browser(pool) {
   await pg.exec(userTables);
   const pool = poolOf(pg);
   const amel = browser(pool), sami = browser(pool), stranger = browser(pool);
+  const day = 86400000;
 
   // Sign-up
   let r = await amel('POST', 'signup', { email: '  Amel@Example.TN ', password: 'long-enough-1', name: 'Amel' });
@@ -110,11 +130,38 @@ function browser(pool) {
   check('other device stays signed in', r.status === 200);
 
   // Session expiry and renewal
-  const day = 86400000;
   r = await amel('GET', 'me', null, { now: Date.now() + 20 * day });
   check('session used after 20 days is renewed', r.status === 200 && /Max-Age=2592000/.test(r.setCookie || ''), r.setCookie);
   r = await amel('GET', 'me', null, { now: Date.now() + 80 * day });
   check('session unused for 30+ days expires', r.status === 401);
+
+  // The admin account: same login page, plus the admin pass that opens the admin app's API
+  r = await sami('POST', 'login', { email: 'sami@example.tn', password: 'long-enough-2' });
+  check('a public user gets no admin pass', !r.jar.padm && r.json.user.role === 'user', r.setCookie);
+  check('a public user is refused by the admin API', (await adminAuth('psid=' + r.jar.psid)) === 401);
+  const boss = browser(pool);
+  await boss('POST', 'signup', { email: 'boss@example.tn', password: 'admin-pass-123', name: 'Boss' });
+  await pg.query("update users set role = 'admin' where email = 'boss@example.tn'");
+  r = await boss('POST', 'login', { email: 'boss@example.tn', password: 'admin-pass-123' });
+  check('the admin account signs in with role admin', r.status === 200 && r.json.user.role === 'admin', r.json);
+  check('and gets the admin pass (HttpOnly, Secure, path /api)', !!r.jar.padm && /padm=[^;]+; Path=\/api; HttpOnly; Secure; SameSite=Lax/.test(r.setCookie), r.setCookie);
+  const pass = 'padm=' + r.jar.padm;
+  check('the admin API accepts the pass', (await adminAuth(pass)) === 200);
+  check('the Python function (api/boards.py) accepts the same pass', pythonAccepts(pass));
+  const forged = pass.replace(/\.(\d+)\./, (m, e) => '.' + (Number(e) + 1) + '.');
+  check('a pass with a changed expiry is refused (Node)', (await adminAuth(forged)) === 401);
+  check('a pass with a changed expiry is refused (Python)', !pythonAccepts(forged));
+  const other = pass.replace(/^padm=[^.]+/, 'padm=' + (await pg.query("select id from users where email = 'sami@example.tn'")).rows[0].id);
+  check('a pass moved to another user is refused', (await adminAuth(other)) === 401 && !pythonAccepts(other));
+  process.env.APP_PASSWORD = 'changed';
+  check('changing APP_PASSWORD signs every admin out', (await adminAuth(pass)) === 401 && !pythonAccepts(pass));
+  process.env.APP_PASSWORD = 'sandbox-app-password';
+  r = await boss('GET', 'me', null, { now: Date.now() + 10 * day });
+  check('opening the app renews the admin pass', !!r.jar.padm && 'padm=' + r.jar.padm !== pass);
+  r = await boss('POST', 'delete', { password: 'admin-pass-123' });
+  check('the admin account cannot be deleted from the app', r.status === 403);
+  r = await boss('POST', 'logout');
+  check('sign-out removes the admin pass too', !r.jar.padm && !r.jar.psid && /padm=; Path=\/api.*Max-Age=0/.test(r.setCookie), r.setCookie);
 
   // Account deletion
   await amel('POST', 'login', { email: 'amel@example.tn', password: 'long-enough-1' });

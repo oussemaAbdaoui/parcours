@@ -1,7 +1,7 @@
 """Every check that must pass before a deploy (run by .github/workflows/ci.yml on each push, or by hand):
 - the scoring regression cases (node tests/score.test.js), the sync server's wipe guards (tests/state_guard.test.js) and the
   public accounts, sandboxed in an in-memory Postgres (tests/users.test.js; needs npm ci);
-- the app's inline scripts, sw.js, score.js and every api/*.js parse;
+- the inline scripts of both pages (index.html: login and public app, admin.html: the admin app), sw.js, score.js and every api/*.js parse;
 - every Python file in collector/, api/ and tests/ compiles;
 - data/sources.csv lists every source the collectors use (tests/sources_csv.py).
 Exit code 1 on any failure. Run: python tests/check.py
@@ -24,12 +24,13 @@ def node_check(path, label):
         failed.append(f"{label}: {r.stderr.strip()[:300]}")
 
 
-html = open(os.path.join(ROOT, "index.html"), encoding="utf-8").read()
 with tempfile.TemporaryDirectory() as tmp:
-    for i, js in enumerate(re.findall(r"<script(?![^>]*src)[^>]*>(.*?)</script>", html, re.S)):
-        f = os.path.join(tmp, f"inline{i}.js")
-        open(f, "w", encoding="utf-8").write(js)
-        node_check(f, f"index.html script {i}")
+    for page in ("index.html", "admin.html"):
+        html = open(os.path.join(ROOT, page), encoding="utf-8").read()
+        for i, js in enumerate(re.findall(r"<script(?![^>]*src)[^>]*>(.*?)</script>", html, re.S)):
+            f = os.path.join(tmp, f"{page}-{i}.js")
+            open(f, "w", encoding="utf-8").write(js)
+            node_check(f, f"{page} script {i}")
 for f in ["sw.js", "score.js"] + sorted(glob.glob(os.path.join(ROOT, "api", "*.js"))):
     node_check(os.path.join(ROOT, f), os.path.relpath(os.path.join(ROOT, f), ROOT))
 for f in sorted(glob.glob(os.path.join(ROOT, "collector", "*.py")) + glob.glob(os.path.join(ROOT, "api", "*.py")) + glob.glob(os.path.join(ROOT, "tests", "*.py"))):
