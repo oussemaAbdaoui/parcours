@@ -14,7 +14,7 @@
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Parcours">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#16243a">
 <script>try{const t=localStorage.getItem('parcours-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1007,103 +1007,103 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 @media(max-width:900px){.ls-tabs,.ls.on .ls-cs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;justify-content:flex-start;margin-left:-16px;margin-right:-16px;padding:0 16px}
   .ls-tabs>*,.ls-cs>*{flex:0 0 auto}.ls-side{order:1}.ls-bar .btn.primary{padding:0 18px}}
 
-/* ---------- Fitness Park style (last, so it wins): black and greys, one bright yellow (#ffd600, gradient #f4cd00 ->
-   #ffe141), heavy italic uppercase titles in Montserrat (free stand-in for their licensed Gotham and Cactus), pill
+/* ---------- Logo colors, Fitness Park shapes (last, so it wins): navy from the logo for dark areas, the logo red (#c8102e, gradient #a3031f ->
+   #d61a3c) for actions, heavy italic uppercase titles in Montserrat (free stand-in for their licensed Gotham and Cactus), pill
    buttons, a black navigation bar with the current section in yellow. Light and dark; the choice is remembered
    (localStorage parcours-theme, applied in <head> before the page paints). ---------- */
-:root{color-scheme:light;
+:root{color-scheme:light;--navy:#16243a;--navy-2:#203048;--hl:#ff5a6e;
   --canvas:#f5f5f5;--bg:#f5f5f5;--surface:#ffffff;--surface-2:#f9fafa;--soft:#f2f2f2;--side-h:#f2f2f2;
-  --ink:#24292d;--ink-strong:#000;--muted:#576375;--faint:#8a96a8;
-  --line:#e2e5e9;--line-2:#eef0f2;--line-strong:#c4cbd4;--ring:#000;
-  --blue:#000;--blue-h:#24292d;--blue-t:#fff8e5;--blue-ink:#000;
-  --yellow:#ffd600;--grad:linear-gradient(0deg,#f4cd00 0%,#ffe141 100%);--on-grad:#000;
+  --ink:#15233a;--ink-strong:#000;--muted:#56627a;--faint:#8d9bb5;
+  --line:#e2e5e9;--line-2:#eef0f2;--line-strong:#c3cbdb;--ring:#000;
+  --blue:#000;--blue-h:#15233a;--blue-t:#fdeaec;--blue-ink:#000;
+  --yellow:#c8102e;--grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);--on-grad:#000;
   --red:#f5553e;--red-ink:#d63a24;--red-t:#fef4f2;
   --ok:#00a86b;--warn:#e0a800;--bad:#f5553e;
-  --tag:#f2f2f2;--tag-ink:#24292d;
-  --c-yours:#f4cd00;--c-gap:#f5553e;--b-strong:#24292d;--b-fair:#8a96a8;--b-weak:#c4cbd4;
+  --tag:#f2f2f2;--tag-ink:#15233a;
+  --c-yours:#a3031f;--c-gap:#f5553e;--b-strong:#15233a;--b-fair:#8d9bb5;--b-weak:#c3cbdb;
   --card-sh:0 2px 12px rgba(64,110,164,.06);--card-sh-h:0 12px 28px -14px rgba(0,0,0,.22);
   --display:'Montserrat','Twemoji Country Flags','Helvetica Neue',Helvetica,Arial,sans-serif;
   --body:'Montserrat','Twemoji Country Flags','Helvetica Neue',Helvetica,Arial,sans-serif}
 :root[data-theme="dark"]{color-scheme:dark;
-  --canvas:#000;--bg:#000;--surface:#24292d;--surface-2:#2b323b;--soft:#2b323b;--side-h:#2b323b;
-  --ink:#e2e5e9;--ink-strong:#fff;--muted:#a0a4a6;--faint:#8a96a8;
-  --line:#2b323b;--line-2:#24292d;--line-strong:#3c454d;--ring:#ffd600;
-  --blue:#ffd600;--blue-h:#ffe141;--blue-t:#2b2710;--blue-ink:#ffd600;
+  --canvas:#0b1422;--bg:#0b1422;--surface:#15233a;--surface-2:#1b2a41;--soft:#1b2a41;--side-h:#1b2a41;
+  --ink:#e2e5e9;--ink-strong:#fff;--muted:#a7b2c7;--faint:#8d9bb5;
+  --line:#1b2a41;--line-2:#15233a;--line-strong:#2c3e5c;--ring:#c8102e;
+  --blue:#ff5a6e;--blue-h:#ff7a8a;--blue-t:#3a1520;--blue-ink:#ff8a98;
   --red:#ff6b57;--red-ink:#ff8a7a;--red-t:#3a1c17;
-  --ok:#23e499;--warn:#ffd633;--bad:#ff6b57;
-  --tag:#2b323b;--tag-ink:#e2e5e9;
-  --c-yours:#ffd600;--c-gap:#ff6b57;--b-strong:#ffd600;--b-fair:#8a96a8;--b-weak:#3c454d;
-  --grad:linear-gradient(0deg,#f4cd00 0%,#ffe141 100%);
-  --card-sh:none;--card-sh-h:0 0 0 1px #3c454d}
+  --ok:#23e499;--warn:#f0a020;--bad:#ff6b57;
+  --tag:#1b2a41;--tag-ink:#e2e5e9;
+  --c-yours:#c8102e;--c-gap:#ff6b57;--b-strong:#c8102e;--b-fair:#8d9bb5;--b-weak:#2c3e5c;
+  --grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);
+  --card-sh:none;--card-sh-h:0 0 0 1px #2c3e5c}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
-  --canvas:#000;--bg:#000;--surface:#24292d;--surface-2:#2b323b;--soft:#2b323b;--side-h:#2b323b;
-  --ink:#e2e5e9;--ink-strong:#fff;--muted:#a0a4a6;--faint:#8a96a8;
-  --line:#2b323b;--line-2:#24292d;--line-strong:#3c454d;--ring:#ffd600;
-  --blue:#ffd600;--blue-h:#ffe141;--blue-t:#2b2710;--blue-ink:#ffd600;
+  --canvas:#0b1422;--bg:#0b1422;--surface:#15233a;--surface-2:#1b2a41;--soft:#1b2a41;--side-h:#1b2a41;
+  --ink:#e2e5e9;--ink-strong:#fff;--muted:#a7b2c7;--faint:#8d9bb5;
+  --line:#1b2a41;--line-2:#15233a;--line-strong:#2c3e5c;--ring:#c8102e;
+  --blue:#ff5a6e;--blue-h:#ff7a8a;--blue-t:#3a1520;--blue-ink:#ff8a98;
   --red:#ff6b57;--red-ink:#ff8a7a;--red-t:#3a1c17;
-  --ok:#23e499;--warn:#ffd633;--bad:#ff6b57;
-  --tag:#2b323b;--tag-ink:#e2e5e9;
-  --c-yours:#ffd600;--c-gap:#ff6b57;--b-strong:#ffd600;--b-fair:#8a96a8;--b-weak:#3c454d;
-  --grad:linear-gradient(0deg,#f4cd00 0%,#ffe141 100%);
-  --card-sh:none;--card-sh-h:0 0 0 1px #3c454d}}
+  --ok:#23e499;--warn:#f0a020;--bad:#ff6b57;
+  --tag:#1b2a41;--tag-ink:#e2e5e9;
+  --c-yours:#c8102e;--c-gap:#ff6b57;--b-strong:#c8102e;--b-fair:#8d9bb5;--b-weak:#2c3e5c;
+  --grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);
+  --card-sh:none;--card-sh-h:0 0 0 1px #2c3e5c}}
 body{font-family:var(--body);font-weight:500}
-::selection{background:rgba(255,214,0,.45);color:#000}
+::selection{background:rgba(200,16,46,.45);color:#fff}
 /* titles */
 h1,#view>h1{font-family:var(--display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.02em;line-height:1}
-h1 em{color:var(--yellow);font-style:italic}
+h1 em{color:var(--red);font-style:italic}
 h2.sec{font-family:var(--display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.01em}
 h2{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.01em;font-size:15px}
 .kicker,.stat span,.offers .thead{text-transform:uppercase;letter-spacing:.06em;font-weight:800;font-size:12px}
 /* buttons and choices: pills, yellow for the main action */
 .btn{border-radius:999px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:12.5px;border:2px solid var(--ink-strong);background:transparent;color:var(--ink-strong)}
 .btn:hover{background:var(--ink-strong);color:var(--bg);border-color:var(--ink-strong)}
-.btn.primary,.oa .btn.primary{background:var(--grad);color:#000;border:2px solid #f4cd00;border-radius:999px;box-shadow:none}
-.btn.primary:hover{background:#ffe141;color:#000;filter:none}
+.btn.primary,.oa .btn.primary{background:var(--grad);color:#fff;border:2px solid #a3031f;border-radius:999px;box-shadow:none}
+.btn.primary:hover{background:#d61a3c;color:#fff;filter:none}
 .btn.ghost{border-color:transparent}
 .btn.sm,.oa .btn.primary{border-radius:999px}
 .seg{border-radius:999px;background:var(--soft);border:0;padding:3px}
 .seg button{border-radius:999px;font-weight:700}
 .seg button[aria-pressed="true"]{background:var(--ink-strong);color:var(--bg);box-shadow:none}
 .sc,.fchips button,.ls-tabs button,.gs-types button{border-radius:999px;font-weight:700}
-.sc:has(input:checked),.fchips button[aria-pressed="true"],.ls-tabs button[aria-pressed="true"],.gs-types button[aria-pressed="true"],.subnav a[aria-current="page"]{background:var(--grad);color:#000;border-color:transparent}
+.sc:has(input:checked),.fchips button[aria-pressed="true"],.ls-tabs button[aria-pressed="true"],.gs-types button[aria-pressed="true"],.subnav a[aria-current="page"]{background:var(--grad);color:#fff;border-color:transparent}
 .subnav a{font-weight:700}
-input:focus,select:focus,textarea:focus{border-color:#f4cd00;outline:3px solid rgba(255,214,0,.3);outline-offset:0}
+input:focus,select:focus,textarea:focus{border-color:#a3031f;outline:3px solid rgba(200,16,46,.3);outline-offset:0}
 /* surfaces */
 .panel,.stat,.stat:first-child,.card,.offers,.plist,.kcol{border-radius:18px}
-.card:hover{border-color:#f4cd00}
+.card:hover{border-color:#a3031f}
 .xp,.chip{border-radius:999px}
 /* Home hero: black card, yellow number */
-#weekBox .stat:first-child{background:#000;color:#fff;border:0;box-shadow:none;position:relative;overflow:hidden}
-:root[data-theme="dark"] #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #3c454d}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #3c454d}}
+#weekBox .stat:first-child{background:var(--navy);color:#fff;border:0;box-shadow:none;position:relative;overflow:hidden}
+:root[data-theme="dark"] #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #2c3e5c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #2c3e5c}}
 #weekBox .stat:first-child::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:var(--grad);opacity:.95}
 #weekBox .stat:first-child>*{position:relative;z-index:1}
-#weekBox .stat:first-child b{color:#ffd600;font-family:var(--display);font-weight:900;font-style:italic}
-#weekBox .stat:first-child .hero-cta{background:var(--grad);color:#000;text-transform:uppercase;font-weight:800;letter-spacing:.04em;font-size:12.5px}
+#weekBox .stat:first-child b{color:var(--hl);font-family:var(--display);font-weight:900;font-style:italic}
+#weekBox .stat:first-child .hero-cta{background:var(--grad);color:#fff;text-transform:uppercase;font-weight:800;letter-spacing:.04em;font-size:12.5px}
 .goalbar i,.gbt-track i{background:var(--grad)}
 .goalnum b,.goalstreak b,.gbt-line b,.stat b{font-style:italic;font-weight:900}
-.pf-avatar{background:var(--grad);color:#000}
-.toast{background:#000;color:#fff}
+.pf-avatar{background:var(--grad);color:#fff}
+.toast{background:var(--navy);color:#fff}
 /* navigation: black bar, current section in yellow */
 @media(min-width:901px){
-  .side{background:#000;border:0;box-shadow:0 10px 30px -16px rgba(0,0,0,.6)}
+  .side{background:var(--navy);border:0;box-shadow:0 10px 30px -16px rgba(0,0,0,.6)}
   .brand span{color:#fff;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.01em}
-  .tabs a,:root[data-theme="dark"] .tabs a{color:#c4cbd4;font-weight:800;text-transform:uppercase;font-size:12.5px;letter-spacing:.04em}
-  .tabs a:hover{background:#24292d;color:#fff}
-  .tabs a[aria-current="page"],:root[data-theme="dark"] .tabs a[aria-current="page"],:root:not([data-theme="light"]) .tabs a[aria-current="page"]{background:var(--grad);color:#000}
-  .side .syncl{color:#a0a4a6}
-  .side-foot .iconbtn{background:#24292d;border-color:#3c454d;color:#fff}
-  .gsbtn{background:#24292d;border-color:#3c454d;color:#c4cbd4}
-  .gsbtn kbd{background:#000;border-color:#3c454d;color:#c4cbd4}
-  .goalpill{background:#24292d;color:#fff;border-color:#3c454d}
+  .tabs a,:root[data-theme="dark"] .tabs a{color:#c3cbdb;font-weight:800;text-transform:uppercase;font-size:12.5px;letter-spacing:.04em}
+  .tabs a:hover{background:#15233a;color:#fff}
+  .tabs a[aria-current="page"],:root[data-theme="dark"] .tabs a[aria-current="page"],:root:not([data-theme="light"]) .tabs a[aria-current="page"]{background:var(--grad);color:#fff}
+  .side .syncl{color:#a7b2c7}
+  .side-foot .iconbtn{background:#15233a;border-color:#2c3e5c;color:#fff}
+  .gsbtn{background:#15233a;border-color:#2c3e5c;color:#c3cbdb}
+  .gsbtn kbd{background:var(--navy);border-color:#2c3e5c;color:#c3cbdb}
+  .goalpill{background:#15233a;color:#fff;border-color:#2c3e5c}
 }
 @media(max-width:900px){
-  .topbar{background:#000;box-shadow:none;color:#fff}
+  .topbar{background:var(--navy);box-shadow:none;color:#fff}
   .topbar .where,.topbar .where b,.topbar .tb-app{color:#fff}
-  .topbar .iconbtn{background:#24292d;color:#fff}
-  .bottombar{background:#000;box-shadow:none}
-  .bottombar a{color:#8a96a8}
-  .bottombar [aria-current="page"]{color:#ffd600}
+  .topbar .iconbtn{background:#15233a;color:#fff}
+  .bottombar{background:var(--navy);box-shadow:none}
+  .bottombar a{color:#8d9bb5}
+  .bottombar [aria-current="page"]{color:var(--hl)}
 }
 </style>
 </head>
