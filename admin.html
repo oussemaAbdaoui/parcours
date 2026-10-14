@@ -14,11 +14,12 @@
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Parcours">
-<meta name="theme-color" content="#002050">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a1424" media="(prefers-color-scheme: dark)">
 <script>try{const t=localStorage.getItem('parcours-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* Visual language after Notion's workspace (awesome-design-md/notion): warm neutrals, flat pages,
    pastel property tags, one blue accent. Shape rule: controls 6px, cards and panels 10px, tags 4px. */
@@ -1007,105 +1008,66 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 @media(max-width:900px){.ls-tabs,.ls.on .ls-cs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;justify-content:flex-start;margin-left:-16px;margin-right:-16px;padding:0 16px}
   .ls-tabs>*,.ls-cs>*{flex:0 0 auto}.ls-side{order:1}.ls-bar .btn.primary{padding:0 18px}}
 
-/* ---------- Logo colors, Fitness Park shapes (last, so it wins): navy from the logo for dark areas, the logo red (#c81020, gradient #a3031f ->
-   #d61a3c) for actions, heavy italic uppercase titles in Montserrat (free stand-in for their licensed Gotham and Cactus), pill
-   buttons, a black navigation bar with the current section in yellow. Light and dark; the choice is remembered
-   (localStorage parcours-theme, applied in <head> before the page paints). ---------- */
-:root{color-scheme:light;--navy:#002050;--navy-2:#0a2a5e;--hl:#ff5a6e;
-  --canvas:#f5f5f5;--bg:#f5f5f5;--surface:#ffffff;--surface-2:#f9fafa;--soft:#f2f2f2;--side-h:#f2f2f2;
-  --ink:#0a2147;--ink-strong:#000;--muted:#56627a;--faint:#8d9bb5;
-  --line:#e2e5e9;--line-2:#eef0f2;--line-strong:#c3cbdb;--ring:#000;
-  --blue:#000;--blue-h:#0a2147;--blue-t:#fdeaec;--blue-ink:#000;
-  --yellow:#c81020;--grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);--on-grad:#000;
-  --red:#f5553e;--red-ink:#d63a24;--red-t:#fef4f2;
-  --ok:#00a86b;--warn:#e0a800;--bad:#f5553e;
-  --tag:#f2f2f2;--tag-ink:#0a2147;
-  --c-yours:#a3031f;--c-gap:#f5553e;--b-strong:#0a2147;--b-fair:#8d9bb5;--b-weak:#c3cbdb;
-  --card-sh:0 2px 12px rgba(64,110,164,.06);--card-sh-h:0 12px 28px -14px rgba(0,0,0,.22);
-  --display:'Montserrat','Twemoji Country Flags','Helvetica Neue',Helvetica,Arial,sans-serif;
-  --body:'Montserrat','Twemoji Country Flags','Helvetica Neue',Helvetica,Arial,sans-serif}
+/* ---------- "Clear" look (last, so it wins; chosen 14 Oct 2026, same as the public app): white and calm, navy
+   from the logo (#002050) for text, links and the current section, the logo red (#c81020) only for the main action,
+   Manrope in normal case. Light and dark; the choice is remembered (localStorage parcours-theme, applied in <head>). */
+:root{color-scheme:light;
+  --canvas:#ffffff;--bg:#ffffff;--surface:#ffffff;--surface-2:#f6f8fc;--soft:#eef2f8;--side-h:#eef2f8;
+  --ink:#24324a;--ink-strong:#0d1b33;--muted:#5c6b84;--faint:#8a96aa;
+  --line:#e2e7ef;--line-2:#edf1f6;--line-strong:#cfd7e3;--ring:#002050;
+  --blue:#002050;--blue-h:#0a2a5e;--blue-t:#e8eef8;--blue-ink:#002050;
+  --red:#c81020;--red-ink:#a90d1b;--red-t:#fdecee;--hl:#c81020;
+  --grad:#c81020;--ok:#0d8a5f;--warn:#b7791f;--bad:#c81020;
+  --tag:#eef2f8;--tag-ink:#24385e;
+  --c-yours:#002050;--c-gap:#c81020;--b-strong:#002050;--b-fair:#5b7bb4;--b-weak:#c3d0e6;
+  --card-sh:none;--card-sh-h:0 10px 28px -16px rgba(13,27,51,.25);
+  --display:'Manrope','Twemoji Country Flags','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --body:'Manrope','Twemoji Country Flags','Helvetica Neue',Helvetica,Arial,sans-serif}
 :root[data-theme="dark"]{color-scheme:dark;
-  --canvas:#00122e;--bg:#00122e;--surface:#0a2147;--surface-2:#102a55;--soft:#102a55;--side-h:#102a55;
-  --ink:#e2e5e9;--ink-strong:#fff;--muted:#a7b2c7;--faint:#8d9bb5;
-  --line:#102a55;--line-2:#0a2147;--line-strong:#1e3a6b;--ring:#c81020;
-  --blue:#ff5a6e;--blue-h:#ff7a8a;--blue-t:#3a1520;--blue-ink:#ff8a98;
-  --red:#ff6b57;--red-ink:#ff8a7a;--red-t:#3a1c17;
-  --ok:#23e499;--warn:#f0a020;--bad:#ff6b57;
-  --tag:#102a55;--tag-ink:#e2e5e9;
-  --c-yours:#c81020;--c-gap:#ff6b57;--b-strong:#c81020;--b-fair:#8d9bb5;--b-weak:#1e3a6b;
-  --grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);
-  --card-sh:none;--card-sh-h:0 0 0 1px #1e3a6b}
+  --canvas:#0a1424;--bg:#0a1424;--surface:#111d33;--surface-2:#15233d;--soft:#1a2a47;--side-h:#1a2a47;
+  --ink:#d3dbea;--ink-strong:#f2f5fa;--muted:#9aa8c0;--faint:#73819b;
+  --line:#1f3050;--line-2:#182844;--line-strong:#2b3f63;--ring:#8fb3ff;
+  --blue:#8fb3ff;--blue-h:#a9c4ff;--blue-t:#1a2a47;--blue-ink:#a9c4ff;
+  --red:#d8283a;--red-ink:#ff8a95;--red-t:#3a1720;--hl:#ff6b78;
+  --grad:#d8283a;--ok:#3ccf95;--warn:#f0b04a;--bad:#ff6b78;
+  --tag:#1a2a47;--tag-ink:#c9d6ee;
+  --c-yours:#8fb3ff;--c-gap:#ff6b78;--b-strong:#8fb3ff;--b-fair:#5b7bb4;--b-weak:#2b3f63;
+  --card-sh:none;--card-sh-h:0 0 0 1px #2b3f63}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
-  --canvas:#00122e;--bg:#00122e;--surface:#0a2147;--surface-2:#102a55;--soft:#102a55;--side-h:#102a55;
-  --ink:#e2e5e9;--ink-strong:#fff;--muted:#a7b2c7;--faint:#8d9bb5;
-  --line:#102a55;--line-2:#0a2147;--line-strong:#1e3a6b;--ring:#c81020;
-  --blue:#ff5a6e;--blue-h:#ff7a8a;--blue-t:#3a1520;--blue-ink:#ff8a98;
-  --red:#ff6b57;--red-ink:#ff8a7a;--red-t:#3a1c17;
-  --ok:#23e499;--warn:#f0a020;--bad:#ff6b57;
-  --tag:#102a55;--tag-ink:#e2e5e9;
-  --c-yours:#c81020;--c-gap:#ff6b57;--b-strong:#c81020;--b-fair:#8d9bb5;--b-weak:#1e3a6b;
-  --grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);
-  --card-sh:none;--card-sh-h:0 0 0 1px #1e3a6b}}
+  --canvas:#0a1424;--bg:#0a1424;--surface:#111d33;--surface-2:#15233d;--soft:#1a2a47;--side-h:#1a2a47;
+  --ink:#d3dbea;--ink-strong:#f2f5fa;--muted:#9aa8c0;--faint:#73819b;
+  --line:#1f3050;--line-2:#182844;--line-strong:#2b3f63;--ring:#8fb3ff;
+  --blue:#8fb3ff;--blue-h:#a9c4ff;--blue-t:#1a2a47;--blue-ink:#a9c4ff;
+  --red:#d8283a;--red-ink:#ff8a95;--red-t:#3a1720;--hl:#ff6b78;
+  --grad:#d8283a;--ok:#3ccf95;--warn:#f0b04a;--bad:#ff6b78;
+  --tag:#1a2a47;--tag-ink:#c9d6ee;
+  --c-yours:#8fb3ff;--c-gap:#ff6b78;--b-strong:#8fb3ff;--b-fair:#5b7bb4;--b-weak:#2b3f63;
+  --card-sh:none;--card-sh-h:0 0 0 1px #2b3f63}}
 body{font-family:var(--body);font-weight:500}
-::selection{background:rgba(200,16,46,.45);color:#fff}
-/* titles */
-h1,#view>h1{font-family:var(--display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.02em;line-height:1}
-h1 em{color:var(--red);font-style:italic}
-h2.sec{font-family:var(--display);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.01em}
-h2{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.01em;font-size:15px}
-.kicker,.stat span,.offers .thead{text-transform:uppercase;letter-spacing:.06em;font-weight:800;font-size:12px}
-/* buttons and choices: pills, yellow for the main action */
-.btn{border-radius:999px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:12.5px;border:2px solid var(--ink-strong);background:transparent;color:var(--ink-strong)}
-.btn:hover{background:var(--ink-strong);color:var(--bg);border-color:var(--ink-strong)}
-.btn.primary,.oa .btn.primary{background:var(--grad);color:#fff;border:2px solid #a3031f;border-radius:999px;box-shadow:none}
-.btn.primary:hover{background:#d61a3c;color:#fff;filter:none}
-.btn.ghost{border-color:transparent}
-.btn.sm,.oa .btn.primary{border-radius:999px}
-.seg{border-radius:999px;background:var(--soft);border:0;padding:3px}
-.seg button{border-radius:999px;font-weight:700}
-.seg button[aria-pressed="true"]{background:var(--ink-strong);color:var(--bg);box-shadow:none}
-.sc,.fchips button,.ls-tabs button,.gs-types button{border-radius:999px;font-weight:700}
-.sc:has(input:checked),.fchips button[aria-pressed="true"],.ls-tabs button[aria-pressed="true"],.gs-types button[aria-pressed="true"],.subnav a[aria-current="page"]{background:var(--grad);color:#fff;border-color:transparent}
-.subnav a{font-weight:700}
-input:focus,select:focus,textarea:focus{border-color:#a3031f;outline:3px solid rgba(200,16,46,.3);outline-offset:0}
-/* surfaces */
-.panel,.stat,.stat:first-child,.card,.offers,.plist,.kcol{border-radius:18px}
-.card:hover{border-color:#a3031f}
-.xp,.chip{border-radius:999px}
-/* Home hero: black card, yellow number */
-#weekBox .stat:first-child{background:var(--navy);color:#fff;border:0;box-shadow:none;position:relative;overflow:hidden}
-:root[data-theme="dark"] #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #1e3a6b}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #1e3a6b}}
-#weekBox .stat:first-child::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:var(--grad);opacity:.95}
-#weekBox .stat:first-child>*{position:relative;z-index:1}
-#weekBox .stat:first-child b{color:var(--hl);font-family:var(--display);font-weight:900;font-style:italic}
-#weekBox .stat:first-child .hero-cta{background:var(--grad);color:#fff;text-transform:uppercase;font-weight:800;letter-spacing:.04em;font-size:12.5px}
-.goalbar i,.gbt-track i{background:var(--grad)}
-.goalnum b,.goalstreak b,.gbt-line b,.stat b{font-style:italic;font-weight:900}
-.pf-avatar{background:var(--grad);color:#fff}
-.toast{background:var(--navy);color:#fff}
-/* navigation: black bar, current section in yellow */
-@media(min-width:901px){
-  .side{background:var(--navy);border:0;box-shadow:0 10px 30px -16px rgba(0,0,0,.6)}
-  .brand span{color:#fff;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.01em}
-  .tabs a,:root[data-theme="dark"] .tabs a{color:#c3cbdb;font-weight:800;text-transform:uppercase;font-size:12.5px;letter-spacing:.04em}
-  .tabs a:hover{background:#0a2147;color:#fff}
-  .tabs a[aria-current="page"],:root[data-theme="dark"] .tabs a[aria-current="page"],:root:not([data-theme="light"]) .tabs a[aria-current="page"]{background:var(--grad);color:#fff}
-  .side .syncl{color:#a7b2c7}
-  .side-foot .iconbtn{background:#0a2147;border-color:#1e3a6b;color:#fff}
-  .gsbtn{background:#0a2147;border-color:#1e3a6b;color:#c3cbdb}
-  .gsbtn kbd{background:var(--navy);border-color:#1e3a6b;color:#c3cbdb}
-  .goalpill{background:#0a2147;color:#fff;border-color:#1e3a6b}
-}
-@media(max-width:900px){
-  .topbar{background:var(--navy);box-shadow:none;color:#fff}
-  .topbar .where,.topbar .where b,.topbar .tb-app{color:#fff}
-  .topbar .iconbtn{background:#0a2147;color:#fff}
-  .bottombar{background:var(--navy);box-shadow:none}
-  .bottombar a{color:#8d9bb5}
-  .bottombar [aria-current="page"]{color:var(--hl)}
-}
+h1,#view>h1{font-family:var(--display);font-weight:800;letter-spacing:-.03em}
+h2,h2.sec{font-family:var(--display);font-weight:800;letter-spacing:-.02em}
+h1 em{color:var(--hl);font-style:normal}
+/* main action in red, everything else quiet */
+.btn{border-radius:10px;font-weight:700}
+.btn.primary,.oa .btn.primary{background:var(--red);color:#fff;border:1px solid var(--red);border-radius:10px;box-shadow:none}
+.btn.primary:hover{background:var(--red-ink);border-color:var(--red-ink);filter:none}
+:root[data-theme="dark"] .btn.primary:hover{background:#e8394b}
+/* current section, selected chips and tabs: navy */
+.tabs a[aria-current="page"],.subnav a[aria-current="page"],.ls-tabs button[aria-pressed="true"],.gs-types button[aria-pressed="true"]{background:var(--blue-t);color:var(--blue-ink)}
+.sc:has(input:checked),.fchips button[aria-pressed="true"]{background:var(--blue-t);color:var(--blue-ink);border-color:var(--blue)}
+.brand span{font-family:var(--display);font-weight:800}
+/* Home hero: navy card, white text */
+#weekBox .stat:first-child{background:#002050;border:0;box-shadow:none}
+#weekBox .stat:first-child span,#weekBox .stat:first-child small{color:rgba(255,255,255,.82)}
+#weekBox .stat:first-child b{color:#fff}
+#weekBox .stat:first-child .hero-cta{background:#fff;color:#002050}
+:root[data-theme="dark"] #weekBox .stat:first-child{background:#1a2a47}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #weekBox .stat:first-child{background:#1a2a47}}
+.goalbar i,.gbt-track i{background:var(--blue)}
+.pf-avatar{background:#002050;color:#fff}
+/* the logo mark keeps its white tile (its navy would vanish on dark backgrounds) */
 .brand .logo-mark,.tb-logo img{background:#fff;padding:3px;border-radius:9px!important}
+@media(max-width:900px){.bottombar [aria-current="page"]{color:var(--blue-ink)}}
 </style>
 </head>
 <body>
