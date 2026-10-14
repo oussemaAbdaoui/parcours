@@ -1,0 +1,163 @@
+﻿name;url;covers;countries;method;status;runs;code;key_needed;alternance;notes;checked
+ABG;https://www.abg.asso.fr;PhD (incl. CIFRE);FR;browser scraping;collected;cloud;collector/sources.py abg;;;;2026-10-14
+Academic Positions;https://academicpositions.com;"PhD; postdoc";EU;browser scraping;collected;cloud;collector/sources.py academic_positions;;;;2026-10-14
+academics.de;https://www.academics.de;"PhD; research jobs";DE;scraping;collected;cloud;collector/sources.py academics_de;;;;2026-10-14
+Adzuna;https://www.adzuna.com;jobs;FR DE CA CH;official API;collected;live search;api/jobs.js;ADZUNA_APP_ID, ADZUNA_APP_KEY;filter;Free developer key;2026-10-14
+Arbeitnow;https://www.arbeitnow.com;jobs;DE CH remote;public API;collected;live search;api/jobs.js;;;Visa-sponsorship filter;2026-10-14
+Arbeitsagentur;https://www.arbeitsagentur.de;"jobs; internships; Ausbildung";DE;public API (unofficial);collected;live search;api/jobs.js;;yes;"API also lists Ausbildung and dual study (angebotsart); could change without notice";2026-10-14
+Ashby company boards;https://jobs.ashbyhq.com;"jobs; internships";worldwide, kept in your countries;public API;collected;cloud;collector/sources.py company_boards;;filter;Cohere, DeepL, Aleph Alpha, Photoroom, Alan, Owkin, Back Market, Poolside, n8n, Wealthsimple, OpenAI, Dust, Nabla, Ledger, Sorare, Langdock, Black Forest Labs, ElevenLabs, Synthesia, Wayve, Hopper, Mistral AI, Pennylane, Voodoo, Seyna, Lifen, Ankorstore;2026-10-14
+BambooHR company boards;https://www.bamboohr.com;jobs;worldwide, kept in your countries;public API;collected;cloud;collector/sources.py company_boards;;;DentalMonitoring;2026-10-14
+Bayt;https://www.bayt.com;jobs;TN (also Gulf);browser scraping;collected;home PC;collector/sources.py bayt_tunisia;;;Could extend to Gulf countries;2026-10-14
+Berlin Startup Jobs;https://berlinstartupjobs.com;jobs;DE;RSS feed;collected;cloud;collector/sources.py berlin_startup_jobs;;;;2026-10-14
+Campus France scholarships;https://campusbourses.campusfrance.org;scholarships;FR;public API;collected;cloud;collector/masters.py campus_bourses;;;Filtered for Tunisia;2026-10-14
+CNRS;https://emploi.cnrs.fr;"PhD; research jobs";FR;scraping;collected;cloud;collector/sources.py cnrs;;;;2026-10-14
+DAAD international programmes;https://www2.daad.de/deutschland/studienangebote/international-programmes/;master's;DE;public search API;collected;home PC;collector/masters.py daad_programmes;;;;2026-10-14
+DAAD scholarship database;https://www2.daad.de/deutschland/stipendium/datenbank/;scholarships;DE;data file;collected;home PC;collector/masters.py daad_scholarships;;;Filtered for applicants from Tunisia;2026-10-14
+Duunitori;https://duunitori.fi;jobs;FI;browser scraping;collected;home PC;collector/sources.py duunitori;;;;2026-10-14
+ELLIS;https://ellis.eu/research/jobs;"PhD; research jobs";EU;scraping;collected;cloud;collector/sources.py ellis;;;European AI network;2026-10-14
+Emploi.ma;https://www.emploi.ma;"jobs; internships";MA;browser scraping;collected;home PC;collector/sources.py emploi_ma;;;;2026-10-14
+EmploiTunisie;https://www.emploitunisie.com;"jobs; internships";TN;browser scraping;collected;home PC;collector/sources.py emploitunisie;;;;2026-10-14
+Employment Hero Jobs;https://employmenthero.com/jobs;jobs;UK CA;sitemap + scraping;collected;cloud;collector/sources.py employment_hero;;;10 s between requests (robots.txt);2026-10-14
+Erasmus Mundus catalogue;https://www.eacea.ec.europa.eu/scholarships/erasmus-mundus-catalogue_en;"master's; scholarships";EU;scraping;collected;cloud;collector/masters.py erasmus_mundus;;;;2026-10-14
+ETH Excellence Scholarship (ESOP);https://ethz.ch/en/studies/financial/scholarships/excellencescholarship.html;scholarships;CH;curated entry;collected;cloud;collector/masters.py SCHEMES;;;1-30 November;2026-10-14
+ETH Zurich jobs;https://jobs.ethz.ch;"PhD; research jobs";CH;scraping;collected;cloud;collector/sources.py eth_zurich;;;;2026-10-14
+EURAXESS;https://euraxess.ec.europa.eu;"PhD (R1); research jobs";EU;scraping;collected;cloud;collector/sources.py euraxess;;;European Commission portal;2026-10-14
+Farojob;https://www.farojob.net;"jobs; internships";TN;scraping;collected;cloud;collector/sources.py farojob;;;Ask for a partnership before the public launch;2026-10-14
+France Travail;https://www.francetravail.fr;"jobs; internships; alternance";FR;official API;collected;live search;api/jobs.js;FRANCE_TRAVAIL_ID, FRANCE_TRAVAIL_SECRET;yes;"Public employment service; contract type includes apprenticeship";2026-10-14
+Free-Work;https://www.free-work.com;"jobs; freelance; alternance";FR DE CH CA TN BE LU NL MA;public API;collected;cloud;collector/sources.py free_work;;yes;"IT only; contract type includes apprenticeship";2026-10-14
+French Tech Next40/120;https://lafrenchtech.gouv.fr;companies;FR;data file;collected;file;data/french-tech-120.csv;;;Their job boards are in Company boards;2026-10-14
+Glassdoor;https://www.glassdoor.com;jobs;FR DE CA CH remote;JobSpy (scraping);collected;live search;api/boards.py;;;Against terms: personal use only;2026-10-14
+Glassdoor interviews;https://www.glassdoor.com;interview stories;all;browser scraping;collected;home PC;collector/insights.py;;;Personal use only;2026-10-14
+Gmail;https://mail.google.com;replies, interviews, offers;any;Gmail API (read-only);collected;live;"api/gmail.js; api/_classify.js";GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET;;Personal use only until Google verification;2026-10-14
+Google Jobs;https://www.google.com;jobs;all;JobSpy (scraping);collected;live search;api/boards.py;;;Against terms: personal use only;2026-10-14
+Government of Ireland scholarship (GOI-IES);https://hea.ie/policy/internationalisation/goi-ies/;scholarships;IE;curated entry;collected;cloud;collector/masters.py SCHEMES;;;Yearly call;2026-10-14
+Greenhouse company boards;https://boards.greenhouse.io;"jobs; internships";worldwide, kept in your countries;public API;collected;cloud;collector/sources.py company_boards;;filter;Anthropic, Helsing, Dataiku, Doctolib, Datadog, Mirakl, Celonis, Algolia, GetYourGuide, N26, SumUp, Parloa, Proton, Dialpad, DNA Script, Shift Technology, Flowdesk, Platform.sh;2026-10-14
+HAL;https://hal.science;"professors; papers";FR;public API;collected;live;api/labs.js;;;;2026-10-14
+HelloWork;https://www.hellowork.com;"jobs; internships; alternance";FR;scraping;collected;cloud;collector/sources.py hellowork;;yes;Has a dedicated alternance section;2026-10-14
+HN Who is hiring;https://news.ycombinator.com;jobs;remote, kept in your countries;public API (Algolia);collected;cloud;collector/sources.py hn_hiring;;;Monthly thread;2026-10-14
+Indeed;https://www.indeed.com;"jobs; internships; alternance";FR DE CA CH BE NL LU SE DK FI NO MA IE UK remote;JobSpy (scraping);collected;cloud + live search;"collector/collect.py; api/boards.py";;filter;Against Indeed terms: personal use only, drop from the public app;2026-10-14
+Indeed company ratings;https://fr.indeed.com/companies;company ratings;all;browser scraping;collected;home PC;"collector/enrich.py; collector/companies.py";;;Personal use only;2026-10-14
+Inria;https://jobs.inria.fr;"PhD; research jobs";FR;scraping;collected;cloud;collector/sources.py inria;;;;2026-10-14
+Italy scholarship schemes;https://studyinitaly.esteri.it;scholarships;IT;curated list;collected;cloud;collector/masters.py italy_schemes;;;Study in Italy, ER.GO, EDISU Piemonte, DiSCo Lazio, DSU Toscana, ESU Padova;2026-10-14
+Job Bank;https://www.jobbank.gc.ca;jobs;CA;scraping (government site);collected;cloud;collector/sources.py jobbank;;;Government of Canada;2026-10-14
+Jobindex;https://www.jobindex.dk;jobs;DK;scraping;collected;cloud;collector/sources.py jobindex;;;;2026-10-14
+jobs.ac.uk;https://www.jobs.ac.uk;PhD;UK;scraping;collected;cloud;collector/sources.py jobs_ac_uk;;;;2026-10-14
+jobs.ch;https://www.jobs.ch;jobs;CH;scraping;collected;cloud;collector/sources.py jobs_ch;;;;2026-10-14
+Jooble;https://jooble.org;jobs;many incl. TN CH;official API;collected;live search;api/jobs.js;JOOBLE_KEY;filter;Free key on request;2026-10-14
+Keejob;https://www.keejob.com;"jobs; internships";TN;scraping;collected;cloud;collector/sources.py keejob;;;Ask for a partnership before the public launch;2026-10-14
+Lever company boards;https://jobs.lever.co;"jobs; internships";worldwide, kept in your countries;public API;collected;cloud;collector/sources.py company_boards;;filter;Contentsquare, BlaBlaCar, Qonto, Pigment, Swile, SonarSource, Waabi, Malt, Verkor, Vestiaire Collective, Younited, 360Learning, Agicap, Brevo, Ekimetrics, Gojob, PlayPlay, Equativ, Aqemia;2026-10-14
+LinkedIn;https://www.linkedin.com/jobs;"jobs; internships; alternance";all incl. TN;JobSpy (scraping) + guest job API for full text;collected;cloud + home + live search;"collector/collect.py; collector/enrich.py; api/boards.py";;filter;Against LinkedIn terms: personal use only, drop from the public app;2026-10-14
+LinkedIn posts;https://www.linkedin.com;jobs (hiring posts);FR DE CA CH TN and others;Google search via Serper API;collected;cloud;collector/sources.py linkedin_posts;SERPER_API_KEY;;Once a day to save free credits;2026-10-14
+Master Mind Scholarships;https://www.studyinflanders.be/scholarships/master-mind-scholarships;scholarships;BE;curated entry;collected;cloud;collector/masters.py SCHEMES;;;;2026-10-14
+Mon Master;https://monmaster.gouv.fr;master's (incl. alternance);FR;open data API (data.enseignementsup-recherche.gouv.fr);collected;cloud;collector/masters.py mon_master;;yes;Flags master's taught in alternance;2026-10-14
+NL Scholarship;https://www.studyinnl.org/finances/scholarships/highlighted-scholarships/holland-scholarship;scholarships;NL;curated entry;collected;cloud;collector/masters.py SCHEMES;;;Opens 1 November;2026-10-14
+OpenAlex;https://openalex.org;"professors; labs";all your countries;public API;collected;cloud + live;"collector/academia.py; api/labs.js";;;Daily request quota;2026-10-14
+ORCID;https://orcid.org;professors (public emails);all;public API;collected;cloud;collector/academia.py;;;;2026-10-14
+Pasted posts;;"jobs; internships; PhD; scholarships";any;Claude reads pasted text;collected;live;index.html (Paste posts);ANTHROPIC_API_KEY;;;2026-10-14
+Platsbanken;https://arbetsformedlingen.se/platsbanken;jobs;SE;official API (JobTech);collected;cloud;collector/sources.py platsbanken;;;Swedish public employment service;2026-10-14
+Poli;https://withpoli.com;"jobs (UK visa sponsors); people";UK;private API;collected;cloud;collector/poli.py;POLI_EMAIL, POLI_PASSWORD (optional);;;2026-10-14
+Recherche d'entreprises (SIRENE);https://recherche-entreprises.api.gouv.fr;companies (size, sector, age);FR;official API;collected;cloud;collector/fr_register.py;;;;2026-10-14
+Reddit;https://www.reddit.com;interview stories;all;browser scraping;collected;home PC;collector/insights.py;;;Personal use only;2026-10-14
+RemoteOK;https://remoteok.com;jobs;remote;public API;collected;live search;api/jobs.js;;;Cached 3 h;2026-10-14
+Remotive;https://remotive.com;jobs;remote;public API;collected;live search;api/jobs.js;;;Cached 6 h;2026-10-14
+ROR;https://ror.org;schools;all your countries;public API;collected;cloud;collector/academia.py ror_schools;;;Research Organization Registry;2026-10-14
+ScholarshipDB;https://scholarshipdb.net;"scholarships; PhD";worldwide;browser scraping;collected;cloud;collector/sources.py scholarshipdb;;;;2026-10-14
+SmartRecruiters company boards;https://jobs.smartrecruiters.com;"jobs; internships";worldwide, kept in your countries;public API;collected;cloud;collector/sources.py company_boards;;filter;EcoVadis, iad, Le Collectionist, Worldia;2026-10-14
+StepStone;https://www.stepstone.de;"jobs; internships";DE;browser scraping;collected;cloud;collector/sources.py stepstone;;filter;;2026-10-14
+Studyinfo Finland;https://opintopolku.fi;master's;FI;public API;collected;cloud;collector/masters.py studyinfo_fi;;;;2026-10-14
+SuccessFactors careers;https://careers.capgemini.com;"jobs; internships";FR DE CH BE NL LU SE DK NO FI IE UK CA TN MA;RSS feeds;collected;cloud;collector/sources.py successfactors;;filter;Capgemini, Atos, Scania, Vestas, Volvo Group, Schaeffler, Novo Nordisk (sites that allow bots);2026-10-14
+Tanitjobs;https://www.tanitjobs.com;"jobs; internships";TN;browser scraping;collected;home PC;collector/sources.py tanitjobs;;;Blocks data centres. Ask for a partnership before the public launch;2026-10-14
+Teamtailor company boards;https://www.teamtailor.com;"jobs; internships; alternance";FR;RSS feeds;collected;cloud;collector/sources.py company_boards;;filter;Deepki, Prophesee, Akeneo, Exotrail, Driiveme, Libon, LumApps, Madbox, Mooncard, MyLight150, SiPearl, Tap Nation, Planity, WeMaintain, Spendesk, Hoppen, Electra, Brut, Leocare;2026-10-14
+theses.fr;https://theses.fr;professors (thesis supervision);FR;public API;collected;cloud;collector/academia.py theses_directed;;;;2026-10-14
+Tunisian career pages;https://instadeep.com/careers/;"jobs; internships";TN;scraping;collected;cloud;collector/sources.py CAREER_PAGES;;;InstaDeep, Intigo, Kumulus Water;2026-10-14
+Tunisian partner companies directory;;companies;TN;data file (CSV);collected;file;"collector/tn_startups.py; data/tn-companies.json";;;"6,600 companies (1,466 tech-related kept) from entreprisespartenaires.csv; check reuse rights before the public app";2026-10-14
+Tunisian startups catalogue (APII/CIDT);;companies (startups);TN;data file (PDF, 2022);collected;file + monthly website check;"collector/tn_startups.py; data/tn-startups.json";;;117 startups from STARTUPSTECH.pdf;2026-10-14
+TunisieTravail;https://www.tunisietravail.net;"jobs; internships; concours";TN;scraping;collected;home PC;collector/sources.py tunisietravail;;;;2026-10-14
+UK register of licensed sponsors;https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers;companies (visa sponsors);UK;official CSV;collected;cloud weekly;collector/uk_register.py;;;;2026-10-14
+Universitaly;https://www.universitaly.it;master's;IT;public API;collected;cloud;collector/masters.py universitaly;;;;2026-10-14
+Welcome to the Jungle;https://www.welcometothejungle.com;"jobs; internships; alternance";FR BE NL LU DE CH CA SE DK and others;sitemaps + job pages;collected;home PC;collector/sources.py welcome_to_the_jungle;;yes;Student offers (stage, alternance) detected from the address;2026-10-14
+Workable company boards;https://apply.workable.com;"jobs; internships";worldwide, kept in your countries;public API;collected;cloud;collector/sources.py company_boards;;filter;Hugging Face, Homa, CorWave;2026-10-14
+Your RSS feeds;;anything;any;RSS/Atom;collected;live;api/rss.js;;;Feeds the user pastes;2026-10-14
+1jeune1solution;https://www.1jeune1solution.gouv.fr;"alternance; internships; jobs";FR;link (data comes from France Travail and La bonne alternance);to add;;;;yes;Government portal for young people;2026-10-14
+Arbeitsagentur Ausbildung / duales Studium;https://www.arbeitsagentur.de/bildung;alternance (Ausbildung, dual study);DE;same API, angebotsart=4;to add;;api/jobs.js;;yes;German equivalent of alternance;2026-10-14
+HelloWork alternance;https://www.hellowork.com/fr-fr/alternance.html;alternance;FR;scraping (same code as HelloWork);to add;;collector/sources.py hellowork;;yes;Search with the alternance contract filter;2026-10-14
+Indeed alternance;https://fr.indeed.com;alternance;FR;JobSpy with alternance keywords;to add;;collector/collect.py;;yes;Add 'alternance' / 'apprentissage' searches;2026-10-14
+La bonne alternance;https://labonnealternance.apprentissage.beta.gouv.fr;alternance;FR;official API (api.gouv.fr);to add;;;free API token;yes;Official French alternance search, includes companies likely to hire apprentices;2026-10-14
+Swiss apprenticeships (orientation.ch);https://www.orientation.ch;alternance (apprentissage);CH;link;to add;;;;yes;;2026-10-14
+Wallonie / Bruxelles alternance (IFAPME, efp);https://www.ifapme.be;alternance;BE;link;to add;;;;yes;;2026-10-14
+Walt;https://www.walt.community;alternance;FR;check for an API or feed;to add;;;;yes;Alternance-only board;2026-10-14
+ABG (Association Bernard Gregory);https://www.abg.asso.fr;PhD;FR;link (opened by the user);link (also collected);;index.html countries;;;"Research board; usefulness 3/3. Main French board for PhD offers, including CIFRE.";2026-10-14
+Arbeitsagentur Jobbörse;https://www.arbeitsagentur.de;jobs;DE;link (opened by the user);link (also collected);;index.html countries;;;"Official portal; usefulness 1/3. Federal employment agency.";2026-10-14
+DAAD PhD database;https://www.daad.de;PhD;DE;link (opened by the user);link (also collected);;index.html countries;;;"Official portal; usefulness 3/3. PhD programmes and funding.";2026-10-14
+DAAD programme database;https://www.daad.de;master's;DE;link (opened by the user);link (also collected);;index.html countries;;;"Official portal; usefulness 3/3. Search English-taught MSc and scholarships.";2026-10-14
+Direct email to supervisors;https://hal.science;PhD;FR;link (opened by the user);link (also collected);;index.html countries;;;"Direct contact; usefulness 3/3. Read recent papers (HAL), then write a specific email. Highest response rate.";2026-10-14
+ELLIS PhD Program;https://ellis.eu;PhD;remote;link (opened by the user);link (also collected);;index.html countries;;;"Research network; usefulness 3/3. European AI PhD programme, with supervisors in several countries.";2026-10-14
+ETH Zurich job board;https://jobs.ethz.ch;PhD;CH;link (opened by the user);link (also collected);;index.html countries;;;"Research board; usefulness 3/3. Every ETH PhD, postdoc and research opening in one list.";2026-10-14
+ETH Zürich admissions;https://ethz.ch;master's;CH;link (opened by the user);link (also collected);;index.html countries;;;"Direct contact; usefulness 3/3. MSc in CS and Data Science.";2026-10-14
+Indeed France;https://fr.indeed.com;jobs;FR;link (opened by the user);link (also collected);;index.html countries;;;"Aggregator; usefulness 2/3. Wide reach, noisy. Filter hard.";2026-10-14
+LinkedIn (remote filter);https://www.linkedin.com/jobs;jobs;remote;link (opened by the user);link (also collected);;index.html countries;;;"Network; usefulness 3/3. Filter ""Remote"" and check the countries a company can hire from.";2026-10-14
+Marie Curie Doctoral Networks;https://euraxess.ec.europa.eu;PhD;remote;link (opened by the user);link (also collected);;index.html countries;;;"Funding scheme; usefulness 3/3. Paid PhD positions posted on Euraxess.";2026-10-14
+Register of licensed sponsors;https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers;jobs;UK;link (opened by the user);link (also collected);;index.html countries;;;"Official portal; usefulness 2/3. Check that an employer can sponsor you.";2026-10-14
+Study in Flanders;https://www.studyinflanders.be;master's;BE;link (opened by the user);link (also collected);;index.html countries;;;"Official portal; usefulness 2/3. English-taught master's in Flanders.";2026-10-14
+Study in NL;https://www.studyinnl.org;master's;NL;link (opened by the user);link (also collected);;index.html countries;;;"Official portal; usefulness 2/3. All English-taught programmes.";2026-10-14
+Your network (ENICarthage, IEEE RAS);https://linkedin.com/in/oussema-abdaoui;jobs;TN;link (opened by the user);link (also collected);;index.html countries;;;"Network; usefulness 3/3. Alumni and IEEE contacts often beat job boards.";2026-10-14
+Academic Transfer;https://www.academictransfer.com;PhD;NL;link (opened by the user);link only;;index.html countries;;;"Research board; usefulness 3/3. Every Dutch PhD and research position.";2026-10-14
+Actiris;https://www.actiris.brussels;jobs;BE;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 1/3. Brussels public employment service.";2026-10-14
+ADAPT Centre;https://www.adaptcentre.ie;PhD;IE;link (opened by the user);link only;;index.html countries;;;"Research network; usefulness 3/3. AI and digital content PhDs.";2026-10-14
+ANETI;https://www.emploi.nat.tn;jobs;TN;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 1/3. National employment agency.";2026-10-14
+APEC;https://www.apec.fr;jobs;FR;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Aimed at graduates and managers, strong for junior engineers.";2026-10-14
+Campus France doctorate catalogue;https://www.campusfrance.org;PhD;FR;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. Doctoral programmes and funding for international candidates.";2026-10-14
+Chevening;https://www.chevening.org;master's;UK;link (opened by the user);link only;;index.html countries;;;"Scholarship; usefulness 3/3. UK government master's scholarships.";2026-10-14
+CIFRE (ANRT);https://www.anrt.asso.fr;PhD;FR;link (opened by the user);link only;;index.html countries;;;"Funding scheme; usefulness 2/3. PhD inside a company, paid. Offers appear on ABG.";2026-10-14
+Critical Skills list;https://enterprise.gov.ie/en/what-we-do/workplace-and-skills/employment-permits/;jobs;IE;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. Which roles qualify for the permit.";2026-10-14
+Direct email to professors;https://mila.quebec;PhD;CA;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 3/3. The main route. Read their recent papers first.";2026-10-14
+Doctoral schools (direct);https://www.enicarthage.rnu.tn;PhD;TN;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 2/3. Contact labs at ENICarthage and other engineering schools.";2026-10-14
+Education in Ireland;https://www.educationinireland.com;master's;IE;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. Programmes and scholarships.";2026-10-14
+EPFL admissions;https://www.epfl.ch;master's;CH;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 3/3. MSc in CS and Data Science.";2026-10-14
+Erasmus Mundus;https://erasmus-plus.ec.europa.eu;master's;remote;link (opened by the user);link only;;index.html countries;;;"Scholarship; usefulness 3/3. Joint master's programmes with funding, across several EU countries.";2026-10-14
+ETH / EPFL PhD openings;https://www.epfl.ch;PhD;CH;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 3/3. Listed on each school and lab page.";2026-10-14
+Euraxess Belgium;https://www.euraxess.be;PhD;BE;link (opened by the user);link only;;index.html countries;;;"Research board; usefulness 2/3. Belgian research positions.";2026-10-14
+Euraxess France;https://www.euraxess.fr;PhD;FR;link (opened by the user);link only;;index.html countries;;;"Research board; usefulness 2/3. European researcher portal with French offers.";2026-10-14
+Euraxess Germany;https://www.euraxess.de;PhD;DE;link (opened by the user);link only;;index.html countries;;;"Research board; usefulness 2/3. Positions and mobility support.";2026-10-14
+Euraxess Switzerland;https://www.euraxess.ch;PhD;CH;link (opened by the user);link only;;index.html countries;;;"Research board; usefulness 2/3. Research positions and mobility.";2026-10-14
+FCAI;https://fcai.fi;PhD;FI;link (opened by the user);link only;;index.html countries;;;"Research network; usefulness 3/3. Finnish Center for Artificial Intelligence.";2026-10-14
+FindAPhD;https://www.findaphd.com;PhD;UK;link (opened by the user);link only;;index.html countries;;;"Directory; usefulness 3/3. Most UK PhD projects.";2026-10-14
+FINN jobb;https://www.finn.no/job;jobs;NO;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Main Norwegian board.";2026-10-14
+FNR;https://www.fnr.lu;PhD;LU;link (opened by the user);link only;;index.html countries;;;"Funding scheme; usefulness 2/3. Luxembourg research funding and PhD calls.";2026-10-14
+Hochschulkompass;https://www.hochschulkompass.de;master's;DE;link (opened by the user);link only;;index.html countries;;;"Directory; usefulness 2/3. Official directory of all German programmes.";2026-10-14
+IND sponsor register;https://ind.nl/en/public-register-recognised-sponsors;jobs;NL;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. Employers allowed to sponsor your visa.";2026-10-14
+Indeed Canada;https://ca.indeed.com;jobs;CA;link (opened by the user);link only;;index.html countries;;;"Aggregator; usefulness 2/3. Broad coverage.";2026-10-14
+Indeed Germany;https://de.indeed.com;jobs;DE;link (opened by the user);link only;;index.html countries;;;"Aggregator; usefulness 1/3. Broad, mostly German-language listings.";2026-10-14
+Indeed Netherlands;https://nl.indeed.com;jobs;NL;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Large board, many English-language offers.";2026-10-14
+IrishJobs;https://www.irishjobs.ie;jobs;IE;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Main Irish board.";2026-10-14
+Jobat;https://www.jobat.be;jobs;BE;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Belgian board, many IT and consulting jobs.";2026-10-14
+Jobbnorge;https://www.jobbnorge.no;PhD;NO;link (opened by the user);link only;;index.html countries;;;"Research board; usefulness 3/3. All Norwegian PhD and research positions.";2026-10-14
+Jobs.lu;https://www.jobs.lu;jobs;LU;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 1/3. Luxembourg board.";2026-10-14
+Make it in Germany;https://www.make-it-in-germany.com;jobs;DE;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. Government portal with a jobs section and visa guidance.";2026-10-14
+Max Planck / Fraunhofer / Helmholtz;https://www.mpg.de;PhD;DE;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 3/3. Apply via each institute's careers page.";2026-10-14
+Mila / Vector / Amii;https://mila.quebec;master's;CA;link (opened by the user);link only;;index.html countries;;;"Research institute; usefulness 3/3. Top AI institutes tied to Montréal, Toronto, Edmonton universities.";2026-10-14
+Mitacs Globalink;https://www.mitacs.ca;PhD;CA;link (opened by the user);link only;;index.html countries;;;"Funding scheme; usefulness 2/3. Research internships that can lead to a supervisor.";2026-10-14
+Moovijob;https://www.moovijob.com;jobs;LU;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Main Luxembourg board.";2026-10-14
+PHC Utique;https://www.campusfrance.org;PhD;TN;link (opened by the user);link only;;index.html countries;;;"Funding scheme; usefulness 2/3. Franco-Tunisian research cooperation. Check the current call.";2026-10-14
+Pioneer Centre for AI;https://www.aicentre.dk;PhD;DK;link (opened by the user);link only;;index.html countries;;;"Research network; usefulness 3/3. Danish AI research centre with PhD positions.";2026-10-14
+ReKrute;https://www.rekrute.com;jobs;MA;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Main Moroccan board for engineers.";2026-10-14
+StepStone Belgium;https://www.stepstone.be;jobs;BE;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Large Belgian board, French and Dutch.";2026-10-14
+Study in Denmark;https://studyindenmark.dk;master's;DK;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. English-taught programmes.";2026-10-14
+Study in Finland;https://www.studyinfinland.fi;master's;FI;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. Programmes and scholarships.";2026-10-14
+Study in Norway;https://www.studyinnorway.no;master's;NO;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. English-taught programmes.";2026-10-14
+Study in Sweden;https://studyinsweden.se;master's;SE;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 2/3. Programmes and Swedish Institute scholarships.";2026-10-14
+SwissDevJobs;https://swissdevjobs.ch;jobs;CH;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 3/3. Tech-only board for Switzerland.";2026-10-14
+The Hub;https://thehub.io;jobs;DK FI SE;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Nordic startup jobs, mostly in English.";2026-10-14
+UM6P;https://um6p.ma;master's;MA;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 2/3. Mohammed VI Polytechnic University.";2026-10-14
+UM6P PhD;https://um6p.ma;PhD;MA;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 2/3. Funded PhD positions in AI.";2026-10-14
+uni-assist;https://www.uni-assist.de;master's;DE;link (opened by the user);link only;;index.html countries;;;"Application portal; usefulness 2/3. Application handling for many universities. Not all use it.";2026-10-14
+University of Luxembourg;https://www.uni.lu;master's;LU;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 2/3. Master's in computer science and data.";2026-10-14
+University portals (direct);https://www.educanada.ca;"PhD; master's";CA;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 3/3. EduCanada lists institutions. Apply on each university site.";2026-10-14
+University sites (direct);https://www.campusfrance.org;master's;FR;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 2/3. Sorbonne Paris Nord, Paris-Saclay, Sorbonne Université for AI/NLP tracks.";2026-10-14
+University sites (direct);https://www.enicarthage.rnu.tn;master's;TN;link (opened by the user);link only;;index.html countries;;;"Direct contact; usefulness 2/3. Check research masters at Tunisian universities.";2026-10-14
+WASP;https://wasp-sweden.org;PhD;SE;link (opened by the user);link only;;index.html countries;;;"Research network; usefulness 3/3. Swedish AI and autonomous systems PhD programme.";2026-10-14
+We Work Remotely;https://weworkremotely.com;jobs;remote;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 1/3. Remote-only board.";2026-10-14
+Wellfound;https://wellfound.com;jobs;remote;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 2/3. Startup jobs, many remote.";2026-10-14
+Working Nomads;https://www.workingnomads.com;jobs;remote;link (opened by the user);link only;;index.html countries;;;"Job board; usefulness 1/3. Remote-only board.";2026-10-14
+Xing;https://www.xing.com;jobs;DE;link (opened by the user);link only;;index.html countries;;;"Network; usefulness 1/3. German professional network, useful for local recruiters.";2026-10-14
+Études en France / Campus France;https://www.campusfrance.org;master's;FR;link (opened by the user);link only;;index.html countries;;;"Official portal; usefulness 3/3. The application route for Tunisian students. Check the Tunisia procedure and deadlines.";2026-10-14

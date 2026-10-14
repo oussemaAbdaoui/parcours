@@ -1,7 +1,8 @@
 """Every check that must pass before a deploy (run by .github/workflows/ci.yml on each push, or by hand):
 - the scoring regression cases (node tests/score.test.js) and the sync server's wipe guards (tests/state_guard.test.js);
 - the app's inline scripts, sw.js, score.js and every api/*.js parse;
-- every Python file in collector/, api/ and tests/ compiles.
+- every Python file in collector/, api/ and tests/ compiles;
+- data/sources.csv lists every source the collectors use (tests/sources_csv.py).
 Exit code 1 on any failure. Run: python tests/check.py
 """
 import glob
@@ -40,6 +41,11 @@ for test, label in (("score.test.js", "scoring cases"), ("state_guard.test.js", 
     print(f"{label}: " + (r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "no output"))
     if r.returncode:
         failed.append(f"{label}:\n" + "\n".join(l for l in r.stdout.splitlines() if not l.startswith("PASS")))
+
+r = subprocess.run([sys.executable, os.path.join(ROOT, "tests", "sources_csv.py")], capture_output=True, text=True)
+print(r.stdout.strip().splitlines()[0] if r.stdout.strip() else "sources list: no output")
+if r.returncode:
+    failed.append("data/sources.csv is missing sources:\n" + r.stdout.strip())
 
 print("\n".join(failed) if failed else "all checks passed")
 sys.exit(1 if failed else 0)
