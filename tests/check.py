@@ -60,7 +60,7 @@ def ignored(path):
 
 
 cfg = json.load(open(os.path.join(ROOT, "vercel.json"), encoding="utf-8"))
-needed = ["index.html", "admin.html", "sw.js", "score.js", "manifest.webmanifest", "package.json", "package-lock.json", "requirements.txt"]
+needed = ["index.html", "admin.html", "sw.js", "score.js", "manifest.webmanifest", "logo-96.png", "logo-full.png", "favicon.ico", "favicon-64.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png", "package.json", "package-lock.json", "requirements.txt"]
 needed += [os.path.relpath(f, ROOT).replace(os.sep, "/") for f in glob.glob(os.path.join(ROOT, "api", "*.*"))]
 for fn in cfg.get("functions", {}).values():
     m = re.match(r"(.*)\{(.*)\}(.*)", fn.get("includeFiles", ""))

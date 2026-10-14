@@ -14,7 +14,7 @@
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Parcours">
-<meta name="theme-color" content="#16243a">
+<meta name="theme-color" content="#002050">
 <script>try{const t=localStorage.getItem('parcours-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1007,45 +1007,45 @@ input:focus,select:focus,textarea:focus{border-color:var(--ring);outline:3px sol
 @media(max-width:900px){.ls-tabs,.ls.on .ls-cs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;justify-content:flex-start;margin-left:-16px;margin-right:-16px;padding:0 16px}
   .ls-tabs>*,.ls-cs>*{flex:0 0 auto}.ls-side{order:1}.ls-bar .btn.primary{padding:0 18px}}
 
-/* ---------- Logo colors, Fitness Park shapes (last, so it wins): navy from the logo for dark areas, the logo red (#c8102e, gradient #a3031f ->
+/* ---------- Logo colors, Fitness Park shapes (last, so it wins): navy from the logo for dark areas, the logo red (#c81020, gradient #a3031f ->
    #d61a3c) for actions, heavy italic uppercase titles in Montserrat (free stand-in for their licensed Gotham and Cactus), pill
    buttons, a black navigation bar with the current section in yellow. Light and dark; the choice is remembered
    (localStorage parcours-theme, applied in <head> before the page paints). ---------- */
-:root{color-scheme:light;--navy:#16243a;--navy-2:#203048;--hl:#ff5a6e;
+:root{color-scheme:light;--navy:#002050;--navy-2:#0a2a5e;--hl:#ff5a6e;
   --canvas:#f5f5f5;--bg:#f5f5f5;--surface:#ffffff;--surface-2:#f9fafa;--soft:#f2f2f2;--side-h:#f2f2f2;
-  --ink:#15233a;--ink-strong:#000;--muted:#56627a;--faint:#8d9bb5;
+  --ink:#0a2147;--ink-strong:#000;--muted:#56627a;--faint:#8d9bb5;
   --line:#e2e5e9;--line-2:#eef0f2;--line-strong:#c3cbdb;--ring:#000;
-  --blue:#000;--blue-h:#15233a;--blue-t:#fdeaec;--blue-ink:#000;
-  --yellow:#c8102e;--grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);--on-grad:#000;
+  --blue:#000;--blue-h:#0a2147;--blue-t:#fdeaec;--blue-ink:#000;
+  --yellow:#c81020;--grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);--on-grad:#000;
   --red:#f5553e;--red-ink:#d63a24;--red-t:#fef4f2;
   --ok:#00a86b;--warn:#e0a800;--bad:#f5553e;
-  --tag:#f2f2f2;--tag-ink:#15233a;
-  --c-yours:#a3031f;--c-gap:#f5553e;--b-strong:#15233a;--b-fair:#8d9bb5;--b-weak:#c3cbdb;
+  --tag:#f2f2f2;--tag-ink:#0a2147;
+  --c-yours:#a3031f;--c-gap:#f5553e;--b-strong:#0a2147;--b-fair:#8d9bb5;--b-weak:#c3cbdb;
   --card-sh:0 2px 12px rgba(64,110,164,.06);--card-sh-h:0 12px 28px -14px rgba(0,0,0,.22);
   --display:'Montserrat','Twemoji Country Flags','Helvetica Neue',Helvetica,Arial,sans-serif;
   --body:'Montserrat','Twemoji Country Flags','Helvetica Neue',Helvetica,Arial,sans-serif}
 :root[data-theme="dark"]{color-scheme:dark;
-  --canvas:#0b1422;--bg:#0b1422;--surface:#15233a;--surface-2:#1b2a41;--soft:#1b2a41;--side-h:#1b2a41;
+  --canvas:#00122e;--bg:#00122e;--surface:#0a2147;--surface-2:#102a55;--soft:#102a55;--side-h:#102a55;
   --ink:#e2e5e9;--ink-strong:#fff;--muted:#a7b2c7;--faint:#8d9bb5;
-  --line:#1b2a41;--line-2:#15233a;--line-strong:#2c3e5c;--ring:#c8102e;
+  --line:#102a55;--line-2:#0a2147;--line-strong:#1e3a6b;--ring:#c81020;
   --blue:#ff5a6e;--blue-h:#ff7a8a;--blue-t:#3a1520;--blue-ink:#ff8a98;
   --red:#ff6b57;--red-ink:#ff8a7a;--red-t:#3a1c17;
   --ok:#23e499;--warn:#f0a020;--bad:#ff6b57;
-  --tag:#1b2a41;--tag-ink:#e2e5e9;
-  --c-yours:#c8102e;--c-gap:#ff6b57;--b-strong:#c8102e;--b-fair:#8d9bb5;--b-weak:#2c3e5c;
+  --tag:#102a55;--tag-ink:#e2e5e9;
+  --c-yours:#c81020;--c-gap:#ff6b57;--b-strong:#c81020;--b-fair:#8d9bb5;--b-weak:#1e3a6b;
   --grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);
-  --card-sh:none;--card-sh-h:0 0 0 1px #2c3e5c}
+  --card-sh:none;--card-sh-h:0 0 0 1px #1e3a6b}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
-  --canvas:#0b1422;--bg:#0b1422;--surface:#15233a;--surface-2:#1b2a41;--soft:#1b2a41;--side-h:#1b2a41;
+  --canvas:#00122e;--bg:#00122e;--surface:#0a2147;--surface-2:#102a55;--soft:#102a55;--side-h:#102a55;
   --ink:#e2e5e9;--ink-strong:#fff;--muted:#a7b2c7;--faint:#8d9bb5;
-  --line:#1b2a41;--line-2:#15233a;--line-strong:#2c3e5c;--ring:#c8102e;
+  --line:#102a55;--line-2:#0a2147;--line-strong:#1e3a6b;--ring:#c81020;
   --blue:#ff5a6e;--blue-h:#ff7a8a;--blue-t:#3a1520;--blue-ink:#ff8a98;
   --red:#ff6b57;--red-ink:#ff8a7a;--red-t:#3a1c17;
   --ok:#23e499;--warn:#f0a020;--bad:#ff6b57;
-  --tag:#1b2a41;--tag-ink:#e2e5e9;
-  --c-yours:#c8102e;--c-gap:#ff6b57;--b-strong:#c8102e;--b-fair:#8d9bb5;--b-weak:#2c3e5c;
+  --tag:#102a55;--tag-ink:#e2e5e9;
+  --c-yours:#c81020;--c-gap:#ff6b57;--b-strong:#c81020;--b-fair:#8d9bb5;--b-weak:#1e3a6b;
   --grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);
-  --card-sh:none;--card-sh-h:0 0 0 1px #2c3e5c}}
+  --card-sh:none;--card-sh-h:0 0 0 1px #1e3a6b}}
 body{font-family:var(--body);font-weight:500}
 ::selection{background:rgba(200,16,46,.45);color:#fff}
 /* titles */
@@ -1074,8 +1074,8 @@ input:focus,select:focus,textarea:focus{border-color:#a3031f;outline:3px solid r
 .xp,.chip{border-radius:999px}
 /* Home hero: black card, yellow number */
 #weekBox .stat:first-child{background:var(--navy);color:#fff;border:0;box-shadow:none;position:relative;overflow:hidden}
-:root[data-theme="dark"] #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #2c3e5c}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #2c3e5c}}
+:root[data-theme="dark"] #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #1e3a6b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #weekBox .stat:first-child{background:var(--surface);box-shadow:0 0 0 1px #1e3a6b}}
 #weekBox .stat:first-child::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:var(--grad);opacity:.95}
 #weekBox .stat:first-child>*{position:relative;z-index:1}
 #weekBox .stat:first-child b{color:var(--hl);font-family:var(--display);font-weight:900;font-style:italic}
@@ -1089,22 +1089,23 @@ input:focus,select:focus,textarea:focus{border-color:#a3031f;outline:3px solid r
   .side{background:var(--navy);border:0;box-shadow:0 10px 30px -16px rgba(0,0,0,.6)}
   .brand span{color:#fff;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.01em}
   .tabs a,:root[data-theme="dark"] .tabs a{color:#c3cbdb;font-weight:800;text-transform:uppercase;font-size:12.5px;letter-spacing:.04em}
-  .tabs a:hover{background:#15233a;color:#fff}
+  .tabs a:hover{background:#0a2147;color:#fff}
   .tabs a[aria-current="page"],:root[data-theme="dark"] .tabs a[aria-current="page"],:root:not([data-theme="light"]) .tabs a[aria-current="page"]{background:var(--grad);color:#fff}
   .side .syncl{color:#a7b2c7}
-  .side-foot .iconbtn{background:#15233a;border-color:#2c3e5c;color:#fff}
-  .gsbtn{background:#15233a;border-color:#2c3e5c;color:#c3cbdb}
-  .gsbtn kbd{background:var(--navy);border-color:#2c3e5c;color:#c3cbdb}
-  .goalpill{background:#15233a;color:#fff;border-color:#2c3e5c}
+  .side-foot .iconbtn{background:#0a2147;border-color:#1e3a6b;color:#fff}
+  .gsbtn{background:#0a2147;border-color:#1e3a6b;color:#c3cbdb}
+  .gsbtn kbd{background:var(--navy);border-color:#1e3a6b;color:#c3cbdb}
+  .goalpill{background:#0a2147;color:#fff;border-color:#1e3a6b}
 }
 @media(max-width:900px){
   .topbar{background:var(--navy);box-shadow:none;color:#fff}
   .topbar .where,.topbar .where b,.topbar .tb-app{color:#fff}
-  .topbar .iconbtn{background:#15233a;color:#fff}
+  .topbar .iconbtn{background:#0a2147;color:#fff}
   .bottombar{background:var(--navy);box-shadow:none}
   .bottombar a{color:#8d9bb5}
   .bottombar [aria-current="page"]{color:var(--hl)}
 }
+.brand .logo-mark,.tb-logo img{background:#fff;padding:3px;border-radius:9px!important}
 </style>
 </head>
 <body>

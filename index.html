@@ -8,21 +8,21 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#16243a">
+<meta name="theme-color" content="#002050">
 <script>try{const t=localStorage.getItem('parcours-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
 <style>
-/* Public app. Colors from the logo: navy (#203048 family) for dark areas, the logo red (#b80428, brightened to #c8102e) for actions and highlights. Shapes and type after Fitness Park (fitnesspark.fr): black and greys, one bright yellow (#c8102e, gradient
+/* Public app. Colors from the logo: navy (#0a2a5e family) for dark areas, the logo red (#b80428, brightened to #c81020) for actions and highlights. Shapes and type after Fitness Park (fitnesspark.fr): black and greys, one bright yellow (#c81020, gradient
    #a3031f -> #d61a3c), heavy uppercase titles, pill buttons, 16-20px cards. Their fonts (Gotham, Cactus) are licensed:
    Montserrat stands in for both. Mobile first: bottom tabs on phones, side rail from 860px. */
 :root{
   color-scheme:light;
-  --navy:#16243a;--navy-2:#203048;--hl:#ff5a6e;
-  --yellow:#c8102e; --yellow-2:#d61a3c; --yellow-t:#fdeaec;
+  --navy:#002050;--navy-2:#0a2a5e;--hl:#ff5a6e;
+  --yellow:#c81020; --yellow-2:#d61a3c; --yellow-t:#fdeaec;
   --grad:linear-gradient(0deg,#a3031f 0%,#d61a3c 100%);
-  --bg:#ffffff; --surface:#ffffff; --surface-2:#f2f2f2; --ink:#15233a; --ink-strong:#000; --muted:#56627a;
+  --bg:#ffffff; --surface:#ffffff; --surface-2:#f2f2f2; --ink:#0a2147; --ink-strong:#000; --muted:#56627a;
   --line:#e2e5e9; --line-strong:#c3cbdb; --ring:#000;
   --bad:#f5553e; --bad-t:#fef4f2;
   --font:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;
@@ -31,12 +31,12 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   color-scheme:dark;
-  --bg:#0b1422; --surface:#15233a; --surface-2:#1b2a41; --ink:#e2e5e9; --ink-strong:#fff; --muted:#8d9bb5;
-  --line:#1b2a41; --line-strong:#2c3e5c; --ring:#c8102e; --bad-t:#3a1c17; --yellow-t:#3a1520; --shadow:none;}}
+  --bg:#00122e; --surface:#0a2147; --surface-2:#102a55; --ink:#e2e5e9; --ink-strong:#fff; --muted:#8d9bb5;
+  --line:#102a55; --line-strong:#1e3a6b; --ring:#c81020; --bad-t:#3a1c17; --yellow-t:#3a1520; --shadow:none;}}
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --bg:#0b1422; --surface:#15233a; --surface-2:#1b2a41; --ink:#e2e5e9; --ink-strong:#fff; --muted:#8d9bb5;
-  --line:#1b2a41; --line-strong:#2c3e5c; --ring:#c8102e; --bad-t:#3a1c17; --yellow-t:#3a1520; --shadow:none;}
+  --bg:#00122e; --surface:#0a2147; --surface-2:#102a55; --ink:#e2e5e9; --ink-strong:#fff; --muted:#8d9bb5;
+  --line:#102a55; --line-strong:#1e3a6b; --ring:#c81020; --bad-t:#3a1c17; --yellow-t:#3a1520; --shadow:none;}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:500 15px/1.55 var(--font);-webkit-font-smoothing:antialiased;min-height:100dvh}
@@ -79,6 +79,7 @@ p{margin:0}
 .points li::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;background:var(--yellow) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center/13px no-repeat}
 .form-side{padding:28px 16px 40px;display:grid;align-content:start;justify-items:center}
 .form-box{width:100%;max-width:420px;display:grid;gap:20px}
+.form-logo{display:block;width:min(240px,70%);height:auto;margin:0 auto 4px;background:#fff;border-radius:16px;padding:10px 14px}
 .switch{display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:var(--pill);padding:4px}
 .switch button{min-height:42px;border:0;border-radius:var(--pill);background:none;cursor:pointer;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .switch button[aria-selected="true"]{background:var(--navy);color:#fff}
@@ -105,16 +106,16 @@ nav.tabs a[aria-current="page"]::before{content:"";position:absolute;top:0;left:
   nav.tabs{top:0;right:auto;width:232px;grid-template-columns:none;align-content:start;gap:4px;padding:84px 14px 14px}
   nav.tabs a{display:flex;gap:12px;padding:12px 16px;border-radius:var(--pill);font-size:13px;color:#c3cbdb}
   nav.tabs a svg{width:19px;height:19px}
-  nav.tabs a:hover{background:#15233a;color:#fff}
+  nav.tabs a:hover{background:#0a2147;color:#fff}
   nav.tabs a[aria-current="page"]{background:var(--grad);color:#fff}
   nav.tabs a[aria-current="page"]::before{display:none}
   .top{position:fixed;left:0;width:232px;background:none;z-index:6}
   .top .avatar{display:none}
 }
 .top-act{display:flex;align-items:center;gap:10px}
-.themebtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:0;background:#15233a;color:#fff;cursor:pointer}
+.themebtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:0;background:#0a2147;color:#fff;cursor:pointer}
 .themebtn svg{width:18px;height:18px}
-.themebtn:hover{background:#2c3e5c}
+.themebtn:hover{background:#1e3a6b}
 @media (min-width:860px){.top{justify-content:space-between}.top .top-act{position:fixed;left:14px;bottom:16px}}
 .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#fff;font-weight:900;font-size:14px;border:0;cursor:pointer}
 
@@ -150,8 +151,8 @@ nav.tabs a[aria-current="page"]::before{content:"";position:absolute;top:0;left:
 .skills span{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:var(--pill);background:var(--surface-2);color:var(--ink)}
 .tag{font-size:11px;font-weight:800;padding:4px 10px;border-radius:var(--pill);text-transform:uppercase;letter-spacing:.04em}
 .t-job{background:var(--navy);color:#fff}
-:root[data-theme="dark"] .t-job{background:#2c3e5c}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .t-job{background:#2c3e5c}}.t-master{background:var(--yellow);color:#fff}.t-phd{background:var(--surface-2);color:var(--ink-strong);box-shadow:inset 0 0 0 1px var(--line-strong)}
+:root[data-theme="dark"] .t-job{background:#1e3a6b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .t-job{background:#1e3a6b}}.t-master{background:var(--yellow);color:#fff}.t-phd{background:var(--surface-2);color:var(--ink-strong);box-shadow:inset 0 0 0 1px var(--line-strong)}
 .btn.sm{min-height:38px;padding:0 18px;font-size:12px}
 .btn.ghost{border-color:transparent}
 .saved-mark{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ok)}
@@ -191,6 +192,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   </div>
   <div class="form-side">
     <div class="form-box">
+      <img class="form-logo" src="/logo-full.png" width="600" height="432" alt="Parcours: Study, Work, Abroad">
       <div class="switch" role="tablist">
         <button type="button" role="tab" id="tabUp" aria-selected="true">Create account</button>
         <button type="button" role="tab" id="tabIn" aria-selected="false">Sign in</button>
