@@ -44,6 +44,32 @@ for test, label in (("score.test.js", "scoring cases"), ("state_guard.test.js", 
     if r.returncode:
         failed.append(f"{label}:\n" + "\n".join(l for l in r.stdout.splitlines() if not l.startswith("PASS")))
 
+# .vercelignore must not leave out what the site runs on (requirements.txt once was: api/boards.py lost its packages).
+import fnmatch
+import json
+rules = [l.strip() for l in open(os.path.join(ROOT, ".vercelignore"), encoding="utf-8") if l.strip() and not l.startswith("#")]
+
+
+def ignored(path):
+    out = False
+    for rule in rules:
+        neg, pat = rule.startswith("!"), rule.lstrip("!").strip("/")
+        if fnmatch.fnmatch(path, pat) or path.startswith(pat + "/") or fnmatch.fnmatch(path.split("/")[0], pat) and "/" not in pat:
+            out = not neg
+    return out
+
+
+cfg = json.load(open(os.path.join(ROOT, "vercel.json"), encoding="utf-8"))
+needed = ["index.html", "admin.html", "sw.js", "score.js", "manifest.webmanifest", "package.json", "package-lock.json", "requirements.txt"]
+needed += [os.path.relpath(f, ROOT).replace(os.sep, "/") for f in glob.glob(os.path.join(ROOT, "api", "*.*"))]
+for fn in cfg.get("functions", {}).values():
+    m = re.match(r"(.*)\{(.*)\}(.*)", fn.get("includeFiles", ""))
+    needed += [m.group(1) + x + m.group(3) for x in m.group(2).split(",")] if m else ([fn["includeFiles"]] if fn.get("includeFiles") else [])
+for f in needed:
+    if ignored(f):
+        failed.append(f".vercelignore leaves out {f}, which the site needs")
+print("deploy files: " + ("missing some" if any(".vercelignore" in f for f in failed) else f"{len(needed)} needed files deployed"))
+
 r = subprocess.run([sys.executable, os.path.join(ROOT, "tests", "sources_csv.py")], capture_output=True, text=True)
 print(r.stdout.strip().splitlines()[0] if r.stdout.strip() else "sources list: no output")
 if r.returncode:

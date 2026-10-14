@@ -12,12 +12,12 @@ docs
 graphify-out
 probe-out
 .playwright-cli
-# Not served: your data files and sources list, the database layout, tests and notes (nothing in the app reads them)
+# Not served: your data files and sources list, the database layout, tests and notes (nothing in the app reads them).
+# Keep requirements.txt deployed: Vercel installs the Python packages of api/boards.py from it.
 data
 db
 tests
 enhancement.md
 README.md
-requirements.txt
 STARTUPSTECH.pdf
 entreprisespartenaires.csv
