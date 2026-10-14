@@ -8,8 +8,8 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#191919" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000">
+<script>try{const t=localStorage.getItem('parcours-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
@@ -110,6 +110,11 @@ nav.tabs a[aria-current="page"]::before{content:"";position:absolute;top:0;left:
   .top{position:fixed;left:0;width:232px;background:none;z-index:6}
   .top .avatar{display:none}
 }
+.top-act{display:flex;align-items:center;gap:10px}
+.themebtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:0;background:#24292d;color:#fff;cursor:pointer}
+.themebtn svg{width:18px;height:18px}
+.themebtn:hover{background:#3c454d}
+@media (min-width:860px){.top{justify-content:space-between}.top .top-act{position:fixed;left:14px;bottom:16px}}
 .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:#000;font-weight:900;font-size:14px;border:0;cursor:pointer}
 
 /* Page pieces */
@@ -169,7 +174,10 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 <div class="shell" id="app" hidden>
   <header class="top">
     <div class="brand"><img src="/logo-96.png" alt="">Parcours</div>
-    <button class="avatar" id="avatar" aria-label="Profile"></button>
+    <div class="top-act">
+      <button class="themebtn" id="themeBtn" type="button" aria-label="Switch between light and dark" title="Light / dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+      <button class="avatar" id="avatar" aria-label="Profile"></button>
+    </div>
   </header>
   <nav class="tabs" aria-label="Sections">
     <a href="#home" data-page="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
@@ -288,6 +296,13 @@ function render() {
 }
 window.addEventListener('hashchange', render);
 $('#avatar').onclick = () => { location.hash = '#profile'; };
+// Light / dark, remembered on this device (applied in <head> before the page paints; same key as the admin app).
+$('#themeBtn').onclick = () => {
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('parcours-theme', r.dataset.theme); } catch (e) { /* private window: this visit only */ }
+};
 $('#page').addEventListener('click', async (ev) => {
   const tab = ev.target.closest('[data-tab]');
   if (tab) { discoverTab = tab.dataset.tab; render(); return; }
