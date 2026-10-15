@@ -151,13 +151,19 @@
     [/\bc1\b|advanced|avance|professional working|professionnel/, 'C1'], [/\bb2\b|upper.intermediate|intermediaire avance|gute kenntnisse/, 'B2'],
     [/\bb1\b|intermediate|intermediaire|conversational/, 'B1'], [/\ba2\b|elementary|basic|notions|grundkenntnisse/, 'A2'], [/\ba1\b|beginner|debutant/, 'A1']];
   const LANGS = { en: 'english|anglais|englisch', fr: 'french|francais|franzosisch', de: 'german|allemand|deutsch', ar: 'arabic|arabe|arabisch', es: 'spanish|espagnol|spanisch', it: 'italian|italien|italienisch' };
+  const ANY_LANG = new RegExp('\\b(?:' + Object.values(LANGS).join('|') + ')\\b');
   function languagesIn(text) {
     const t = norm(text), out = {};
     for (const [code, names] of Object.entries(LANGS)) {
       const m = t.match(new RegExp('\\b(?:' + names + ')\\b\\s*[(:\\-,]?\\s*([^,;|·•)]{0,28})'));
       if (!m) continue;
-      const lvl = (m[1].match(/\b(a1|a2|b1|b2|c1|c2)\b/) || [])[1];
-      out[code] = lvl ? lvl.toUpperCase() : ((LEVEL_WORDS.find(([re]) => re.test(m[1])) || [])[1] || 'B1');
+      // Only the words about this language: up to the end of the sentence or the next language name ("Arabic: native.
+      // French: C1" gave Arabic C1). Then the level mentioned first wins, a CEFR code or a word.
+      const seg = m[1].split('.')[0].split(ANY_LANG)[0];
+      const cefr = seg.match(/\b(a1|a2|b1|b2|c1|c2)\b/);
+      const found = [[cefr ? cefr.index : -1, cefr && cefr[1].toUpperCase()]].concat(LEVEL_WORDS.map(([re, lv]) => [seg.search(re), lv]))
+        .filter(([at, lv]) => at >= 0 && lv).sort((a, b) => a[0] - b[0]);
+      out[code] = found.length ? found[0][1] : 'B1';
     }
     const toeic = t.match(/toeic\D{0,10}(\d{3})/); if (toeic) out.en = +toeic[1] >= 945 ? 'C1' : +toeic[1] >= 785 ? 'B2' : 'B1';
     const ielts = t.match(/ielts\D{0,10}(\d(?:\.\d)?)/); if (ielts) out.en = +ielts[1] >= 7 ? 'C1' : +ielts[1] >= 5.5 ? 'B2' : 'B1';

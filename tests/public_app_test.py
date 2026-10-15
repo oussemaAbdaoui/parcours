@@ -4,6 +4,7 @@ Run: python tests/public_app_test.py
 """
 import os
 import subprocess
+import tempfile
 from playwright.sync_api import sync_playwright, expect
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -12,6 +13,11 @@ URL = f"http://localhost:{PORT}/"
 server = subprocess.Popen(["node", os.path.join(ROOT, "tests", "public_server.js"), str(PORT)], stdout=subprocess.PIPE, text=True)
 assert server.stdout.readline().strip() == "ready"
 results = []
+CV_HTML = """<h1>Amel Ben Salah</h1><p>Software engineer · Tunis · amel@example.tn</p>
+<h2>Education</h2><p>Engineering degree in computer science (Diplôme d'ingénieur), ENICarthage, 2026</p>
+<h2>Experience</h2><p>Data engineering intern, Acme, Tunis, February 2026 - July 2026. Built ETL pipelines in Python and SQL, Docker deployments.</p>
+<h2>Skills</h2><p>Python, SQL, Docker, React, PostgreSQL, machine learning</p>
+<h2>Languages</h2><p>Arabic: native. French: C1. English: B2.</p>"""
 
 
 def check(name, fn):
@@ -68,6 +74,33 @@ try:
         check("home greets by first name", lambda: expect(page.locator("main h2")).to_have_text("Hello Amel"))
         check("home shows the latest picks for the path", lambda: expect(page.locator("#homeList .item").first).to_be_visible())
         check("home counts the applications", lambda: expect(page.locator(".stats .stat").nth(1).locator("b")).to_have_text("1"))
+        # CV: a PDF made here (Chromium prints a CV page), read on the device, skills shown and matched on offers.
+        cvdir = tempfile.mkdtemp()
+        maker = b.new_page()
+        maker.set_content(CV_HTML); cv_pdf = os.path.join(cvdir, "Amel_CV.pdf"); maker.pdf(path=cv_pdf)
+        maker.set_content("<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' width=600 height=800>")
+        scan_pdf = os.path.join(cvdir, "scan.pdf"); maker.pdf(path=scan_pdf); maker.close()
+        page.goto(URL + "#home")
+        check("home asks for the CV", lambda: expect(page.locator("main a[href='#profile']", has_text="Upload my CV")).to_be_visible())
+        page.goto(URL + "#profile")
+        page.set_input_files("#cvFile", scan_pdf)
+        check("a scanned PDF is explained", lambda: expect(page.locator("#cvMsg")).to_contain_text("scan", timeout=20000))
+        page.set_input_files("#cvFile", cv_pdf)
+        check("the CV is read: skills shown", lambda: expect(page.locator("[data-rmskill=python]")).to_be_visible(timeout=20000))
+        check("degree and languages read", lambda: expect(page.locator(".cv .rows")).to_contain_text("French"))
+        check("file name kept", lambda: expect(page.locator(".cv-head")).to_contain_text("Amel_CV.pdf"))
+        page.click("[data-rmskill=docker]")
+        check("a wrong skill can be removed", lambda: expect(page.locator("[data-rmskill=docker]")).to_have_count(0))
+        page.reload()
+        check("the CV stays after reload (saved on the server)", lambda: expect(page.locator("[data-rmskill=python]")).to_be_visible())
+        page.goto(URL + "#discover")
+        page.click("[data-tab=jobs]")
+        check("offers show the skills you have", lambda: expect(page.locator("#discList .have-line").first).to_contain_text("You have 2 of the 2"))
+        check("matching skills are highlighted", lambda: expect(page.locator("#discList .skills span.have").first).to_be_visible())
+        page.goto(URL + "#profile")
+        page.click("#cvRemove")
+        check("the CV can be deleted", lambda: expect(page.locator(".drop")).to_be_visible())
+        check("the path is kept when the CV is deleted", lambda: expect(page.locator("input[value=study]")).to_be_checked())
         page.goto(URL + "#discover")
         page.click("[data-tab=alternance]")
         check("discover has an Alternance tab", lambda: expect(page.locator("#discList .item h3")).to_have_text(["Développeur web en alternance"]))

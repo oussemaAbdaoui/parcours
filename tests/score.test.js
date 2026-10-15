@@ -111,6 +111,21 @@ const cases = [
     (r) => !r.blockers.includes('Too senior for your experience')],
 ];
 
+// CV reading: language levels (each level belongs to the language it follows, not the next one).
+const cvLangs = [
+  ['Arabic: native. French: C1. English: B2.', { ar: 'native', fr: 'C1', en: 'B2' }],
+  ['Languages\nArabe : langue maternelle\nFrançais : courant (C1)\nAnglais : B2', { ar: 'native', fr: 'C1', en: 'B2' }],
+  ['English (fluent), French (B2), German (A2)', { en: 'C1', fr: 'B2', de: 'A2' }],
+  ['Langues : Arabe (natif), Français (C1), Anglais (B2)', { fr: 'C1', en: 'B2' }],
+];
+let cvFailed = 0;
+for (const [text, want] of cvLangs) {
+  const got = S.parseCv('Education\nEngineering degree 2026\n' + text).languages;
+  const pass = Object.entries(want).every(([k, v]) => got[k] === v);
+  if (!pass) cvFailed++;
+  console.log(`${pass ? 'PASS' : 'FAIL'}  CV languages: ${JSON.stringify(text)}${pass ? '' : ` -> ${JSON.stringify(got)}`}`);
+}
+
 let failed = 0;
 for (const [name, offer, ok, change] of cases) {
   const r = S.score(offer, { ...profile, ...change }, NOW); // a case may change the profile (its 4th item)
@@ -118,5 +133,5 @@ for (const [name, offer, ok, change] of cases) {
   if (!pass) failed++;
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${pass ? '' : `\n      score ${r.score}, checked ${r.checked}, blockers [${r.blockers}], sure [${r.sureBlockers}], seniority: ${r.parts.seniority.note}, field: ${r.parts.field.note}`}`);
 }
-console.log(`\n${cases.length - failed}/${cases.length} passed`);
-process.exit(failed ? 1 : 0);
+console.log(`\n${cases.length + cvLangs.length - failed - cvFailed}/${cases.length + cvLangs.length} passed`);
+process.exit(failed || cvFailed ? 1 : 0);

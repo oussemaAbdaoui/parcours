@@ -174,6 +174,20 @@ nav.tabs a[aria-current="page"]{color:var(--nav-on)}
 .toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);opacity:0;pointer-events:none;z-index:20;background:var(--ink-strong);color:var(--bg);padding:11px 18px;border-radius:var(--r);font-weight:600;font-size:14px;box-shadow:0 10px 30px rgba(13,27,51,.25);transition:opacity .2s,transform .2s}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 @media (min-width:860px){.toast{bottom:28px}}
+.drop{display:grid;justify-items:center;gap:4px;padding:26px 16px;border:1.5px dashed var(--line-strong);border-radius:var(--rc);background:var(--surface-2);cursor:pointer;text-align:center}
+.drop:hover,.drop.over{border-color:var(--navy);background:var(--navy-t)}
+.drop b{color:var(--ink-strong)}
+.paste summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--nav-on)}
+.paste textarea{width:100%;margin:10px 0;padding:12px;border:1px solid var(--line-strong);border-radius:var(--r);background:var(--surface);font:inherit;font-size:14px;resize:vertical}
+.note{font-size:14px;color:var(--muted)}
+.cv-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.skills.edit button{display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:var(--pill);border:0;background:var(--tag);color:var(--tag-fg);cursor:pointer}
+.skills.edit button:hover{background:var(--red-t);color:var(--hl)}
+.skills span.have{background:var(--navy);color:#fff}
+:root[data-theme="dark"] .skills span.have{background:#2c4c86}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .skills span.have{background:#2c4c86}}
+.have-line{font-size:12.5px;font-weight:600;color:var(--nav-on)}
+.cv-done{display:grid;gap:4px}
 dialog{border:0;border-radius:var(--rc);padding:24px;max-width:420px;width:calc(100% - 32px);background:var(--surface);color:var(--ink);box-shadow:0 20px 50px rgba(13,27,51,.3)}
 dialog::backdrop{background:rgba(10,20,36,.5)}
 .row-btns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
@@ -237,6 +251,7 @@ dialog::backdrop{background:rgba(10,20,36,.5)}
   </form>
 </dialog>
 
+<script src="/score.js" defer></script>
 <script>
 'use strict';
 const $ = (s) => document.querySelector(s);
@@ -317,7 +332,7 @@ function itemCard(it, cat) {
     <h3>${esc(it.title)}</h3>
     ${meta ? `<p class="muted">${meta}</p>` : ''}
     ${extra ? `<p class="muted small">${extra}</p>` : ''}
-    ${it.skills && it.skills.length ? `<div class="skills">${it.skills.map((s) => `<span>${esc(s)}</span>`).join('')}</div>` : ''}
+    ${it.skills && it.skills.length ? `<div class="skills">${it.skills.map((s) => `<span class="${hasSkill(s) ? 'have' : ''}">${esc(s)}</span>`).join('')}</div>${haveLine(it)}` : ''}
     ${it.text ? `<p class="item-text">${esc(it.text)}</p>` : ''}
     <div class="item-acts">
       ${it.url ? `<a class="btn sm" href="${esc(it.url)}" target="_blank" rel="noopener">Open</a>` : ''}
@@ -336,7 +351,8 @@ const PAGES = {
         : `<div class="banner"><h3 class="banner-t">Where are you <span class="hl">heading?</span></h3><p>Pick your path so we show you the right opportunities.</p><a class="btn primary" href="#profile">Choose my path</a></div>`}
       <div class="stats">${[['saved', 'Saved'], ['applied', 'Applied'], ['interview', 'Interviews'], ['offer', 'Offers']].map(([k, l]) => `<a class="stat" href="#track"><b>${by(k)}</b><span>${l}</span></a>`).join('')}</div>
       ${main ? `<div class="sec-head"><h3>Latest ${esc(DISCOVER.find((d) => d[0] === main)[1].toLowerCase())}</h3><a href="#discover" class="link">See all</a></div><div class="list" id="homeList"><p class="muted">Loading…</p></div>` : ''}
-      <div class="empty"><b>Matched to your CV, soon.</b><span>Coming next: upload your CV and each offer gets a match score and a letter written for it.</span></div>`;
+      ${cvOf() ? `<div class="card cv-done"><b>Your CV is in.</b><span class="muted">${cvOf().skills.length} skills read. They light up on every offer that asks for them.</span><a class="link" href="#profile">See my CV</a></div>`
+        : `<div class="banner"><h3 class="banner-t">Upload your <span class="hl">CV</span></h3><p>We read it on your device, for free, and show which offers ask for the skills you have.</p><a class="btn primary" href="#profile">Upload my CV</a></div>`}`;
   },
   discover() {
     const tabs = tabsFor();
@@ -363,6 +379,7 @@ const PAGES = {
   },
   profile() {
     return `<h2>Profile</h2>
+      ${cvCard()}
       <div class="card" style="display:grid;gap:12px"><h3>My path</h3>
         <div class="options" role="radiogroup">${PATHS.map(([k, l, d]) => `<label class="option"><input type="radio" name="path" value="${k}" ${state.path === k ? 'checked' : ''}><span><b>${l}</b><span class="muted">${d}</span></span></label>`).join('')}</div>
         <p class="msg" id="pathMsg" role="alert"></p></div>
@@ -373,6 +390,94 @@ const PAGES = {
       <div class="row-btns" style="justify-content:flex-start">${user.role === 'admin' ? '<a class="btn primary" href="/admin">Open the admin app</a>' : ''}<button class="btn" id="logout">Sign out</button>${user.role === 'admin' ? '' : '<button class="btn danger" id="delete">Delete my account</button>'}</div>`;
   },
 };
+
+// ---------- My CV: read on the device with score.js (the admin app's CV reader); PDFs through pdf.js ----------
+const CV_MAX = 30000;  // characters kept (a long CV is about 8,000)
+const cvOf = () => (state && state.profile && state.profile.skills ? state.profile : null);
+const hasSkill = (s) => { const p = cvOf(); return !!p && p.skills.includes(String(s).toLowerCase()); };
+function haveLine(it) {
+  if (!cvOf() || !it.skills || !it.skills.length) return '';
+  const n = it.skills.filter(hasSkill).length;
+  return `<p class="have-line">${n ? `You have ${n} of the ${it.skills.length} skills listed` : 'None of the listed skills are on your CV'}</p>`;
+}
+const LANG_NAME = { en: 'English', fr: 'French', de: 'German', ar: 'Arabic', it: 'Italian', es: 'Spanish', nl: 'Dutch', sv: 'Swedish', da: 'Danish', no: 'Norwegian', fi: 'Finnish' };
+function cvCard() {
+  const p = cvOf();
+  if (!p) return `<div class="card cv" style="display:grid;gap:12px"><h3>My CV</h3>
+    <p class="muted">Upload your CV as a PDF. It is read here on your device, for free: we pick out your skills, degree and languages, and show you which offers ask for them.</p>
+    <label class="drop" for="cvFile"><b>Choose a PDF</b><span class="muted small">or drop it here · PDF or text file, up to 5 MB</span></label>
+    <input type="file" id="cvFile" accept=".pdf,.txt,application/pdf,text/plain" hidden>
+    <details class="paste"><summary>Paste the text instead</summary><textarea id="cvText" rows="8" placeholder="Paste your CV here"></textarea><button class="btn sm" type="button" id="cvReadText">Read this text</button></details>
+    <p class="msg" id="cvMsg" role="alert"></p></div>`;
+  const deg = p.degree && p.degree.level ? [p.degree.name, p.degree.field, p.degree.year].filter(Boolean).map(esc).join(' · ') : 'Not found';
+  const langs = Object.entries(p.languages || {}).map(([k, v]) => `${esc(LANG_NAME[k] || k.toUpperCase())} ${esc(v)}`).join(', ') || 'Not found';
+  const years = p.years == null ? 'No dated job found (internships count half)' : `${p.years} ${p.years === 1 ? 'year' : 'years'}`;
+  return `<div class="card cv" style="display:grid;gap:14px">
+    <div class="cv-head"><h3>My CV</h3><span class="muted small">${esc(p.fileName || 'Pasted text')} · read ${esc((p.readAt || '').slice(0, 10))}</span></div>
+    <div class="rows"><div><span class="muted">Degree</span><span>${deg}</span></div><div><span class="muted">Languages</span><span>${langs}</span></div><div><span class="muted">Work experience</span><span>${years}</span></div></div>
+    <div><p class="small muted" style="margin-bottom:8px">${p.skills.length} skills found. Remove any that are wrong.</p>
+      <div class="skills edit">${p.skills.map((s) => `<button type="button" data-rmskill="${esc(s)}" aria-label="Remove ${esc(s)}">${esc(s)} <span aria-hidden="true">×</span></button>`).join('') || '<span class="muted small">None found</span>'}</div></div>
+    <div class="row-btns" style="justify-content:flex-start"><label class="btn sm" for="cvFile">Replace my CV</label><button class="btn sm ghost" type="button" id="cvRemove">Delete my CV</button></div>
+    <input type="file" id="cvFile" accept=".pdf,.txt,application/pdf,text/plain" hidden>
+    <p class="msg" id="cvMsg" role="alert"></p></div>`;
+}
+let pdfLib = null;
+function loadPdf() {
+  if (pdfLib) return pdfLib;
+  pdfLib = new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; ok(window.pdfjsLib); };
+    s.onerror = () => { pdfLib = null; ko(new Error('Could not load the PDF reader. Check your connection and try again.')); };
+    document.head.append(s);
+  });
+  return pdfLib;
+}
+async function fileText(f) {
+  if (f.size > 5 * 1024 * 1024) throw new Error('That file is over 5 MB. Export a lighter PDF and try again.');
+  if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') {
+    const lib = await loadPdf();
+    const doc = await lib.getDocument({ data: await f.arrayBuffer() }).promise;
+    let out = '';
+    // A new line whenever the text jumps down the page, so sections and dates stay apart.
+    for (let i = 1; i <= Math.min(doc.numPages, 8); i++) {
+      const tc = await (await doc.getPage(i)).getTextContent();
+      let lastY = null;
+      for (const t of tc.items) {
+        const y = t.transform ? Math.round(t.transform[5]) : null;
+        if (lastY !== null && y !== null && Math.abs(y - lastY) > 2) out += '\n'; else if (out && !/[ \n]$/.test(out)) out += ' ';
+        out += t.str; lastY = y;
+      }
+      out += '\n';
+    }
+    return out;
+  }
+  if (/\.(docx?|odt)$/i.test(f.name)) throw new Error('Word files cannot be read here yet. In Word, use File > Save as > PDF, then upload the PDF.');
+  return f.text();
+}
+async function readCv(text, fileName) {
+  const clean = String(text || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, CV_MAX);
+  if (clean.length < 200) throw new Error(fileName && /\.pdf$/i.test(fileName)
+    ? 'No text found in this PDF. It is probably a scan (a picture of the page). Export your CV from Word or Canva as a PDF, or paste the text instead.'
+    : 'That is too short to be a CV. Paste the whole text.');
+  if (!window.ParcoursScore) throw new Error('The CV reader is still loading. Try again in a second.');
+  const r = window.ParcoursScore.parseCv(clean);
+  const profile = Object.assign({}, state.profile || {}, { cv: clean, fileName: fileName || '', readAt: new Date().toISOString(),
+    skills: r.skills, extra: r.extra, languages: r.languages, degree: r.degree, years: r.years, sections: r.sectionsFound });
+  await saveSetting('profile', profile);
+  return r;
+}
+async function cvFrom(getText, fileName) {
+  const msg = $('#cvMsg');
+  if (msg) { msg.className = 'note'; msg.textContent = 'Reading your CV…'; }
+  try {
+    const r = await readCv(await getText(), fileName);
+    render();
+    toast(`CV read: ${r.skills.length} skills found`);
+  } catch (e) {
+    const m = $('#cvMsg'); if (m) { m.className = 'msg'; m.textContent = e.message || 'Could not read that file.'; }
+  }
+}
 
 // Lists come from /api/u?a=discover after the page is drawn.
 async function loadDiscover(append) {
@@ -474,6 +579,36 @@ $('#page').addEventListener('click', async (ev) => {
     user = state = null; showAuth('in');
   }
   if (ev.target.id === 'delete') { $('#delPw').value = ''; $('#delMsg').textContent = ''; $('#delDlg').showModal(); }
+});
+$('#page').addEventListener('change', (ev) => {
+  if (ev.target.id !== 'cvFile' || !ev.target.files[0]) return;
+  const f = ev.target.files[0];
+  cvFrom(() => fileText(f), f.name);
+});
+$('#page').addEventListener('dragover', (ev) => { const d = ev.target.closest('.drop'); if (d) { ev.preventDefault(); d.classList.add('over'); } });
+$('#page').addEventListener('dragleave', (ev) => { const d = ev.target.closest('.drop'); if (d) d.classList.remove('over'); });
+$('#page').addEventListener('drop', (ev) => {
+  const d = ev.target.closest('.drop');
+  if (!d) return;
+  ev.preventDefault(); d.classList.remove('over');
+  const f = ev.dataTransfer.files[0];
+  if (f) cvFrom(() => fileText(f), f.name);
+});
+$('#page').addEventListener('click', async (ev) => {
+  if (ev.target.id === 'cvReadText') { cvFrom(() => $('#cvText').value, ''); return; }
+  const rm = ev.target.closest('[data-rmskill]');
+  if (rm) {
+    const p = Object.assign({}, state.profile);
+    p.skills = p.skills.filter((s) => s !== rm.dataset.rmskill);
+    try { await saveSetting('profile', p); render(); } catch (e) { toast(e.message); }
+    return;
+  }
+  if (ev.target.id === 'cvRemove') {
+    const keep = Object.assign({}, state.profile);
+    for (const k of ['cv', 'fileName', 'readAt', 'skills', 'extra', 'languages', 'degree', 'years', 'sections']) delete keep[k];
+    keep.cvDeletedAt = new Date().toISOString();  // a profile is never saved empty (the server refuses wiping one)
+    try { await saveSetting('profile', keep); render(); toast('CV deleted'); } catch (e) { toast(e.message); }
+  }
 });
 $('#page').addEventListener('submit', (ev) => {
   if (ev.target.id !== 'discSearch') return;
