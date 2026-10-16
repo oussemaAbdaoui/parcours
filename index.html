@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* Public app, "Clear" look (chosen 14 Oct 2026): white and calm, navy text from the logo (#002050), the logo red
-   (#c81020) only for the main action and highlights, Manrope in normal case. Mobile first: bottom tabs on phones,
+   (#c81020) for highlights, teal green (#0d7f6e) for the main action, Manrope in normal case. Mobile first: bottom tabs on phones,
    side rail from 860px. */
 :root{
   color-scheme:light;
@@ -25,7 +25,7 @@
   --line:#e2e7ef; --line-strong:#cfd7e3; --ring:#002050;
   --navy:#002050; --navy-t:#e8eef8; --red:#c81020; --red-h:#a90d1b; --red-t:#fdecee; --hl:#c81020;
   --tag:#eef2f8; --tag-fg:#24385e; --ok:#0d8a5f; --bad:#c81020; --bad-t:#fdecee;
-  --on-red:#ffffff; --sel:#002050; --on-sel:#ffffff; --nav-on:#002050;
+  --on-red:#ffffff; --act:#0d7f6e; --act-h:#0a6a5c; --sel:#002050; --on-sel:#ffffff; --nav-on:#002050;
   --font:'Manrope','Helvetica Neue',Helvetica,Arial,sans-serif;
   --r:10px; --rc:14px; --pill:999px;
   --shadow:0 1px 2px rgba(13,27,51,.04);
@@ -37,7 +37,7 @@
   --line:#1f3050; --line-strong:#2b3f63; --ring:#8fb3ff;
   --navy-t:#1a2a47; --red:#d8283a; --red-h:#e8394b; --red-t:#3a1720; --hl:#ff6b78;
   --tag:#1a2a47; --tag-fg:#c9d6ee; --ok:#3ccf95; --bad:#ff6b78; --bad-t:#3a1720;
-  --sel:#2c4c86; --on-sel:#ffffff; --nav-on:#8fb3ff; --shadow:none;}}
+  --sel:#2c4c86; --on-sel:#ffffff; --nav-on:#8fb3ff; --shadow:none; --act:#0f8a77; --act-h:#13a08a;}}
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#0a1424; --surface:#111d33; --surface-2:#15233d; --soft:#1a2a47;
@@ -45,7 +45,7 @@
   --line:#1f3050; --line-strong:#2b3f63; --ring:#8fb3ff;
   --navy-t:#1a2a47; --red:#d8283a; --red-h:#e8394b; --red-t:#3a1720; --hl:#ff6b78;
   --tag:#1a2a47; --tag-fg:#c9d6ee; --ok:#3ccf95; --bad:#ff6b78; --bad-t:#3a1720;
-  --sel:#2c4c86; --on-sel:#ffffff; --nav-on:#8fb3ff; --shadow:none;}
+  --sel:#2c4c86; --on-sel:#ffffff; --nav-on:#8fb3ff; --shadow:none; --act:#0f8a77; --act-h:#13a08a;}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:500 15px/1.55 var(--font);-webkit-font-smoothing:antialiased;min-height:100dvh}
@@ -61,8 +61,8 @@ p{margin:0}
 .small{font-size:12.5px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 20px;border-radius:var(--r);border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-strong);cursor:pointer;font-weight:700;font-size:14.5px;text-decoration:none;transition:background .15s,border-color .15s}
 .btn:hover{background:var(--surface-2);border-color:var(--faint)}
-.btn.primary{background:var(--red);border-color:var(--red);color:var(--on-red)}
-.btn.primary:hover{background:var(--red-h);border-color:var(--red-h)}
+.btn.primary{background:var(--act);border-color:var(--act);color:#fff}
+.btn.primary:hover{background:var(--act-h);border-color:var(--act-h)}
 .btn.danger{color:var(--bad);border-color:var(--bad);background:transparent}
 .btn.ghost{border-color:transparent;background:transparent}
 .btn.sm{min-height:36px;padding:0 14px;font-size:13px}
