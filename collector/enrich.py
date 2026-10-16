@@ -274,6 +274,126 @@ def _apply_page(x, page):
     return bool(jp)
 
 
+# Text that says an offer no longer takes applications (matched on accent-stripped lowercase visible text).
+CLOSED = re.compile(r"(no longer accepting applications|no longer available|this job has expired|job (?:posting )?has expired|position has been filled"
+                    r"|applications? (?:are |is )?(?:now )?closed|closing date has passed|offre (?:n.est plus disponible|expiree|pourvue|cloturee)"
+                    r"|candidatures? (?:sont )?(?:closes?|cloturees?)|annonce (?:expiree|n.est plus)|stelle (?:ist )?(?:nicht mehr|bereits) (?:verfugbar|besetzt)"
+                    r"|bewerbungsfrist (?:ist )?abgelaufen)")
+_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{5,}", re.I)
+
+
+def plain_text(s):
+    return unicodedata.normalize("NFD", (s or "").lower()).encode("ascii", "ignore").decode()
+
+
+def _host(u):
+    return re.sub(r"^www\.", "", (re.match(r"https?://([^/]+)", u or "") or [None, ""])[1].lower())
+
+
+def closed_phrases(page):
+    """The "closed" wordings in what a visitor sees of the page: scripts and styles are dropped (jobs.ch ships
+    "this document is no longer available" in a script on every page, Tanitjobs "offre cloturee" in a CSS comment)."""
+    body = page.css("body")
+    text = plain_text(_html_text(body[0].html_content if body else page.html_content))
+    return {re.sub(r"\s+", " ", m.group(0)) for m in CLOSED.finditer(re.sub(r"\s+", " ", text))}
+
+
+def page_closed(url, page, ignore=None):
+    """Why an offer's page shows it is closed, or "" when it looks open or the page gave no answer.
+    ignore: the "closed" wordings an open page of the same site also carries (Tanitjobs has a hidden "Offre
+    expiree" badge on every offer); None when no open page was there to compare with, and then wording alone
+    does not count, only a gone page or a redirect."""
+    if page.status in (404, 410):
+        return f"page gone ({page.status})"
+    if page.status != 200:
+        return ""  # refused or rate-limited: no answer
+    final = str(page.url or url)
+    ident = _ID.findall(url.split("?")[0])
+    # Same site, but the offer's id is gone from the address (jobs.ch, EURAXESS send you to the search) or the
+    # address says so (Free-Work: /jobs?expire=1). Another site is an employer's own page (Indeed sends you there).
+    if _host(final) == _host(url) and ((ident and not any(i.lower() in final.lower() for i in ident)) or re.search(r"[?&/]expire", final, re.I)):
+        return "sent to the search page"
+    if re.search(r"posting ?expired|job-?expired|/expired", final, re.I):
+        return "expired page"
+    if ignore is None:
+        return ""
+    said = sorted(closed_phrases(page) - set(ignore))
+    return f'says "{said[0]}"' if said else ""
+
+
+CHECK_DAYS, CHECK_LIMIT, FRESH_HOURS = 2, 600, 6  # one run a day: about half the stored offers each run
+
+
+def _open_page(x, proxy=None):
+    """(url fetched, page) for an offer; LinkedIn through its public job page (and the proxy when there is one)."""
+    m = re.search(r"li-(\d+)", x.get("id", ""))
+    url = f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{m.group(1)}" if x.get("source") == "LinkedIn" and m else x["url"]
+    return url, Fetcher.get(url, stealthy_headers=True, timeout=20, follow_redirects=True, **({"proxy": proxy} if proxy and m else {}))
+
+
+def still_open(items, proxy=None, meter=None, limit=CHECK_LIMIT, budget=300):
+    """Offers are read once, but they close: each run opens again the offers not checked (or found in a listing)
+    for CHECK_DAYS, longest unchecked first, and returns {id: reason} for the closed ones. A page that refuses
+    (403, 429) gives no answer and is tried again later. A "closed" wording counts only when an offer of the same
+    site listed in the last FRESH_HOURS (so open) does not carry it too. meter as in linkedin_details."""
+    t0, now = time.time(), int(time.time() * 1000)
+    last = lambda x: max(x.get("checkedAt", 0), x.get("seenAt", 0), x.get("foundAt", 0))
+    todo = sorted((x for x in items if x.get("url", "").startswith("http") and last(x) < now - CHECK_DAYS * 86400000), key=last)[:limit]
+    fresh = {}
+    for x in items:
+        if x.get("url", "").startswith("http") and max(x.get("seenAt", 0), x.get("foundAt", 0)) >= now - FRESH_HOURS * 3600000:
+            fresh.setdefault(x.get("source"), []).append(x)
+    boiler, closed, asked, refused = {}, {}, 0, {}
+
+    def fetch(x):
+        if refused.get(x.get("source"), 0) >= 3:
+            return None, None
+        try:
+            url, page = _open_page(x, proxy)
+        except Exception:
+            return None, None
+        if meter is not None and x.get("source") == "LinkedIn":
+            meter["used"] = meter.get("used", 0) + len(page.body or b"") + 2000
+        if page.status in (403, 429, 999):
+            refused[x.get("source")] = refused.get(x.get("source"), 0) + 1
+            return None, None
+        return url, page
+
+    def reference(src):
+        """The closed wordings an open offer of this site carries, or None when none could be read."""
+        if src not in boiler:
+            boiler[src] = None
+            for ref in fresh.get(src, [])[:2]:
+                _, page = fetch(ref)
+                if page is not None and page.status == 200:
+                    boiler[src] = closed_phrases(page)
+                    break
+        return boiler[src]
+
+    for x in todo:
+        if time.time() - t0 > budget or (meter and meter.get("used", 0) >= meter["left"]):
+            break
+        url, page = fetch(x)
+        if page is None:
+            continue
+        asked += 1
+        x["checkedAt"] = int(time.time() * 1000)
+        why = page_closed(url, page, ignore=())  # wording first, then compared with an open page of the site
+        if why.startswith("says"):
+            why = page_closed(url, page, ignore=reference(x.get("source")))
+        jp = _job_posting(page) if page.status == 200 else None
+        if not why and jp and str(jp.get("validThrough") or "")[:10] and str(jp["validThrough"])[:10] < time.strftime("%Y-%m-%d"):
+            why = "deadline passed"
+        if why:
+            closed[x["id"]] = why
+        time.sleep(0.3 if proxy and x.get("source") == "LinkedIn" else 1.0)
+    why = {}
+    for r in closed.values():
+        why[r.split(" (")[0]] = why.get(r.split(" (")[0], 0) + 1
+    print(f"  still open?: {asked}/{len(todo)} checked, {len(closed)} closed{' (' + ', '.join(f'{k}: {v}' for k, v in why.items()) + ')' if why else ''}")
+    return closed
+
+
 PROMISING = re.compile(r"\b(ai|ia|ml|machine learning|deep learning|llm|genai|data|python|d[ée]velopp\w*|developer|software|logiciel|"
                        r"engineer|ing[ée]nieur\w*|backend|full.?stack|devops|cloud|nlp|vision|research|recherche|phd|doctora\w*|th[èe]se)\b", re.I)
 

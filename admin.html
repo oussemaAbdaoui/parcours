@@ -1433,7 +1433,7 @@ function marketCharts(all){
 })();
 
 function oppsHub(){
-  $('#view').innerHTML=`<h1>Jobs</h1><p class="sub">Offers collected for you every 3 hours, sorted into categories, plus your own search tools.</p>
+  $('#view').innerHTML=`<h1>Jobs</h1><p class="sub">Offers collected for you once a day, sorted into categories, plus your own search tools.</p>
   <h2 class="sec">Collected for you</h2><div class="grid" id="hubKinds"><p class="hint">Loading…</p></div>
   <div id="hubCharts"></div>
   <h2 class="sec">Search and track</h2><div class="grid tools">
@@ -1825,7 +1825,7 @@ function renderCollected(){
       ${x.desc?`<details class="desc"><summary>Offer details</summary><p class="an">${esc(x.desc)}</p></details>`:''}</div>
       <div class="oa">${u?`<a class="btn sm primary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">Apply</a>`:''}<button class="btn sm" data-cosave="${esc(x.id)}" ${state.saved.some(s=>s.id==='co'+x.id)?'disabled':''}>${state.saved.some(s=>s.id==='co'+x.id)?'Saved':'Save'}</button><button class="btn sm" data-coqueue="${esc(x.id)}" ${inQueue(x.id)?'disabled':''}>${inQueue(x.id)?'Queued':'Queue'}</button><details class="more"><summary class="btn sm ghost" aria-label="More actions">⋯</summary><div class="menu"><button class="btn sm ghost" data-colog="${esc(x.id)}">Log as applied</button>${x.org?`<a class="btn sm ghost" href="#/company/${encodeURIComponent(coKey(x.org))}?role=${encodeURIComponent(x.title)}">Interview stories</a>`:''}<button class="btn sm ghost" data-codel="${esc(x.id)}" title="Delete this offer for good: it leaves your list and is never collected again">Delete</button></div></details></div></article>`;}).join('')+'</div>'
       +(l.length>colMax?`<button class="btn sm" id="coMore" style="margin-top:12px">Show more (${l.length-colMax})</button>`:'')
-    :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs every 3 hours.'}</p>`);
+    :`<p class="hint" style="margin:0">${all.length?'Nothing matches these filters.':'Nothing collected yet. The collector runs once a day.'}</p>`);
   const k=$('#coS');if(k){if($('#coK'))$('#coK').value=colF.k;if($('#coC'))$('#coC').value=colF.c;$('#coN').checked=colF.onlyNew;$('#coS').value=colF.sort;$('#coM').value=String(colF.min);
     $('#coSrc').value=colF.src;$('#coT').value=colF.topic||'';$('#coE').value=colF.exp;$('#coD').value=String(colF.days);$('#coR').checked=colF.remote;$('#coB').checked=colF.hideBlock;$('#coA').checked=colF.hideApplied;
     const read=()=>({k:$('#coK')?$('#coK').value:colF.k,c:$('#coC')?$('#coC').value:colF.c,onlyNew:$('#coN').checked,sort:$('#coS').value,min:+$('#coM').value,q:$('#coQ').value,src:$('#coSrc').value,exp:$('#coE').value,days:+$('#coD').value,remote:$('#coR').checked,hideBlock:$('#coB').checked,hideApplied:$('#coA').checked,topic:$('#coT').value});
@@ -2308,7 +2308,7 @@ async function renderPush(){
     <div class="g2"><div><label class="lab" for="puT">Alert me about new offers scoring at least</label><select id="puT">${[70,75,80,85,90].map(v=>`<option value="${v}" ${(pr.pushThreshold||80)===v?'selected':''}>${v}</option>`).join('')}</select></div>
     <div><label class="lab" for="puD">Weekly digest</label><select id="puD"><option value="1" ${pr.pushDigest!==false?'selected':''}>Monday morning summary</option><option value="0" ${pr.pushDigest===false?'selected':''}>Off</option></select></div></div>
     <div class="row" style="margin-top:12px">${on?`<button class="btn" id="puTest">Send a test</button><button class="btn ghost" id="puOff">Turn off</button>`:`<button class="btn primary" id="puOn" ${st.perm==='denied'?'disabled':''}>Turn on notifications</button>`}<span class="hint" id="puMsg" style="margin:0"></span></div>
-    <p class="hint" style="margin:10px 0 0">The collectors check after each run (every 3 hours). ${isIos&&!isStandalone?'On iPhone, add the app to your Home Screen first.':''}</p>`;
+    <p class="hint" style="margin:10px 0 0">The collectors check after each run (once a day). ${isIos&&!isStandalone?'On iPhone, add the app to your Home Screen first.':''}</p>`;
   const msg=$('#puMsg');
   const saveSub=async sub=>api('/api/push',{method:'POST',body:JSON.stringify({action:'subscribe',subscription:sub.toJSON(),threshold:+$('#puT').value,digest:$('#puD').value==='1',device:navigator.userAgent.slice(0,80)})});
   const change=async()=>{setProfile({pushThreshold:+$('#puT').value,pushDigest:$('#puD').value==='1'});const s=(await pushState()).sub;if(s)try{await saveSub(s);}catch(e){}};
@@ -2732,7 +2732,7 @@ async function poliPrefsForm(){
 }
 function renderSponsors(){
   const box=$('#spBox'),d=poliData;if(!box||!d||poliF.tab==='jobs')return;
-  if(!d.at){box.innerHTML='<p class="hint">No Poli directory yet. It fills on the next collector run (every 3 hours).</p>';return;}
+  if(!d.at){box.innerHTML='<p class="hint">No Poli directory yet. It fills on the next collector run (once a day).</p>';return;}
   const words=poliF.q.toLowerCase().split(/\s+/).filter(Boolean),has=t=>words.every(w=>t.toLowerCase().includes(w));
   let rows,html;
   if(poliF.tab==='people')return renderPoliPeople();

@@ -112,7 +112,7 @@ Open:
 ## 6. Scheduling ✅
 
 Inspected:
-- GitHub's cron is set for every 3 hours but runs 3 to 4 times a day, with gaps up to 9 hours. The PC trigger fills the gaps while the laptop is on (it started the 02:40 run, and skips when a run is recent). Accepted: what only the PC can do is the Tunisian boards.
+- GitHub's cron is set for once a day (07:17 in Tunis, since 16 Oct 2026; was every 3 hours) and drops some runs. The PC trigger fills the gaps while the laptop is on (it started the 02:40 run, and skips when a run is recent). Accepted: what only the PC can do is the Tunisian boards.
 - "Stories" was wrongly listed as broken: it fetches only what is requested, and 12 companies had stories. But their content was wrong, see below.
 
 Done (commit `2882aa8`):

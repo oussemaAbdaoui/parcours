@@ -70,6 +70,11 @@ for f in needed:
         failed.append(f".vercelignore leaves out {f}, which the site needs")
 print("deploy files: " + ("missing some" if any(".vercelignore" in f for f in failed) else f"{len(needed)} needed files deployed"))
 
+r = subprocess.run([sys.executable, os.path.join(ROOT, "tests", "closed_test.py")], capture_output=True, text=True)
+print(r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "closed-page cases: no output")
+if r.returncode:
+    failed.append("closed-page cases:\n" + "\n".join(l for l in (r.stdout + r.stderr).splitlines() if not l.startswith("PASS")))
+
 r = subprocess.run([sys.executable, os.path.join(ROOT, "tests", "sources_csv.py")], capture_output=True, text=True)
 print(r.stdout.strip().splitlines()[0] if r.stdout.strip() else "sources list: no output")
 if r.returncode:

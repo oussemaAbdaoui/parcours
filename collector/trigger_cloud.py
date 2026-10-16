@@ -2,7 +2,7 @@
 best-effort and drops many runs (on 11 Oct: reminders 2 of 7, offers 3 of 8, companies 2 of 2 but 6 hours late).
 Each workflow is started only when no run is queued or running and none started within its gap, so this only fills
 the gaps. Needs the GitHub CLI (gh) logged in with the workflow scope.
-Run by the PC task "Parcours collector" (every 3 hours): python collector/trigger_cloud.py"""
+Run by the PC task "Parcours collector" (daily at 11:00, or when the PC is next on): python collector/trigger_cloud.py"""
 import json
 import subprocess
 from datetime import datetime, timezone
@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 REPO = "oussemaAbdaoui/parcours"
 # workflow, minutes since the last run before it is due, hours (Tunis) it may start in
 WORKFLOWS = [
-    ("collect.yml", 150, range(0, 24)),   # every 3 hours
+    ("collect.yml", 1200, range(0, 24)),  # daily: started only if none ran in the last 20 hours
     ("remind.yml", 110, range(9, 21)),    # every 2 hours, 09:05 to 21:05 (remind.py sends at most one per 90 min)
     ("companies.yml", 660, range(0, 24)),  # twice a day
     ("academia.yml", 1380, range(0, 24)),  # daily

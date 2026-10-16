@@ -75,11 +75,7 @@ class Store:
         return json.loads(v) if v else None
 
 
-# Text that says an offer no longer takes applications (matched on accent-stripped lowercase text).
-CLOSED = re.compile(r"(no longer accepting applications|no longer available|this job has expired|job (?:posting )?has expired|position has been filled"
-                    r"|applications? (?:are |is )?(?:now )?closed|closing date has passed|offre (?:n.est plus disponible|expiree|pourvue|cloturee)"
-                    r"|candidatures? (?:sont )?(?:closes?|cloturees?)|annonce (?:expiree|n.est plus)|stelle (?:ist )?(?:nicht mehr|bereits) (?:verfugbar|besetzt)"
-                    r"|bewerbungsfrist (?:ist )?abgelaufen)")
+from enrich import CLOSED  # noqa: E402  text that says an offer no longer takes applications
 
 
 def relevant(item, words):
@@ -230,6 +226,7 @@ def merge(mine, others, found, now, origin):
             same[k] = x["id"]
         if x["id"] in by_id:
             old = by_id[x["id"]]
+            old["seenAt"] = now  # still listed: counts as checked (enrich.still_open)
             for k, v in x.items():  # refresh listing fields, keep foundAt and fetched details
                 if v and not (k == "desc" and len(old.get("desc") or "") > len(v)):
                     old[k] = v
@@ -361,12 +358,12 @@ def linkedin_cloud(items, store):
     left_month = int(os.environ.get("PROXY_MB_MONTH") or 800) * 1024 * 1024 - spent
     if left_month <= 0:
         return 0, "proxy allowance used up this month"
-    # Paced over the month: each run gets an even share of what is left (about 6 runs a day: cloud and PC triggers),
+    # Paced over the month: each run gets an even share of what is left (one cloud run a day),
     # so the allowance lasts to the 1st instead of running out in the first week (20 MB a run spent 138 MB in a day).
     import calendar
     today = time.gmtime()
     days_left = calendar.monthrange(today.tm_year, today.tm_mon)[1] - today.tm_mday + 1
-    meter = {"left": min(left_month, max(3 * 1024 * 1024, left_month // (days_left * 6)))}
+    meter = {"left": min(left_month, max(3 * 1024 * 1024, left_month // days_left))}
     try:
         n, err = linkedin_details(items, limit=400, proxy=proxy, meter=meter)
     finally:
@@ -546,6 +543,24 @@ def main():
     for x in items:
         if x["id"] not in late and CLOSED.search(unicodedata.normalize("NFD", f"{x.get('title', '')} {x.get('desc', '')}".lower()).encode("ascii", "ignore").decode()):
             late[x["id"]] = ["Closed"]
+    # Offers whose page now shows them closed (gone, sent to the search page, "no longer accepting applications"),
+    # checked again every 2 days (half the store each daily run): an offer is read once, and without this it stayed until it aged out.
+    try:
+        from enrich import still_open
+        # LinkedIn pages through the paid proxy: at most 3 MB a run (about 300 pages), within the month's allowance.
+        proxy = None if home or not store else os.environ.get("PROXY_URL")
+        meter = None
+        if proxy:
+            left = int(os.environ.get("PROXY_MB_MONTH") or 800) * 1024 * 1024 - int(store.cmd("GET", PROXY_KEY + time.strftime("%Y-%m")) or 0)
+            meter = {"left": max(0, min(3 * 1024 * 1024, left))}
+        gone = still_open([x for x in items if x["id"] not in late], proxy=proxy, meter=meter, budget=900)
+        if meter and meter.get("used") and store:
+            store.cmd("INCRBY", PROXY_KEY + time.strftime("%Y-%m"), meter["used"])
+        status["Still open"] = {"ok": True, "count": len(gone)}
+        for i, why in gone.items():
+            late[i] = ["Closed"]
+    except Exception as e:
+        status["Still open"] = {"ok": False, "count": 0, "error": str(e)[:160]}
     report_blocked(late, "dealbreakers among stored offers")
     if late and store:
         try:

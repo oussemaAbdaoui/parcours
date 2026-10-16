@@ -9,7 +9,7 @@ Poli web app itself uses:
   Postgres table poli_companies.
 - People: employees likely sponsored by their employer, from each company that lists some and from the account's
   personalised network, in poli_people. Useful for referrals and advice.
-Companies and people are refreshed on every collector run (every 3 hours, at most every 5 hours for Poli); parcours:poli:meta holds the run report and Poli's totals.
+Companies and people are refreshed on every collector run (once a day); parcours:poli:meta holds the run report and Poli's totals.
 """
 import json
 import os
@@ -231,7 +231,7 @@ def collect():
 
 
 def run(store, dry=False, force=False):
-    """Refreshes companies and people, at most every 5 hours (every other 3-hourly run). Returns a status line for the run report."""
+    """Refreshes companies and people, at most every 5 hours (so on every daily run). Returns a status line for the run report."""
     if not os.environ.get("POLI_EMAIL"):
         return {"ok": True, "count": 0, "error": "no Poli account (POLI_EMAIL / POLI_PASSWORD)"}
     now = int(time.time() * 1000)
