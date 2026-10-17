@@ -475,7 +475,7 @@
     data: { fams: ['data', 'db', 'nosql'],
       title: /\b(data|donnees|daten|analytics|bi|business intelligence|big data|etl|statisti\w*|quant\w*|analyst|analyste)\b/ },
     software: { fams: ['backend', 'api', 'pyweb', 'jvmweb', 'jsweb', 'phpweb', 'front', 'devops', 'cloud', 'lang', 'mobile'],
-      title: /\b(software|logiciel|softwareentwickl\w*|developer|developpeur|entwickler|programmer|programmeur|backend|back.end|full.?stack|frontend|front.end|devops|sre|cloud|platform|plateforme|web|api|python|java|typescript|node|informati\w*|systems? engineer|ingenieur (?:etudes et )?developpement)\b/ },
+      title: /\b(software|logiciel|softwareentwickl\w*|developer|developpeur|entwickler|programmer|programmeur|backend|back.end|full.?stack|frontend|front.end|devops|sre|cloud|platform|plateforme|web|api|python|java|typescript|node|informati\w*|systems? engineer|forward.deployed|ingenieur (?:etudes et )?developpement)\b/ },
     research: { fams: ['research', 'opt', 'xai'],
       title: /\b(phd|ph\.d|doctora\w*|doktorand\w*|these|thesis|research|recherche|forschung|postdoc|scientist|chercheur)\b/ },
   };

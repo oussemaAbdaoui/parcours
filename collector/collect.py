@@ -167,12 +167,15 @@ LOCATIONS = {"fr": "Paris", "de": "Berlin", "ca": "Montreal", "ch": "Zurich", "t
 # French titles find offers the English ones miss in French-speaking markets.
 FRENCH_QUERIES = {"fr": ["ingénieur IA", "développeur IA"], "tn": ["ingénieur IA", "développeur IA"], "ch": ["ingénieur IA"],
                   "be": ["ingénieur IA"], "lu": ["ingénieur IA"], "ma": ["ingénieur IA", "développeur IA"]}
+# Roles you target whatever the CV says: searched in every country, after the two strongest areas and "AI engineer".
+TARGET_QUERIES = ["forward deployed engineer"]
 AI_SKILLS = {"machine learning", "deep learning", "llm", "rag", "agents", "pytorch", "tensorflow", "nlp", "computer vision"}
 
 
 def profile_searches(state):
-    """Searches built from the profile when none are saved: the two strongest areas, "AI engineer" and your roles,
-    in each of your countries (four per country; Tunisia, on LinkedIn only, gets them all). Remote / Global is left
+    """Searches built from the profile when none are saved: the two strongest areas, "AI engineer", the target roles
+    and your roles: the first four in each of your countries, plus a French title where offers are in French
+    (Tunisia, on LinkedIn only, gets them all, your roles too). Remote / Global is left
     to the remote boards: JobSpy's global Indeed is the US site, whose offers the location rule drops."""
     p = state.get("profile") or {}
     skills = set(p.get("skills") or [])
@@ -182,6 +185,7 @@ def profile_searches(state):
         return DEFAULT_SEARCHES
     if skills & AI_SKILLS:
         queries.append("AI engineer")
+    queries += TARGET_QUERIES
     for r in p.get("roles") or []:  # "backend developer intern" searches as "backend developer"
         r = re.sub(r"\b(intern|internship|stage|stagiaire)\b", "", r, flags=re.I).strip()
         if len(r.split()) >= 2:
@@ -189,7 +193,7 @@ def profile_searches(state):
     queries = list({q.lower(): q for q in reversed(queries)}.values())[::-1]  # dedupe, first spelling and order kept
     out = []
     for c in [c for c in (p.get("countries") or ["fr", "de", "tn"]) if c in LOCATIONS and c != "gl"]:
-        mine = queries + FRENCH_QUERIES.get(c, []) if c == "tn" else queries[:3] + (FRENCH_QUERIES.get(c) or queries[3:])[:1]
+        mine = queries + FRENCH_QUERIES[c] if c == "tn" else queries[:4] + FRENCH_QUERIES.get(c, [])[:1]
         out += [{"search": q, "c": c, "location": LOCATIONS[c], "type": ""} for q in mine]
     return out or DEFAULT_SEARCHES
 
